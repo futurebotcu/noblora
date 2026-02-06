@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# React Native
+*.apk
+*.aab
+*.ipa
+*.app
+android/app/build/
+android/.gradle/
+ios/Pods/
+ios/build/
+*.hprof
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Sentry
+.sentryclirc
+
+# Secrets - NEVER commit
+*.pem
+*.key
+secrets/
+credentials.json
+google-services.json
+GoogleService-Info.plist
+
+# Temporary files
+tmp/
+temp/
+*.tmp
