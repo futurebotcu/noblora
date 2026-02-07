@@ -43,7 +43,7 @@ export function Input({
         style={[
           styles.inputContainer,
           isFocused && styles.inputContainerFocused,
-          error && styles.inputContainerError,
+          !!error && styles.inputContainerError,
         ]}
       >
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
@@ -51,8 +51,8 @@ export function Input({
         <TextInput
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            rightIcon && styles.inputWithRightIcon,
+            !!leftIcon && styles.inputWithLeftIcon,
+            !!rightIcon && styles.inputWithRightIcon,
             style,
           ]}
           placeholderTextColor={colors.gray400}

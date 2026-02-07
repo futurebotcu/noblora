@@ -24,7 +24,7 @@ function App(): React.JSX.Element {
 
   if (!isInitialized) {
     // Could show splash screen here
-    return null;
+    return <></>;
   }
 
   return (

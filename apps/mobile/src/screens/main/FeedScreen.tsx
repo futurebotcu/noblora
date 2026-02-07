@@ -17,7 +17,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/theme';
-import { Skeleton, SkeletonCard } from '../../components/SkeletonLoader';
+import { SkeletonCard } from '../../components/SkeletonLoader';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - spacing.xl * 2;
@@ -71,7 +71,7 @@ const MOCK_PROFILES: ProfileCard[] = [
 
 export function FeedScreen() {
   const [profiles, setProfiles] = useState(MOCK_PROFILES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const handleSwipe = useCallback((direction: 'left' | 'right', profileId: string) => {
     // Remove the swiped card
@@ -145,8 +145,8 @@ export function FeedScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <ActionButton icon="✕" onPress={() => handleSwipe('left', profiles[0]?.id)} color={colors.error} />
-        <ActionButton icon="♡" onPress={() => handleSwipe('right', profiles[0]?.id)} color={colors.primary} large />
+        <ActionButton icon="✕" onPress={() => handleSwipe('left', profiles[0]!.id)} color={colors.error} />
+        <ActionButton icon="♡" onPress={() => handleSwipe('right', profiles[0]!.id)} color={colors.primary} large />
       </View>
     </SafeAreaView>
   );
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   cardInfo: {
     padding: spacing.xl,

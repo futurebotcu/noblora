@@ -28,7 +28,7 @@ export function VideoCallScreen() {
   const [callState, setCallState] = useState<'waiting' | 'connecting' | 'active' | 'ended'>('waiting');
   const [duration, setDuration] = useState(0);
   const [isMinMet, setIsMinMet] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
