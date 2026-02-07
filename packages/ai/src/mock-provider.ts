@@ -9,7 +9,7 @@ import type { AIProvider, PhotoAnalysisResult, ContentModerationResult } from '.
  * Mock AI Provider that simulates AI responses for development
  */
 export class MockAIProvider implements AIProvider {
-  readonly name = 'mock';
+  readonly name: string = 'mock';
 
   /**
    * Simulate photo analysis with randomized but reasonable results

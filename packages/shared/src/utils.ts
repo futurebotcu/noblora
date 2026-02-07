@@ -290,7 +290,7 @@ export function generateIdempotencyKey(
 /**
  * Extract user IDs from a match (ordered)
  */
-export function getMatchUserIds(matchId: string, userA: string, userB: string): [string, string] {
+export function getMatchUserIds(_matchId: string, userA: string, userB: string): [string, string] {
   // Always return in consistent order
   return userA < userB ? [userA, userB] : [userB, userA];
 }
