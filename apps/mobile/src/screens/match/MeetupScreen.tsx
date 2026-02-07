@@ -21,7 +21,7 @@ type RouteType = RouteProp<RootStackParamList, 'Meetup'>;
 export function MeetupScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteType>();
-  const { matchId, meetupId } = route.params;
+  const { meetupId } = route.params;
 
   const [location, setLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

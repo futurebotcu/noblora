@@ -44,7 +44,6 @@ export function GenderSelectionScreen() {
 
           <View style={styles.options}>
             <GenderOption
-              gender="female"
               emoji="👩"
               title="Woman"
               selected={selectedGender === 'female'}
@@ -52,7 +51,6 @@ export function GenderSelectionScreen() {
             />
 
             <GenderOption
-              gender="male"
               emoji="👨"
               title="Man"
               selected={selectedGender === 'male'}
@@ -60,7 +58,6 @@ export function GenderSelectionScreen() {
             />
 
             <GenderOption
-              gender="other"
               emoji="🌈"
               title="Non-binary"
               selected={selectedGender === 'other'}
@@ -95,13 +92,11 @@ export function GenderSelectionScreen() {
 }
 
 function GenderOption({
-  gender,
   emoji,
   title,
   selected,
   onSelect,
 }: {
-  gender: Gender;
   emoji: string;
   title: string;
   selected: boolean;

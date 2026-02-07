@@ -7,8 +7,6 @@ import { supabase, isMockMode } from './supabase';
 import { captureException } from './sentry';
 import type { GatingStatus, ApiResponse } from '@noblara/shared';
 
-const EDGE_FUNCTION_BASE = '/functions/v1';
-
 interface FetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
@@ -19,7 +17,7 @@ async function callEdgeFunction<T>(
   functionName: string,
   options: FetchOptions = {}
 ): Promise<ApiResponse<T>> {
-  const { method = 'POST', body, timeout = 30000 } = options;
+  const { body, timeout = 30000 } = options;
 
   // Mock mode returns mock data
   if (isMockMode()) {

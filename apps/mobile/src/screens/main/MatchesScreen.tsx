@@ -52,7 +52,7 @@ const MOCK_MATCHES: MatchItem[] = [
 
 export function MatchesScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [matches, setMatches] = useState(MOCK_MATCHES);
+  const [matches] = useState(MOCK_MATCHES);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {

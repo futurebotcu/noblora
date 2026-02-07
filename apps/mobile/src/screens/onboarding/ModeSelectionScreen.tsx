@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { colors, spacing, typography, borderRadius } from '../../constants/theme';
+import { colors, spacing, typography } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ModeSelection'>;
 type Mode = 'dating' | 'bff';
@@ -37,7 +37,6 @@ export function ModeSelectionScreen() {
 
         <View style={styles.options}>
           <ModeOption
-            mode="dating"
             emoji="💜"
             title="Dating"
             description="Find romantic connections and meaningful relationships"
@@ -46,7 +45,6 @@ export function ModeSelectionScreen() {
           />
 
           <ModeOption
-            mode="bff"
             emoji="🤝"
             title="BFF"
             description="Make new friends and expand your social circle"
@@ -70,14 +68,12 @@ export function ModeSelectionScreen() {
 }
 
 function ModeOption({
-  mode,
   emoji,
   title,
   description,
   selected,
   onSelect,
 }: {
-  mode: Mode;
   emoji: string;
   title: string;
   description: string;

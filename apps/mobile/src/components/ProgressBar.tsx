@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { colors, spacing, borderRadius, typography } from '../constants/theme';
+import { colors, spacing, typography } from '../constants/theme';
 
 interface ProgressBarProps {
   progress: number; // 0-100

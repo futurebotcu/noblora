@@ -12,14 +12,10 @@ interface SentryOptions {
   release?: string;
 }
 
-let isInitialized = false;
-
 export function initSentry(_options?: SentryOptions): void {
   // Placeholder - initialize Sentry SDK here
   // import * as Sentry from '@sentry/react-native';
   // Sentry.init({ dsn: options.dsn, ... });
-
-  isInitialized = true;
 
   if (__DEV__) {
     console.log('[Sentry] Initialized (placeholder)');
@@ -66,7 +62,7 @@ export function addBreadcrumb(breadcrumb: {
   // Sentry.addBreadcrumb(breadcrumb);
 }
 
-export function startTransaction(name: string, op: string) {
+export function startTransaction(name: string, _op: string) {
   // Placeholder - start performance transaction
   // return Sentry.startTransaction({ name, op });
 

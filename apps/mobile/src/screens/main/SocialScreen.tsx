@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { colors, spacing, typography, borderRadius } from '../../constants/theme';
+import { colors, spacing, typography } from '../../constants/theme';
 
 const MAX_POST_LENGTH = 150;
 
@@ -92,7 +92,7 @@ export function SocialScreen() {
     }
   };
 
-  const handleReport = (postId: string) => {
+  const handleReport = (_postId: string) => {
     Alert.alert(
       'Report Post',
       'Are you sure you want to report this post?',
