@@ -6,8 +6,10 @@ import '../../core/theme/app_spacing.dart';
 import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
+import '../../providers/note_provider.dart';
 import 'nob_compose_screen.dart';
 import 'nob_drafts_screen.dart';
+import 'note_inbox_screen.dart';
 
 // ---------------------------------------------------------------------------
 // NoblaraFeedScreen
@@ -50,6 +52,13 @@ class NoblaraFeedScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.mail_outline_rounded,
+                color: AppColors.nobObserver, size: 20),
+            tooltip: 'Notes',
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const NoteInboxScreen())),
+          ),
           if (canCompose)
             IconButton(
               icon: const Icon(Icons.drafts_outlined,
@@ -151,6 +160,20 @@ class NoblaraFeedScreen extends ConsumerWidget {
                               .read(postsProvider.notifier)
                               .deletePost(post.id)
                           : null,
+                      onSendNote: (receiverId, targetType, targetId, content) {
+                        ref.read(noteInboxProvider.notifier).sendNote(
+                          receiverId: receiverId,
+                          targetType: targetType,
+                          targetId: targetId,
+                          content: content,
+                        );
+                      },
+                      onSignal: (targetUserId) {
+                        ref.read(postsProvider.notifier).sendSignalFromNob(targetUserId);
+                      },
+                      onReachOut: (targetUserId) {
+                        ref.read(postsProvider.notifier).sendReachOutFromNob(targetUserId);
+                      },
                     );
                   },
                   childCount: postsState.posts.length,
@@ -433,6 +456,9 @@ class _NobCard extends StatelessWidget {
   final VoidCallback? onPin;
   final VoidCallback? onArchive;
   final VoidCallback? onDelete;
+  final void Function(String receiverId, String targetType, String targetId, String content)? onSendNote;
+  final void Function(String targetUserId)? onSignal;
+  final void Function(String targetUserId)? onReachOut;
 
   const _NobCard({
     required this.post,
@@ -441,6 +467,9 @@ class _NobCard extends StatelessWidget {
     this.onPin,
     this.onArchive,
     this.onDelete,
+    this.onSendNote,
+    this.onSignal,
+    this.onReachOut,
   });
 
   Color get _tierColor {
@@ -721,7 +750,12 @@ class _NobCard extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.nobSurface,
       isScrollControlled: true,
-      builder: (_) => _AuthorProfileSheet(post: post),
+      builder: (_) => _AuthorProfileSheet(
+        post: post,
+        onSignal: onSignal,
+        onReachOut: onReachOut,
+        onSendNote: onSendNote,
+      ),
     );
   }
 
@@ -773,7 +807,9 @@ class _NobCard extends StatelessWidget {
   }
 
   void _sendNote(BuildContext context, String content) {
-    // Calls note repository — wired via the card's parent
+    if (onSendNote != null) {
+      onSendNote!(post.userId, 'post', post.id, content);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.noblaraGold),
     );
@@ -1068,7 +1104,10 @@ class _FilterChip extends StatelessWidget {
 
 class _AuthorProfileSheet extends StatelessWidget {
   final Post post;
-  const _AuthorProfileSheet({required this.post});
+  final void Function(String)? onSignal;
+  final void Function(String)? onReachOut;
+  final void Function(String, String, String, String)? onSendNote;
+  const _AuthorProfileSheet({required this.post, this.onSignal, this.onReachOut, this.onSendNote});
 
   @override
   Widget build(BuildContext context) {
@@ -1148,6 +1187,7 @@ class _AuthorProfileSheet extends StatelessWidget {
                     ),
                     onPressed: () {
                       Navigator.pop(context);
+                      onSignal?.call(post.userId);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Signal sent'), backgroundColor: AppColors.gold));
                     },
@@ -1164,6 +1204,7 @@ class _AuthorProfileSheet extends StatelessWidget {
                     ),
                     onPressed: () {
                       Navigator.pop(context);
+                      onReachOut?.call(post.userId);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Reached out!'), backgroundColor: Color(0xFF26C6DA)));
                     },

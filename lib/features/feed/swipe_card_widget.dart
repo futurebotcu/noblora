@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/profile_card.dart';
+import '../../providers/posts_provider.dart';
 
 class SwipeCardWidget extends StatefulWidget {
   final ProfileCard card;
@@ -279,14 +281,16 @@ class _CardBody extends StatelessWidget {
   }
 }
 
-class _CardInfo extends StatelessWidget {
+class _CardInfo extends ConsumerWidget {
   final ProfileCard card;
   final NobleMode mode;
 
   const _CardInfo({required this.card, required this.mode});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Load last 3 Nobs for this user
+    final nobsAsync = ref.watch(lastNobsProvider(card.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -365,6 +369,39 @@ class _CardInfo extends StatelessWidget {
             }).toList(),
           ),
         ],
+        // Last 3 Nobs
+        ...nobsAsync.when(
+          data: (nobs) {
+            if (nobs.isEmpty) return <Widget>[];
+            return [
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: nobs.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (_, i) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Text(
+                      nobs[i].content.isNotEmpty ? nobs[i].content : (nobs[i].caption ?? ''),
+                      style: const TextStyle(color: Colors.white70, fontSize: 10, height: 1.3),
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ),
+            ];
+          },
+          loading: () => <Widget>[],
+          error: (_, __) => <Widget>[],
+        ),
       ],
     );
   }

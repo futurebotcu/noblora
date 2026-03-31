@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/post.dart';
 import '../data/repositories/post_repository.dart';
+import '../data/repositories/signal_repository.dart';
+import '../data/repositories/bff_suggestion_repository.dart';
 import 'auth_provider.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) {
@@ -159,6 +161,30 @@ class PostsNotifier extends StateNotifier<PostsState> {
   }
 
   void setError(String message) => state = state.copyWith(error: message);
+
+  /// Send Signal from Nob author profile (Dating bridge)
+  Future<void> sendSignalFromNob(String targetUserId) async {
+    final uid = _ref.read(authProvider).userId;
+    if (uid == null) return;
+    final signalRepo = isMockMode
+        ? SignalRepository()
+        : SignalRepository(supabase: Supabase.instance.client);
+    final canSend = await signalRepo.canSendSignal(uid);
+    if (!canSend) return;
+    await signalRepo.sendSignal(senderId: uid, receiverId: targetUserId);
+  }
+
+  /// Send Reach Out from Nob author profile (BFF bridge)
+  Future<void> sendReachOutFromNob(String targetUserId) async {
+    final uid = _ref.read(authProvider).userId;
+    if (uid == null) return;
+    final bffRepo = isMockMode
+        ? BffSuggestionRepository()
+        : BffSuggestionRepository(supabase: Supabase.instance.client);
+    final canSend = await bffRepo.canReachOut(uid);
+    if (!canSend) return;
+    await bffRepo.sendReachOut(senderId: uid, receiverId: targetUserId);
+  }
 
   // ── Create / Draft ──────────────────────────────────────────────────────
 
