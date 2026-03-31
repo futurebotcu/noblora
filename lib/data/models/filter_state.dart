@@ -23,6 +23,8 @@ class FilterState {
   final bool hasNobs;
   final bool hasPrompts;
   final bool sixPlusPhotos;
+  final bool pinnedNobExists;
+  final bool sameCityOnly;
   final List<String> fromCountries;
 
   // ── BFF ──
@@ -54,6 +56,8 @@ class FilterState {
     this.hasNobs = false,
     this.hasPrompts = false,
     this.sixPlusPhotos = false,
+    this.pinnedNobExists = false,
+    this.sameCityOnly = false,
     this.fromCountries = const [],
     this.bffLookingFor,
     this.vibes = const [],
@@ -80,6 +84,8 @@ class FilterState {
     bool? hasNobs,
     bool? hasPrompts,
     bool? sixPlusPhotos,
+    bool? pinnedNobExists,
+    bool? sameCityOnly,
     List<String>? fromCountries,
     String? bffLookingFor,
     List<String>? vibes,
@@ -115,6 +121,8 @@ class FilterState {
       hasNobs: hasNobs ?? this.hasNobs,
       hasPrompts: hasPrompts ?? this.hasPrompts,
       sixPlusPhotos: sixPlusPhotos ?? this.sixPlusPhotos,
+      pinnedNobExists: pinnedNobExists ?? this.pinnedNobExists,
+      sameCityOnly: sameCityOnly ?? this.sameCityOnly,
       fromCountries: fromCountries ?? this.fromCountries,
       bffLookingFor: clearBffLookingFor ? null : (bffLookingFor ?? this.bffLookingFor),
       vibes: vibes ?? this.vibes,
@@ -146,6 +154,8 @@ class FilterState {
       if (hasNobs) c++;
       if (hasPrompts) c++;
       if (sixPlusPhotos) c++;
+      if (pinnedNobExists) c++;
+      if (sameCityOnly) c++;
       if (fromCountries.isNotEmpty) c++;
     } else if (mode == NobleMode.bff) {
       if (bffLookingFor != null) c++;

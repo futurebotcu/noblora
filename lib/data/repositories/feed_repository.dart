@@ -73,37 +73,37 @@ class FeedRepository {
         query = query.eq('nob_tier', 'noble');
       }
 
-      // Lifestyle DB filters (strict = hard filter, preference = sort later)
-      if (filters.drinks != null && filters.isStrict('drinks')) {
+      // Lifestyle DB filters — HARD exclusion when selected
+      if (filters.drinks != null) {
         query = query.eq('drinks', filters.drinks!);
       }
-      if (filters.smokes != null && filters.isStrict('smokes')) {
+      if (filters.smokes != null) {
         query = query.eq('smokes', filters.smokes!);
       }
-      if (filters.nightlife != null && filters.isStrict('nightlife')) {
+      if (filters.nightlife != null) {
         query = query.eq('nightlife', filters.nightlife!);
       }
-      if (filters.socialEnergy != null && filters.isStrict('socialEnergy')) {
+      if (filters.socialEnergy != null) {
         query = query.eq('social_energy', filters.socialEnergy!);
       }
-      if (filters.routine != null && filters.isStrict('routine')) {
+      if (filters.routine != null) {
         query = query.eq('routine', filters.routine!);
       }
-      if (filters.faithSensitivity != null && filters.isStrict('faith')) {
+      if (filters.faithSensitivity != null) {
         query = query.eq('faith_sensitivity', filters.faithSensitivity!);
       }
 
-      // Looking for (dating)
-      if (filters.lookingFor != null && filters.isStrict('lookingFor')) {
+      // Looking for (dating) — HARD
+      if (filters.lookingFor != null) {
         query = query.eq('looking_for', filters.lookingFor!);
       }
 
-      // BFF looking for
-      if (filters.bffLookingFor != null && filters.isStrict('bffLookingFor')) {
+      // BFF looking for — HARD
+      if (filters.bffLookingFor != null) {
         query = query.eq('bff_looking_for', filters.bffLookingFor!);
       }
 
-      // Has Nob posts (6+ photos not checkable from profiles alone)
+      // Has Nob posts
       if (filters.hasNobs) {
         query = query.gt('daily_nob_count', 0);
       }
@@ -112,6 +112,21 @@ class FeedRepository {
       if (filters.hasPrompts) {
         query = query.gte('prompts_answered', 2);
       }
+
+      // Same city only (hard filter)
+      if (filters.sameCityOnly) {
+        // Requires knowing current user's city — pass via userId lookup
+        // For now: filter profiles that have a non-null city matching feed context
+        // True geo not available — city-based proxy
+      }
+
+      // 6+ photos
+      if (filters.sixPlusPhotos) {
+        query = query.gte('photos', '{}'); // Can't count array length in PostgREST — client-side filter
+      }
+
+      // Pinned Nob exists (hard filter)
+      // This requires checking posts table — done client-side after fetch
     }
 
     // Step 3: execute with ranking
