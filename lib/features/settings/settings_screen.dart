@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../providers/appearance_provider.dart';
 import '../../providers/auth_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -121,6 +122,12 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader('Account'),
           _SettingsTile(icon: Icons.logout_rounded, title: 'Sign Out', color: AppColors.error,
               onTap: () => ref.read(authProvider.notifier).signOut()),
+
+          // ── Appearance ──
+          _SectionHeader('Appearance'),
+          _AppearanceThemeSelector(ref: ref),
+          const SizedBox(height: AppSpacing.sm),
+          _AppearanceAccentSelector(ref: ref),
 
           // ── Modes ──
           _SectionHeader('Modes'),
@@ -337,6 +344,91 @@ class _ToggleTile extends StatelessWidget {
         value: value,
         onChanged: onChanged,
         activeTrackColor: AppColors.gold.withValues(alpha: 0.4),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Appearance: Theme Mode selector
+// ---------------------------------------------------------------------------
+
+class _AppearanceThemeSelector extends StatelessWidget {
+  final WidgetRef ref;
+  const _AppearanceThemeSelector({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(appearanceProvider).themeMode;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        children: [
+          const Icon(Icons.brightness_6_rounded, color: AppColors.textPrimary, size: 20),
+          const SizedBox(width: AppSpacing.md),
+          const Expanded(child: Text('Theme', style: TextStyle(color: AppColors.textPrimary, fontSize: 14))),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 16)),
+              ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 16)),
+              ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_brightness_rounded, size: 16)),
+            ],
+            selected: {current},
+            onSelectionChanged: (s) => ref.read(appearanceProvider.notifier).setThemeMode(s.first),
+            style: SegmentedButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              selectedBackgroundColor: AppColors.gold.withValues(alpha: 0.2),
+              selectedForegroundColor: AppColors.gold,
+              foregroundColor: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Appearance: Accent Color selector
+// ---------------------------------------------------------------------------
+
+class _AppearanceAccentSelector extends StatelessWidget {
+  final WidgetRef ref;
+  const _AppearanceAccentSelector({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(appearanceProvider).accent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        children: [
+          const Icon(Icons.palette_rounded, color: AppColors.textPrimary, size: 20),
+          const SizedBox(width: AppSpacing.md),
+          const Expanded(child: Text('Accent', style: TextStyle(color: AppColors.textPrimary, fontSize: 14))),
+          Row(
+            children: AppAccent.values.map((a) {
+              final selected = a == current;
+              return GestureDetector(
+                onTap: () => ref.read(appearanceProvider.notifier).setAccent(a),
+                child: Container(
+                  width: 28, height: 28,
+                  margin: const EdgeInsets.only(left: 6),
+                  decoration: BoxDecoration(
+                    color: a.color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected ? Colors.white : Colors.transparent,
+                      width: selected ? 2.5 : 0,
+                    ),
+                    boxShadow: selected ? [BoxShadow(color: a.color.withValues(alpha: 0.4), blurRadius: 8)] : null,
+                  ),
+                  child: selected ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
