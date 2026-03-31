@@ -6,7 +6,10 @@ import '../../core/enums/noble_mode.dart';
 import '../../data/models/inbox_item.dart';
 import '../../data/models/match.dart';
 import '../../features/match/match_detail_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/check_in_provider.dart';
 import '../../providers/match_provider.dart';
+import '../match/check_in_screen.dart';
 import 'individual_chat_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -238,16 +241,16 @@ class _TabLabel extends StatelessWidget {
 // Alliances tab — Date & BFF 1-on-1 conversations
 // ---------------------------------------------------------------------------
 
-class _AlliancesTab extends StatefulWidget {
+class _AlliancesTab extends ConsumerStatefulWidget {
   final List<InboxItem> items;
   final Map<String, NobleMatch> matchesByItemId;
   const _AlliancesTab({required this.items, required this.matchesByItemId});
 
   @override
-  State<_AlliancesTab> createState() => _AlliancesTabState();
+  ConsumerState<_AlliancesTab> createState() => _AlliancesTabState();
 }
 
-class _AlliancesTabState extends State<_AlliancesTab> {
+class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
   NobleMode? _filter; // null = All
 
   List<InboxItem> get _filtered {
@@ -282,8 +285,53 @@ class _AlliancesTabState extends State<_AlliancesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = ref.watch(authProvider).userId;
+    final pendingCheckIns = uid != null
+        ? ref.watch(pendingCheckInsProvider(uid))
+        : const AsyncValue<List<Map<String, dynamic>>>.data([]);
+
     return Column(
       children: [
+        // Pending check-in banner
+        ...pendingCheckIns.when(
+          data: (pending) {
+            if (pending.isEmpty) return <Widget>[];
+            return [
+              GestureDetector(
+                onTap: () {
+                  final meetingId = pending.first['id'] as String?;
+                  if (meetingId != null) {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => CheckInScreen(meetingId: meetingId, otherUserName: 'your match'),
+                    ));
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.rate_review_rounded, color: AppColors.gold, size: 20),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text('You have a pending check-in. How did it go?',
+                            style: TextStyle(color: AppColors.gold, fontSize: 13)),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.gold, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ];
+          },
+          loading: () => <Widget>[],
+          error: (_, __) => <Widget>[],
+        ),
         // Mode filter pills
         _FilterRow(
           selected: _filter,

@@ -214,3 +214,12 @@ class FeedNotifier extends StateNotifier<FeedState> {
 final feedProvider = StateNotifierProvider<FeedNotifier, FeedState>((ref) {
   return FeedNotifier(ref);
 });
+
+/// Real remaining swipe count from server
+final remainingSwipesProvider = FutureProvider<int>((ref) async {
+  final uid = ref.watch(authProvider).userId;
+  if (uid == null || isMockMode) return 30;
+  final result = await Supabase.instance.client
+      .rpc('get_remaining_swipes', params: {'p_user_id': uid});
+  return (result as int?) ?? 0;
+});
