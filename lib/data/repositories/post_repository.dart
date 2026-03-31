@@ -7,8 +7,35 @@ class PostRepository {
 
   PostRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
-  Future<List<Post>> fetchFeed({int limit = 50}) async {
+  Future<List<Post>> fetchFeed({
+    int limit = 50,
+    String? userId,
+    String? type,
+    String? sort,
+    String? tone,
+    bool hidePassed = false,
+    bool prioritizeConnected = false,
+  }) async {
     if (isMockMode) return _mockPosts();
+
+    // Use RPC for filtered feed if userId provided
+    if (userId != null) {
+      final rows = await _supabase!.rpc('fetch_nob_feed', params: {
+        'p_user_id': userId,
+        'p_type': type,
+        'p_sort': sort ?? 'newest',
+        'p_tone': tone,
+        'p_hide_passed': hidePassed,
+        'p_prioritize_connected': prioritizeConnected,
+        'p_limit': limit,
+      });
+      if (rows is List) {
+        return _enrichWithProfiles(List<Map<String, dynamic>>.from(rows));
+      }
+      return [];
+    }
+
+    // Fallback: simple query
     final rows = await _supabase!
         .from('posts')
         .select()
@@ -19,6 +46,32 @@ class PostRepository {
         .order('published_at', ascending: false)
         .limit(limit);
     return _enrichWithProfiles(rows);
+  }
+
+  /// Get reaction counts for author's own posts
+  Future<Map<String, int>> getOwnReactionCounts(String postId, String authorId) async {
+    if (isMockMode) return {};
+    final result = await _supabase!.rpc('get_own_reaction_counts', params: {
+      'p_post_id': postId,
+      'p_author_id': authorId,
+    });
+    if (result is Map) {
+      return {
+        'appreciate': (result['appreciate'] as num?)?.toInt() ?? 0,
+        'support': (result['support'] as num?)?.toInt() ?? 0,
+        'pass': (result['pass'] as num?)?.toInt() ?? 0,
+        'total': (result['total'] as num?)?.toInt() ?? 0,
+      };
+    }
+    return {};
+  }
+
+  /// Trigger quality score computation via edge function
+  Future<void> computeQualityScore(String postId) async {
+    if (isMockMode) return;
+    try {
+      await _supabase!.functions.invoke('nob-quality-check', body: {'post_id': postId});
+    } catch (_) {}
   }
 
   Future<List<Post>> fetchDrafts(String userId) async {

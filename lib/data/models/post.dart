@@ -38,8 +38,10 @@ class Post {
   // Populated by join
   final String? authorName;
   final String? authorAvatarUrl;
+  final String? tone; // reflective, grounded, curious, creative
   final NobTier authorTier;
   final List<PostReaction> reactions;
+  final Map<String, int> ownCounts; // author-only reaction counts
 
   const Post({
     required this.id,
@@ -57,8 +59,10 @@ class Post {
     this.updatedAt,
     this.authorName,
     this.authorAvatarUrl,
+    this.tone,
     this.authorTier = NobTier.observer,
     this.reactions = const [],
+    this.ownCounts = const {},
   });
 
   bool get isThought => nobType == 'thought';
@@ -88,11 +92,12 @@ class Post {
           json['author_name'] as String?,
       authorAvatarUrl: profile?['date_avatar_url'] as String? ??
           json['author_avatar_url'] as String?,
+      tone: json['tone'] as String?,
       authorTier: NobTier.fromString(profile?['nob_tier'] as String?),
     );
   }
 
-  Post copyWith({List<PostReaction>? reactions, bool? isPinned}) {
+  Post copyWith({List<PostReaction>? reactions, bool? isPinned, Map<String, int>? ownCounts}) {
     return Post(
       id: id,
       userId: userId,
@@ -109,8 +114,10 @@ class Post {
       updatedAt: updatedAt,
       authorName: authorName,
       authorAvatarUrl: authorAvatarUrl,
+      tone: tone,
       authorTier: authorTier,
       reactions: reactions ?? this.reactions,
+      ownCounts: ownCounts ?? this.ownCounts,
     );
   }
 

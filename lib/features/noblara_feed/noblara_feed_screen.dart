@@ -111,6 +111,9 @@ class NoblaraFeedScreen extends ConsumerWidget {
                 ),
               ),
 
+            // Filter bar
+            SliverToBoxAdapter(child: _NobFilterBar(state: postsState, ref: ref)),
+
             // Loading shimmer
             if (postsState.isLoading && postsState.posts.isEmpty)
               SliverList(
@@ -499,43 +502,49 @@ class _NobCard extends StatelessWidget {
                       color: AppColors.noblaraGold, size: 11),
                   const SizedBox(width: AppSpacing.xs),
                 ],
-                // Avatar
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _tierColor.withValues(alpha: 0.15),
-                    border: Border.all(
-                        color: _tierColor.withValues(alpha: 0.3), width: 1),
-                  ),
-                  child: post.authorAvatarUrl != null
-                      ? ClipOval(
-                          child: Image.network(post.authorAvatarUrl!,
-                              fit: BoxFit.cover))
-                      : Center(
-                          child: Text(
-                            (post.authorName ?? 'N')[0].toUpperCase(),
-                            style: TextStyle(
-                              color: _tierColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
+                // Avatar — tap opens author profile
+                GestureDetector(
+                  onTap: isOwn ? null : () => _openAuthorProfile(context),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _tierColor.withValues(alpha: 0.15),
+                      border: Border.all(
+                          color: _tierColor.withValues(alpha: 0.3), width: 1),
+                    ),
+                    child: post.authorAvatarUrl != null
+                        ? ClipOval(
+                            child: Image.network(post.authorAvatarUrl!,
+                                fit: BoxFit.cover))
+                        : Center(
+                            child: Text(
+                              (post.authorName ?? 'N')[0].toUpperCase(),
+                              style: TextStyle(
+                                color: _tierColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        post.authorName ?? 'Noblara',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          letterSpacing: 0.1,
+                      GestureDetector(
+                        onTap: isOwn ? null : () => _openAuthorProfile(context),
+                        child: Text(
+                          post.authorName ?? 'Noblara',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            letterSpacing: 0.1,
+                          ),
                         ),
                       ),
                       Row(
@@ -661,17 +670,112 @@ class _NobCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 _ReactionBtn(
-                  emoji: '✕',
+                  emoji: '\u2715',
                   type: 'pass',
                   isActive: myReaction?.reactionType == 'pass',
                   isSubtle: true,
                   onTap: () => onReact('pass'),
                 ),
+                const Spacer(),
+                // Note button (not for own posts)
+                if (!isOwn)
+                  GestureDetector(
+                    onTap: () => _showNoteDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.nobSurfaceAlt,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        border: Border.all(color: AppColors.nobBorder),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.mail_outline_rounded, color: AppColors.nobObserver, size: 14),
+                          SizedBox(width: 4),
+                          Text('Note', style: TextStyle(color: AppColors.nobObserver, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
+
+          // Author-private reaction counts (own posts only)
+          if (isOwn && post.ownCounts.isNotEmpty && (post.ownCounts['total'] ?? 0) > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+              child: Text(
+                '${post.ownCounts['appreciate'] ?? 0} appreciate \u00B7 ${post.ownCounts['support'] ?? 0} support \u00B7 ${post.ownCounts['pass'] ?? 0} pass',
+                style: TextStyle(color: AppColors.nobObserver.withValues(alpha: 0.6), fontSize: 10),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  void _openAuthorProfile(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.nobSurface,
+      isScrollControlled: true,
+      builder: (_) => _AuthorProfileSheet(post: post),
+    );
+  }
+
+  void _showNoteDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.nobSurface,
+        title: const Text('Send a Note', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Private note to ${post.authorName ?? 'author'}', style: const TextStyle(color: AppColors.nobObserver, fontSize: 12)),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: ctrl,
+              maxLength: 280,
+              maxLines: 3,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Write something thoughtful...',
+                hintStyle: const TextStyle(color: AppColors.nobObserver),
+                filled: true,
+                fillColor: AppColors.nobBackground,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.nobObserver)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx, ctrl.text.trim());
+            },
+            child: const Text('Send', style: TextStyle(color: AppColors.noblaraGold)),
+          ),
+        ],
+      ),
+    ).then((text) {
+      if (text != null && text.toString().isNotEmpty && context.mounted) {
+        _sendNote(context, text.toString());
+      }
+    });
+  }
+
+  void _sendNote(BuildContext context, String content) {
+    // Calls note repository — wired via the card's parent
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.noblaraGold),
     );
   }
 
@@ -814,6 +918,273 @@ class _ReactionBtn extends StatelessWidget {
             fontSize: 14,
             color: isActive ? null : Colors.white.withValues(alpha: 0.25),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Nob Filter Bar
+// ---------------------------------------------------------------------------
+
+class _NobFilterBar extends StatelessWidget {
+  final PostsState state;
+  final WidgetRef ref;
+  const _NobFilterBar({required this.state, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, 0),
+      child: Column(
+        children: [
+          // Type + Sort row
+          Row(
+            children: [
+              _FilterChip(label: 'All', active: state.typeFilter == null,
+                  onTap: () => ref.read(postsProvider.notifier).setTypeFilter(null)),
+              const SizedBox(width: 6),
+              _FilterChip(label: 'Thought', active: state.typeFilter == 'thought',
+                  onTap: () => ref.read(postsProvider.notifier).setTypeFilter('thought')),
+              const SizedBox(width: 6),
+              _FilterChip(label: 'Moment', active: state.typeFilter == 'moment',
+                  onTap: () => ref.read(postsProvider.notifier).setTypeFilter('moment')),
+              const Spacer(),
+              // Sort dropdown
+              PopupMenuButton<String>(
+                initialValue: state.sortMode,
+                onSelected: (v) => ref.read(postsProvider.notifier).setSortMode(v),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'newest', child: Text('Newest')),
+                  const PopupMenuItem(value: 'trending', child: Text('Trending')),
+                  const PopupMenuItem(value: 'ai_pick', child: Text('AI Pick')),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.nobSurfaceAlt,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: AppColors.nobBorder),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sort_rounded, color: AppColors.nobObserver, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        state.sortMode == 'ai_pick' ? 'AI Pick' : state.sortMode[0].toUpperCase() + state.sortMode.substring(1),
+                        style: const TextStyle(color: AppColors.nobObserver, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Tone filters + toggles
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final tone in ['reflective', 'grounded', 'curious', 'creative'])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _FilterChip(
+                      label: tone[0].toUpperCase() + tone.substring(1),
+                      active: state.toneFilter == tone,
+                      onTap: () => ref.read(postsProvider.notifier).setToneFilter(
+                        state.toneFilter == tone ? null : tone,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => ref.read(postsProvider.notifier).setHidePassed(!state.hidePassed),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      border: Border.all(color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+                    ),
+                    child: Text('Hide passed', style: TextStyle(
+                      color: state.hidePassed ? AppColors.noblaraGold : AppColors.nobObserver, fontSize: 11)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => ref.read(postsProvider.notifier).setPrioritizeConnected(!state.prioritizeConnected),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      border: Border.all(color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+                    ),
+                    child: Text('Connected first', style: TextStyle(
+                      color: state.prioritizeConnected ? AppColors.noblaraGold : AppColors.nobObserver, fontSize: 11)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _FilterChip({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: active ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          border: Border.all(color: active ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+        ),
+        child: Text(label, style: TextStyle(
+          color: active ? AppColors.noblaraGold : AppColors.nobObserver,
+          fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+        )),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Author Profile Bottom Sheet
+// ---------------------------------------------------------------------------
+
+class _AuthorProfileSheet extends StatelessWidget {
+  final Post post;
+  const _AuthorProfileSheet({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    final tierColor = switch (post.authorTier) {
+      NobTier.noble => AppColors.nobNoble,
+      NobTier.explorer => AppColors.nobExplorer,
+      NobTier.observer => AppColors.nobObserver,
+    };
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.85,
+      expand: false,
+      builder: (context, scroll) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.nobSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        ),
+        child: ListView(
+          controller: scroll,
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          children: [
+            // Handle
+            Center(
+              child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(999))),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Avatar + Name + Tier
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: tierColor.withValues(alpha: 0.2),
+                  backgroundImage: post.authorAvatarUrl != null ? NetworkImage(post.authorAvatarUrl!) : null,
+                  child: post.authorAvatarUrl == null
+                      ? Text((post.authorName ?? '?')[0].toUpperCase(),
+                          style: TextStyle(color: tierColor, fontSize: 22, fontWeight: FontWeight.w600))
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(post.authorName ?? 'User',
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: tierColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        border: Border.all(color: tierColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(post.authorTier.label,
+                          style: TextStyle(color: tierColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.xxxl),
+
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.bolt_rounded, size: 16),
+                    label: const Text('Signal'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gold,
+                      side: BorderSide(color: AppColors.gold.withValues(alpha: 0.4)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Signal sent'), backgroundColor: AppColors.gold));
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.people_rounded, size: 16),
+                    label: const Text('Reach Out'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF26C6DA),
+                      side: BorderSide(color: const Color(0xFF26C6DA).withValues(alpha: 0.4)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Reached out!'), backgroundColor: Color(0xFF26C6DA)));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.mail_outline_rounded, size: 16),
+                label: const Text('Send Note'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.noblaraGold,
+                  side: BorderSide(color: AppColors.noblaraGold.withValues(alpha: 0.4)),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -20,12 +20,23 @@ class PostsState {
   final bool isLoading;
   final bool isSubmitting;
   final String? error;
+  // Feed filters
+  final String? typeFilter;   // 'thought' | 'moment' | null=all
+  final String sortMode;      // 'newest' | 'trending' | 'ai_pick'
+  final String? toneFilter;   // 'reflective' | 'grounded' | 'curious' | 'creative'
+  final bool hidePassed;
+  final bool prioritizeConnected;
 
   const PostsState({
     this.posts = const [],
     this.isLoading = false,
     this.isSubmitting = false,
     this.error,
+    this.typeFilter,
+    this.sortMode = 'newest',
+    this.toneFilter,
+    this.hidePassed = false,
+    this.prioritizeConnected = false,
   });
 
   PostsState copyWith({
@@ -34,12 +45,24 @@ class PostsState {
     bool? isSubmitting,
     String? error,
     bool clearError = false,
+    String? typeFilter,
+    bool clearType = false,
+    String? sortMode,
+    String? toneFilter,
+    bool clearTone = false,
+    bool? hidePassed,
+    bool? prioritizeConnected,
   }) =>
       PostsState(
         posts: posts ?? this.posts,
         isLoading: isLoading ?? this.isLoading,
         isSubmitting: isSubmitting ?? this.isSubmitting,
         error: clearError ? null : (error ?? this.error),
+        typeFilter: clearType ? null : (typeFilter ?? this.typeFilter),
+        sortMode: sortMode ?? this.sortMode,
+        toneFilter: clearTone ? null : (toneFilter ?? this.toneFilter),
+        hidePassed: hidePassed ?? this.hidePassed,
+        prioritizeConnected: prioritizeConnected ?? this.prioritizeConnected,
       );
 }
 
@@ -75,7 +98,65 @@ class PostsNotifier extends StateNotifier<PostsState> {
     );
   }
 
-  Future<void> refresh() => _init();
+  Future<void> refresh() => _loadFiltered();
+
+  Future<void> _loadFiltered() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final uid = _ref.read(authProvider).userId;
+      final posts = await _repo.fetchFeed(
+        userId: uid,
+        type: state.typeFilter,
+        sort: state.sortMode,
+        tone: state.toneFilter,
+        hidePassed: state.hidePassed,
+        prioritizeConnected: state.prioritizeConnected,
+      );
+
+      // Load own reaction counts for author's posts
+      if (uid != null) {
+        final enriched = <Post>[];
+        for (final p in posts) {
+          if (p.userId == uid) {
+            final counts = await _repo.getOwnReactionCounts(p.id, uid);
+            enriched.add(p.copyWith(ownCounts: counts));
+          } else {
+            enriched.add(p);
+          }
+        }
+        state = state.copyWith(posts: enriched, isLoading: false);
+      } else {
+        state = state.copyWith(posts: posts, isLoading: false);
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  void setTypeFilter(String? type) {
+    state = state.copyWith(typeFilter: type, clearType: type == null);
+    _loadFiltered();
+  }
+
+  void setSortMode(String sort) {
+    state = state.copyWith(sortMode: sort);
+    _loadFiltered();
+  }
+
+  void setToneFilter(String? tone) {
+    state = state.copyWith(toneFilter: tone, clearTone: tone == null);
+    _loadFiltered();
+  }
+
+  void setHidePassed(bool v) {
+    state = state.copyWith(hidePassed: v);
+    _loadFiltered();
+  }
+
+  void setPrioritizeConnected(bool v) {
+    state = state.copyWith(prioritizeConnected: v);
+    _loadFiltered();
+  }
 
   void setError(String message) => state = state.copyWith(error: message);
 
@@ -102,6 +183,8 @@ class PostsNotifier extends StateNotifier<PostsState> {
       );
       if (!post.isDraft) {
         state = state.copyWith(posts: [post, ...state.posts], isSubmitting: false);
+        // Trigger background quality score computation
+        _repo.computeQualityScore(post.id);
       } else {
         state = state.copyWith(isSubmitting: false);
       }
