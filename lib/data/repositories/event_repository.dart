@@ -19,6 +19,7 @@ class EventRepository {
         .select('*, host_profile:profiles!events_host_id_fkey(display_name, date_avatar_url)')
         .eq('status', 'active')
         .gte('event_date', DateTime.now().toIso8601String())
+        .order('quality_score', ascending: false)
         .order('event_date', ascending: true);
 
     return rows.map((r) => NobEvent.fromJson(r, currentUserId: userId)).toList();

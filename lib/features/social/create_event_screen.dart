@@ -26,6 +26,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   TimeOfDay _eventTime = const TimeOfDay(hour: 18, minute: 0);
   bool _submitting = false;
   String? _warning;
+  int _qualityScore = 50;
 
   @override
   void dispose() {
@@ -57,6 +58,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         });
         return;
       }
+      // Read quality score from AI response
+      final aiScore = (validation['quality_score'] as num?)?.toInt();
+      if (aiScore != null) _qualityScore = aiScore;
     } catch (_) {}
 
     final scheduledAt = DateTime(
@@ -72,6 +76,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           maxAttendees: _maxAttendees,
           companionEnabled: _companionEnabled,
           plus3Enabled: _plus3Enabled,
+          qualityScore: _qualityScore,
         );
 
     if (!mounted) return;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/models/event_participant.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'event_chat_screen.dart';
@@ -94,70 +95,80 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
           const SizedBox(height: AppSpacing.xxl),
 
-          // ── Attendee list ──
+          // ── Attendee list (grouped by status) ──
           Text('Attendees', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
           const SizedBox(height: AppSpacing.md),
-          ...state.participants.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: _violet.withValues(alpha: 0.2),
-                      child: Text(
-                        (p.displayName ?? '?')[0].toUpperCase(),
-                        style: const TextStyle(color: _violet, fontSize: 14),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Text(p.displayName ?? 'User', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-                          if (p.isHost) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('Host', style: TextStyle(color: _violet, fontSize: 9, fontWeight: FontWeight.w600)),
-                            ),
-                          ],
-                          if (p.companionCount > 0) ...[
-                            const SizedBox(width: 6),
-                            Text('+${p.companionCount}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Text(p.statusIcon, style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
-              )),
+          // Host first, then Going, Maybe, rest
+          ..._buildGroupedParticipants(state.participants),
 
           const SizedBox(height: AppSpacing.xxxl),
 
           // ── Actions ──
-          if (!isLocked && !isHost)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _violet,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+          if (!isLocked && !isHost) ...[
+            // Join actions row
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _violet, foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                    ),
+                    onPressed: () => _joinWithCompanion(context),
+                    child: const Text('Going'),
+                  ),
                 ),
-                onPressed: () async {
-                  final result = await ref.read(eventListProvider.notifier).joinEvent(widget.eventId);
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result == 'joined' ? 'You\'re going!' : result)),
-                  );
-                  ref.read(eventDetailProvider(widget.eventId).notifier).load();
-                },
-                child: const Text('Going'),
-              ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textMuted,
+                      side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.3)),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () async {
+                      await ref.read(eventDetailProvider(widget.eventId).notifier).updateMyAttendance('maybe');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as Maybe')));
+                      }
+                    },
+                    child: const Text('Maybe'),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: AppSpacing.sm),
+            // Secondary actions
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () async {
+                      await ref.read(eventDetailProvider(widget.eventId).notifier).updateMyAttendance('on_my_way');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('On my way!')));
+                      }
+                    },
+                    child: Text('\u231B On My Way', style: TextStyle(color: _violet, fontSize: 13)),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () async {
+                      await ref.read(eventListProvider.notifier).leaveEvent(widget.eventId);
+                      ref.read(eventDetailProvider(widget.eventId).notifier).load();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left event')));
+                      }
+                    },
+                    child: Text('Leave', style: TextStyle(color: AppColors.error, fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+          ],
 
           if (isLocked) ...[
             const SizedBox(height: AppSpacing.lg),
@@ -177,6 +188,124 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildGroupedParticipants(List<EventParticipant> all) {
+    // Host first, then Going, Maybe, rest
+    final host = all.where((p) => p.isHost).toList();
+    final going = all.where((p) => !p.isHost && p.attendanceStatus == 'going').toList();
+    final maybe = all.where((p) => p.attendanceStatus == 'maybe').toList();
+    final onWay = all.where((p) => p.attendanceStatus == 'on_my_way').toList();
+    final arrived = all.where((p) => p.attendanceStatus == 'arrived').toList();
+
+    final widgets = <Widget>[];
+    for (final group in [
+      (host, 'Host'),
+      (going, 'Going'),
+      (maybe, 'Maybe'),
+      (onWay, 'On My Way'),
+      (arrived, 'Arrived'),
+    ]) {
+      if (group.$1.isEmpty) continue;
+      widgets.add(Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+        child: Text(group.$2, style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+      ));
+      for (final p in group.$1) {
+        widgets.add(_participantRow(p));
+      }
+    }
+    return widgets;
+  }
+
+  Widget _participantRow(EventParticipant p) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: _violet.withValues(alpha: 0.2),
+            child: Text((p.displayName ?? '?')[0].toUpperCase(), style: const TextStyle(color: _violet, fontSize: 14)),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Row(
+              children: [
+                Text(p.displayName ?? 'User', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                if (p.isHost) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                    child: const Text('Host', style: TextStyle(color: _violet, fontSize: 9, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+                if (p.companionCount > 0) ...[
+                  const SizedBox(width: 6),
+                  Text('+${p.companionCount}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          Text(p.statusIcon, style: const TextStyle(fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  void _joinWithCompanion(BuildContext context) {
+    final event = ref.read(eventDetailProvider(widget.eventId)).event;
+    if (event == null) return;
+
+    if (!event.companionEnabled) {
+      _doJoin(0);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('How many are coming?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: AppSpacing.xxl),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final n in [0, 1, 2])
+                  GestureDetector(
+                    onTap: () { Navigator.pop(ctx); _doJoin(n); },
+                    child: Container(
+                      width: 64, height: 64,
+                      decoration: BoxDecoration(
+                        color: _violet.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        border: Border.all(color: _violet.withValues(alpha: 0.3)),
+                      ),
+                      child: Center(child: Text(n == 0 ? 'Just me' : '+$n',
+                          style: TextStyle(color: _violet, fontWeight: FontWeight.w600))),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _doJoin(int companionCount) async {
+    final result = await ref.read(eventListProvider.notifier).joinEvent(widget.eventId, companionCount: companionCount);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result == 'joined' ? 'You\'re going!${companionCount > 0 ? ' (+$companionCount)' : ''}' : result)),
+    );
+    ref.read(eventDetailProvider(widget.eventId).notifier).load();
   }
 }
 
