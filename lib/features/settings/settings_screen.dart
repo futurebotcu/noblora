@@ -223,9 +223,9 @@ class SettingsScreen extends ConsumerWidget {
           _T(Icons.insights_rounded, 'Profile Resonance', n.aiVal('ai_suggestions', 'profile_resonance'), (_) => n.toggleAi('ai_suggestions', 'profile_resonance')),
           _T(Icons.tune_rounded, 'Filter Suggestions', n.aiVal('ai_suggestions', 'filter_suggestions'), (_) => n.toggleAi('ai_suggestions', 'filter_suggestions')),
           _H('AI Insights'),
-          _T(Icons.visibility_rounded, 'Show Resonance', n.aiVal('ai_insights', 'show_resonance'), (_) => n.toggleAi('ai_insights', 'show_resonance')),
-          _T(Icons.star_outline_rounded, 'Show Highlights', n.aiVal('ai_insights', 'show_standout'), (_) => n.toggleAi('ai_insights', 'show_standout')),
-          _T(Icons.bar_chart_rounded, 'Show Performance', n.aiVal('ai_insights', 'show_performance'), (_) => n.toggleAi('ai_insights', 'show_performance')),
+          const _Tile(Icons.visibility_rounded, 'Show Resonance', sub: 'Coming in a future update', color: AppColors.textDisabled),
+          const _Tile(Icons.star_outline_rounded, 'Show Highlights', sub: 'Coming in a future update', color: AppColors.textDisabled),
+          const _Tile(Icons.bar_chart_rounded, 'Show Performance', sub: 'Coming in a future update', color: AppColors.textDisabled),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Container(

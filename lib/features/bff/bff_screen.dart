@@ -111,6 +111,7 @@ class _SuggestionsTab extends ConsumerWidget {
           final sug = state.suggestions[i - 1];
           return BffSuggestionCard(
             suggestion: sug,
+            showCommonGround: true, // Gated at provider level; if user disables AI suggestions, common ground won't generate
             onConnect: () => _onAction(context, ref, sug.id, 'connect'),
             onPass: () => _onAction(context, ref, sug.id, 'pass'),
             onReachOut: () async {

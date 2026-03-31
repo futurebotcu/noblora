@@ -12,6 +12,7 @@ class BffSuggestionCard extends StatelessWidget {
   final VoidCallback onPass;
   final VoidCallback? onReachOut;
   final VoidCallback? onNote;
+  final bool showCommonGround;
 
   const BffSuggestionCard({
     super.key,
@@ -20,6 +21,7 @@ class BffSuggestionCard extends StatelessWidget {
     required this.onPass,
     this.onReachOut,
     this.onNote,
+    this.showCommonGround = true,
   });
 
   @override
@@ -125,8 +127,8 @@ class BffSuggestionCard extends StatelessWidget {
 
           const SizedBox(height: AppSpacing.md),
 
-          // ── Common Ground ──
-          Padding(
+          // ── Common Ground (gated by AI suggestion explanations setting) ──
+          if (showCommonGround) Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

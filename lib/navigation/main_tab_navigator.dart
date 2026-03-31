@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
+import '../core/utils/mock_mode.dart';
+import '../providers/auth_provider.dart';
 import '../features/admin/admin_screen.dart';
 import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
@@ -58,17 +61,40 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
     final notifState = ref.watch(notificationProvider);
 
     // Show in-app banner when a new notification arrives
-    ref.listen<NotificationState>(notificationProvider, (prev, next) {
+    ref.listen<NotificationState>(notificationProvider, (prev, next) async {
       final latest = next.latestUnread;
       if (latest == null) return;
       if (prev?.latestUnread?.id == latest.id) return;
 
       ref.read(notificationProvider.notifier).clearLatest();
 
+      // Gate by notification category preferences
+      if (!isMockMode) {
+        try {
+          final uid = ref.read(authProvider).userId;
+          if (uid != null) {
+            final row = await Supabase.instance.client.from('profiles')
+                .select('notification_preferences').eq('id', uid).maybeSingle();
+            final prefs = row?['notification_preferences'] as Map<String, dynamic>?;
+            if (prefs != null) {
+              final typeToCategory = {
+                'new_match': 'new_match', 'bff_connected': 'new_match', 'connection_closed': 'new_match',
+                'new_message': 'new_message', 'chat_opened': 'new_message',
+                'signal_received': 'signals', 'note_received': 'notes',
+                'bff_reach_out': 'bff_suggestion', 'event_farewell': 'event_activity',
+                'video_proposed': 'new_match', 'video_confirmed': 'new_match',
+              };
+              final category = typeToCategory[latest.type];
+              if (category != null && prefs[category] == false) return; // Suppressed by user
+            }
+          }
+        } catch (_) {}
+      }
+
       // Tier promotion → show celebration screen
       if (latest.type == 'tier_promoted') {
         final newTier = latest.data?['new_tier'] as String?;
-        if (newTier != null && (newTier == 'noble' || newTier == 'explorer')) {
+        if (newTier != null && (newTier == 'noble' || newTier == 'explorer') && context.mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => TierPromotionScreen(
@@ -83,6 +109,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       final isVideoProposed = latest.type == 'video_proposed' ||
           latest.type == 'video_confirmed';
 
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

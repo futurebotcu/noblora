@@ -144,6 +144,20 @@ class EventDetailNotifier extends StateNotifier<EventDetailState> {
       participants: participants,
       messages: messages,
     );
+
+    // Auto-leave ended events if user has leave_event_chat_auto ON
+    if (event != null && event.isLocked && !isMockMode) {
+      final uid = _ref.read(authProvider).userId;
+      if (uid != null) {
+        try {
+          final row = await Supabase.instance.client.from('profiles')
+              .select('leave_event_chat_auto').eq('id', uid).maybeSingle();
+          if (row?['leave_event_chat_auto'] == true) {
+            await repo.updateAttendance(eventId, uid, 'out');
+          }
+        } catch (_) {}
+      }
+    }
   }
 
   Future<void> sendMessage(String content) async {
