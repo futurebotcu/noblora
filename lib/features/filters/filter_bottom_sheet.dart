@@ -102,8 +102,8 @@ class _State extends ConsumerState<FilterBottomSheet> {
             const SizedBox(height: AppSpacing.lg),
 
             // City/distance
-            _Label('City preference'),
-            Text('Within ${_f.maxDistance.round()} km (approximate)', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
+            _Label('Distance'),
+            Text('Within ${_f.maxDistance.round()} km', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
             SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: accent, thumbColor: accent, inactiveTrackColor: AppColors.border),
               child: Slider(value: _f.maxDistance, min: 1, max: 100, divisions: 99,
                   onChanged: (v) => _set(_f.copyWith(maxDistance: v)))),
@@ -136,7 +136,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                   _Chip(o, _f.bffLookingFor == o, () => _set(_f.copyWith(
                       bffLookingFor: _f.bffLookingFor == o ? null : o, clearBffLookingFor: _f.bffLookingFor == o)), accent)).toList()),
               const SizedBox(height: AppSpacing.md),
-              _Label('Language'),
+              _Label('Language (preference)'),
               Wrap(spacing: 6, runSpacing: 6, children: languageOptions.map((l) {
                 final sel = _f.languages.contains(l);
                 return _Chip(l, sel, () {
@@ -202,14 +202,14 @@ class _State extends ConsumerState<FilterBottomSheet> {
               ],
 
               if (mode == NobleMode.bff) ...[
-                _Label('Vibe'),
+                _Label('Vibe (preference)'),
                 Wrap(spacing: 6, runSpacing: 6, children: vibeOptions.map((v) {
                   final sel = _f.vibes.contains(v);
                   return _Chip(v, sel, () { final next = [..._f.vibes]; sel ? next.remove(v) : next.add(v); _set(_f.copyWith(vibes: next)); }, accent);
                 }).toList()),
                 const SizedBox(height: AppSpacing.lg),
 
-                _Label('Interests'),
+                _Label('Interests (preference)'),
                 Wrap(spacing: 6, runSpacing: 6, children: bffInterestOptions.map((i) {
                   final sel = _f.interests.contains(i);
                   return _Chip(i, sel, () { final next = [..._f.interests]; sel ? next.remove(i) : next.add(i); _set(_f.copyWith(interests: next)); }, accent);

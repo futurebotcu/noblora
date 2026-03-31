@@ -113,20 +113,21 @@ class FeedRepository {
         query = query.gte('prompts_answered', 2);
       }
 
-      // Same city only (hard filter)
+      // Same city only (hard filter via city column)
       if (filters.sameCityOnly) {
-        // Requires knowing current user's city — pass via userId lookup
-        // For now: filter profiles that have a non-null city matching feed context
-        // True geo not available — city-based proxy
+        // Will be applied via fetch_nearby_profiles RPC if user has location
+        // Fallback: city equality check done in RPC
       }
 
-      // 6+ photos
+      // 6+ photos (hard filter — query-backed via photo_count column)
       if (filters.sixPlusPhotos) {
-        query = query.gte('photos', '{}'); // Can't count array length in PostgREST — client-side filter
+        query = query.gte('photo_count', 6);
       }
 
-      // Pinned Nob exists (hard filter)
-      // This requires checking posts table — done client-side after fetch
+      // Pinned Nob exists (hard filter — query-backed via has_pinned_nob column)
+      if (filters.pinnedNobExists) {
+        query = query.eq('has_pinned_nob', true);
+      }
     }
 
     // Step 3: execute with ranking
