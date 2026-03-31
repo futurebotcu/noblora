@@ -185,6 +185,29 @@ class BffSuggestionRepository {
     return rows.map((r) => BffPlan.fromJson(r)).toList();
   }
 
+  /// Fetch BFF plans that are past scheduled_at and have no checkin_response yet.
+  Future<List<BffPlan>> fetchPendingCheckins(String userId) async {
+    if (isMockMode) return [];
+
+    final rows = await _supabase!
+        .from('bff_plans')
+        .select()
+        .eq('created_by', userId)
+        .isFilter('checkin_response', null)
+        .lt('scheduled_at', DateTime.now().toIso8601String())
+        .order('scheduled_at', ascending: false);
+
+    return rows.map((r) => BffPlan.fromJson(r)).toList();
+  }
+
+  /// Submit check-in response for a BFF plan.
+  Future<void> submitPlanCheckin(String planId, String response) async {
+    if (isMockMode) return;
+    await _supabase!.from('bff_plans').update({
+      'checkin_response': response,
+    }).eq('id', planId);
+  }
+
   // ─── Mock data ───────────────────────────────────────────────────
 
   List<BffSuggestion> _mockSuggestions(String userId) {

@@ -139,6 +139,18 @@ class BffNotifier extends StateNotifier<BffState> {
     await load(); // reload to show new suggestions
   }
 
+  Future<List<BffPlan>> fetchPendingCheckins() async {
+    final uid = _userId;
+    if (uid == null) return [];
+    final repo = _ref.read(bffRepositoryProvider);
+    return repo.fetchPendingCheckins(uid);
+  }
+
+  Future<void> submitPlanCheckin(String planId, String response) async {
+    final repo = _ref.read(bffRepositoryProvider);
+    await repo.submitPlanCheckin(planId, response);
+  }
+
   Future<List<BffPlan>> fetchPlans(String conversationId) async {
     final repo = _ref.read(bffRepositoryProvider);
     return repo.fetchPlans(conversationId);

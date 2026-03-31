@@ -24,16 +24,80 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 14, minute: 0);
   bool _submitting = false;
   List<BffPlan> _existingPlans = [];
+  List<BffPlan> _pendingCheckins = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlans());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPlans();
+      _loadPendingCheckins();
+    });
   }
 
   Future<void> _loadPlans() async {
     final plans = await ref.read(bffProvider.notifier).fetchPlans(widget.conversationId);
     if (mounted) setState(() => _existingPlans = plans);
+  }
+
+  Future<void> _loadPendingCheckins() async {
+    final pending = await ref.read(bffProvider.notifier).fetchPendingCheckins();
+    if (mounted) setState(() => _pendingCheckins = pending);
+  }
+
+  void _showCheckinSheet(BffPlan plan) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
+            const SizedBox(height: AppSpacing.xxl),
+            Text('How did it go?', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                  color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+            const SizedBox(height: AppSpacing.sm),
+            Text('${plan.typeEmoji} ${plan.typeLabel}${plan.location != null ? ' · ${plan.location}' : ''}',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            const SizedBox(height: AppSpacing.xxl),
+            ...[
+              ('Great', Icons.sentiment_very_satisfied_rounded, _teal),
+              ('It was okay', Icons.sentiment_neutral_rounded, AppColors.textMuted),
+              ("I'd rather not say", Icons.sentiment_dissatisfied_rounded, AppColors.textMuted),
+              ('Report an issue', Icons.flag_rounded, AppColors.error),
+            ].map((opt) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: Icon(opt.$2, size: 18),
+                  label: Text(opt.$1),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: opt.$3,
+                    side: BorderSide(color: opt.$3.withValues(alpha: 0.3)),
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await ref.read(bffProvider.notifier).submitPlanCheckin(plan.id, opt.$1);
+                    setState(() => _pendingCheckins.removeWhere((p) => p.id == plan.id));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _teal),
+                      );
+                    }
+                  },
+                ),
+              ),
+            )),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -123,6 +187,37 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Pending check-ins ──
+              ..._pendingCheckins.map((plan) => GestureDetector(
+                onTap: () => _showCheckinSheet(plan),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: _teal.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: _teal.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.rate_review_rounded, color: _teal, size: 22),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('How did it go?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+                            Text('${plan.typeEmoji} ${plan.typeLabel}${plan.location != null ? ' · ${plan.location}' : ''}',
+                                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: _teal, size: 18),
+                    ],
+                  ),
+                ),
+              )),
+
               // ── Existing plans ──
               if (_existingPlans.isNotEmpty) ...[
                 Text('Your plans', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
