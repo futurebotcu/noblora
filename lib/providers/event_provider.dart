@@ -4,8 +4,10 @@ import '../core/utils/mock_mode.dart';
 import '../data/models/event.dart';
 import '../data/models/event_participant.dart';
 import '../data/models/event_message.dart';
+import '../data/models/filter_state.dart';
 import '../data/repositories/event_repository.dart';
 import 'auth_provider.dart';
+import 'filter_provider.dart';
 
 // ─── State ─────────────────────────────────────────────────────────
 
@@ -44,7 +46,9 @@ final eventRepositoryProvider = Provider<EventRepository>((ref) {
 class EventListNotifier extends StateNotifier<EventListState> {
   final Ref _ref;
 
-  EventListNotifier(this._ref) : super(const EventListState());
+  EventListNotifier(this._ref) : super(const EventListState()) {
+    _ref.listen<FilterState>(filterProvider, (_, __) => load());
+  }
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
