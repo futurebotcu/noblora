@@ -103,6 +103,16 @@ class BffNotifier extends StateNotifier<BffState> {
     return true;
   }
 
+  /// Triggers real server-side suggestion generation
+  Future<void> generateSuggestions() async {
+    final uid = _userId;
+    if (uid == null) return;
+
+    final repo = _ref.read(bffRepositoryProvider);
+    await repo.generateSuggestions(uid);
+    await load(); // reload to show new suggestions
+  }
+
   Future<BffPlan?> createPlan({
     required String conversationId,
     required String planType,

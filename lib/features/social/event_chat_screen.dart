@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -19,17 +22,52 @@ class EventChatScreen extends ConsumerStatefulWidget {
 class _EventChatScreenState extends ConsumerState<EventChatScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  StreamSubscription<dynamic>? _realtimeSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(eventDetailProvider(widget.eventId).notifier).load();
+      _subscribeRealtime();
+    });
+  }
+
+  void _subscribeRealtime() {
+    if (isMockMode) return;
+    final channel = Supabase.instance.client.channel('event-chat-${widget.eventId}');
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'event_messages',
+      filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'event_id', value: widget.eventId),
+      callback: (payload) {
+        ref.read(eventDetailProvider(widget.eventId).notifier).load();
+        _scrollToBottom();
+      },
+    ).subscribe();
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
   @override
   void dispose() {
+    _realtimeSub?.cancel();
+    if (!isMockMode) {
+      Supabase.instance.client.removeChannel(
+        Supabase.instance.client.channel('event-chat-${widget.eventId}'),
+      );
+    }
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();

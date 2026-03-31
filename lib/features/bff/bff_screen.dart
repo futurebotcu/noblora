@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../filters/filter_bottom_sheet.dart';
@@ -17,13 +18,25 @@ class BffScreen extends ConsumerStatefulWidget {
   ConsumerState<BffScreen> createState() => _BffScreenState();
 }
 
-class _BffScreenState extends ConsumerState<BffScreen> {
+class _BffScreenState extends ConsumerState<BffScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
+
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bffProvider.notifier).load();
+      // Trigger real suggestion generation
+      ref.read(bffProvider.notifier).generateSuggestions();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -55,69 +68,174 @@ class _BffScreenState extends ConsumerState<BffScreen> {
             onPressed: () => ref.read(bffProvider.notifier).load(),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabCtrl,
+          indicatorColor: _teal,
+          labelColor: _teal,
+          unselectedLabelColor: AppColors.textMuted,
+          dividerColor: Colors.transparent,
+          tabs: [
+            Tab(text: 'Suggestions${state.suggestions.isNotEmpty ? ' (${state.suggestions.length})' : ''}'),
+            Tab(text: 'Reach Outs${state.reachOuts.isNotEmpty ? ' (${state.reachOuts.length})' : ''}'),
+          ],
+        ),
       ),
-      body: state.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: _teal),
-            )
-          : state.suggestions.isEmpty
-              ? _EmptyState()
-              : RefreshIndicator(
-                  color: _teal,
-                  onRefresh: () => ref.read(bffProvider.notifier).load(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(
-                      top: AppSpacing.md,
-                      bottom: AppSpacing.xxxxl,
-                    ),
-                    itemCount: state.suggestions.length + 1,
-                    itemBuilder: (context, i) {
-                      if (i == 0) return _HeaderBanner();
-                      final sug = state.suggestions[i - 1];
-                      return BffSuggestionCard(
-                        suggestion: sug,
-                        onConnect: () => _onAction(sug.id, 'connect'),
-                        onPass: () => _onAction(sug.id, 'pass'),
-                      );
-                    },
-                  ),
-                ),
-    );
-  }
-
-  Future<void> _onAction(String suggestionId, String action) async {
-    final result =
-        await ref.read(bffProvider.notifier).actOnSuggestion(suggestionId, action);
-
-    if (!mounted) return;
-    final message = switch (result) {
-      'connected' => 'Connected! Check your chats.',
-      'waiting' => action == 'connect'
-          ? 'Nice! Waiting for them to connect too.'
-          : 'Passed.',
-      'passed' => 'Passed.',
-      _ => 'Done.',
-    };
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: result == 'connected' ? _teal : AppColors.surface,
+      body: TabBarView(
+        controller: _tabCtrl,
+        children: [
+          // ── Tab 1: AI Suggestions ──
+          _SuggestionsTab(state: state),
+          // ── Tab 2: Reach Outs Received ──
+          _ReachOutsTab(reachOuts: state.reachOuts),
+        ],
       ),
     );
   }
 }
 
+// ─── Suggestions Tab ─────────────────────────────────────────────────
+
+class _SuggestionsTab extends ConsumerWidget {
+  final BffState state;
+  const _SuggestionsTab({required this.state});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: _teal));
+    }
+    if (state.suggestions.isEmpty) return _EmptyState();
+
+    return RefreshIndicator(
+      color: _teal,
+      onRefresh: () => ref.read(bffProvider.notifier).load(),
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xxxxl),
+        itemCount: state.suggestions.length + 1,
+        itemBuilder: (context, i) {
+          if (i == 0) return _HeaderBanner();
+          final sug = state.suggestions[i - 1];
+          return BffSuggestionCard(
+            suggestion: sug,
+            onConnect: () => _onAction(context, ref, sug.id, 'connect'),
+            onPass: () => _onAction(context, ref, sug.id, 'pass'),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _onAction(BuildContext context, WidgetRef ref, String id, String action) async {
+    final result = await ref.read(bffProvider.notifier).actOnSuggestion(id, action);
+    if (!context.mounted) return;
+    final message = switch (result) {
+      'connected' => 'Connected! Check your chats.',
+      'waiting' => action == 'connect' ? 'Nice! Waiting for them too.' : 'Passed.',
+      'passed' => 'Passed.',
+      _ => 'Done.',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: result == 'connected' ? _teal : AppColors.surface),
+    );
+  }
+}
+
+// ─── Reach Outs Tab ──────────────────────────────────────────────────
+
+class _ReachOutsTab extends ConsumerWidget {
+  final List<Map<String, dynamic>> reachOuts;
+  const _ReachOutsTab({required this.reachOuts});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (reachOuts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.waving_hand_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
+            const SizedBox(height: AppSpacing.lg),
+            Text('No reach outs yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            const SizedBox(height: AppSpacing.sm),
+            Text('When someone reaches out, you\'ll see them here.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13), textAlign: TextAlign.center),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: reachOuts.length,
+      itemBuilder: (context, i) {
+        final ro = reachOuts[i];
+        final profile = ro['profiles'] as Map<String, dynamic>?;
+        final name = profile?['display_name'] as String? ?? 'Someone';
+        final senderId = ro['sender_id'] as String;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: _teal.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: _teal.withValues(alpha: 0.2),
+                child: Text(name[0].toUpperCase(), style: const TextStyle(color: _teal, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('reached out to you', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _teal,
+                  foregroundColor: AppColors.bg,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                ),
+                onPressed: () async {
+                  // Direct connect from reach out
+                  final uid = ref.read(authProvider).userId;
+                  if (uid == null) return;
+                  final repo = ref.read(bffRepositoryProvider);
+                  // Create a direct match via suggestion or swipe
+                  await repo.sendReachOut(senderId: uid, receiverId: senderId);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Connected!'), backgroundColor: _teal),
+                  );
+                  ref.read(bffProvider.notifier).load();
+                },
+                child: const Text('Connect'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Shared widgets ──────────────────────────────────────────────────
+
 class _HeaderBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        0,
-        AppSpacing.lg,
-        AppSpacing.lg,
-      ),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
@@ -127,19 +245,36 @@ class _HeaderBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.auto_awesome_rounded,
-                color: _teal.withValues(alpha: 0.7), size: 20),
+            Icon(Icons.auto_awesome_rounded, color: _teal.withValues(alpha: 0.7), size: 20),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 'AI finds people you might vibe with. Both of you see this at the same time.',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.people_outline_rounded, color: _teal.withValues(alpha: 0.3), size: 72),
+            const SizedBox(height: AppSpacing.xxl),
+            Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            const SizedBox(height: AppSpacing.sm),
+            Text('Our AI is finding people you might get along with.\nCheck back soon!',
+                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5)),
           ],
         ),
       ),
@@ -168,47 +303,10 @@ class _FilterButton extends StatelessWidget {
             child: Container(
               width: 16, height: 16,
               decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
-              child: Center(
-                child: Text('$count', style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.w800)),
-              ),
+              child: Center(child: Text('$count', style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.w800))),
             ),
           ),
       ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.people_outline_rounded,
-                color: _teal.withValues(alpha: 0.3), size: 72),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              'No suggestions yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Our AI is finding people you might get along with.\nCheck back soon!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

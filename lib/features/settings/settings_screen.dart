@@ -7,61 +7,92 @@ import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 
 // ---------------------------------------------------------------------------
-// Settings provider — loads/saves notification_preferences from profiles
+// Settings provider — loads/saves settings from profiles
 // ---------------------------------------------------------------------------
 
-final _notifPrefsProvider =
-    StateNotifierProvider<_NotifPrefsNotifier, Map<String, bool>>((ref) {
-  return _NotifPrefsNotifier(ref);
+final _settingsProvider =
+    StateNotifierProvider<_SettingsNotifier, Map<String, dynamic>>((ref) {
+  return _SettingsNotifier(ref);
 });
 
-class _NotifPrefsNotifier extends StateNotifier<Map<String, bool>> {
+class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
   final Ref _ref;
-  static const _defaults = {
-    'new_match': true,
-    'new_message': true,
-    'video_proposed': true,
-    'video_confirmed': true,
-    'post_comment': true,
-  };
 
-  _NotifPrefsNotifier(this._ref) : super(_defaults) {
+  _SettingsNotifier(this._ref) : super({}) {
     _load();
   }
 
   Future<void> _load() async {
-    if (isMockMode) return;
+    if (isMockMode) {
+      state = _defaults();
+      return;
+    }
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return;
     try {
       final row = await Supabase.instance.client
           .from('profiles')
-          .select('notification_preferences')
+          .select('notification_preferences, incognito_mode, calm_mode, '
+              'dating_active, dating_visible, bff_active, bff_visible, '
+              'social_active, social_visible, show_city_only, hide_exact_distance, '
+              'show_last_active, show_status_badge, message_preview, '
+              'reach_permission, signal_permission, note_permission')
           .eq('id', userId)
           .maybeSingle();
-      if (row == null) return;
-      final prefs = row['notification_preferences'] as Map<String, dynamic>?;
-      if (prefs != null) {
-        state = {
-          for (final k in _defaults.keys) k: prefs[k] as bool? ?? true,
-        };
-      }
-    } catch (_) {}
+      if (row != null) state = row;
+    } catch (_) {
+      state = _defaults();
+    }
   }
 
-  Future<void> toggle(String key) async {
-    final next = Map<String, bool>.from(state);
-    next[key] = !(next[key] ?? true);
-    state = next;
+  Map<String, dynamic> _defaults() => {
+    'notification_preferences': {
+      'new_match': true, 'new_message': true, 'video_proposed': true,
+      'video_confirmed': true, 'post_comment': true, 'bff_suggestion': true,
+      'event_activity': true, 'safety': true,
+    },
+    'incognito_mode': false, 'calm_mode': false,
+    'dating_active': true, 'dating_visible': true,
+    'bff_active': true, 'bff_visible': true,
+    'social_active': true, 'social_visible': true,
+    'show_city_only': false, 'hide_exact_distance': false,
+    'show_last_active': true, 'show_status_badge': true,
+    'message_preview': true,
+    'reach_permission': 'everyone', 'signal_permission': 'everyone', 'note_permission': 'everyone',
+  };
+
+  Future<void> _save(String column, dynamic value) async {
+    state = {...state, column: value};
     if (isMockMode) return;
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return;
     try {
-      await Supabase.instance.client.from('profiles').update({
-        'notification_preferences': state,
-      }).eq('id', userId);
+      await Supabase.instance.client.from('profiles')
+          .update({column: value}).eq('id', userId);
     } catch (_) {}
   }
+
+  void toggleBool(String key) {
+    final current = state[key] as bool? ?? false;
+    _save(key, !current);
+  }
+
+  void setString(String key, String value) => _save(key, value);
+
+  void toggleNotif(String key) {
+    final prefs = Map<String, dynamic>.from(
+        state['notification_preferences'] as Map<String, dynamic>? ?? {});
+    prefs[key] = !(prefs[key] as bool? ?? true);
+    _save('notification_preferences', prefs);
+  }
+
+  bool notif(String key) {
+    final prefs = state['notification_preferences'] as Map<String, dynamic>?;
+    return prefs?[key] as bool? ?? true;
+  }
+
+  bool getBool(String key) => state[key] as bool? ?? false;
+  String getString(String key) => state[key] as String? ?? 'everyone';
 }
 
 // ---------------------------------------------------------------------------
@@ -73,153 +104,173 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(_notifPrefsProvider);
+    final s = ref.watch(_settingsProvider);
+    final n = ref.read(_settingsProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Settings',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text('Settings', style: TextStyle(color: AppColors.textPrimary)),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: ListView(
         children: [
-          // ── Account ──────────────────────────────────────────────────────
+          // ── Account ──
           _SectionHeader('Account'),
-          _SettingsTile(
-            icon: Icons.person_outline_rounded,
-            title: 'Edit Profile',
-            onTap: () => Navigator.pop(context),
-          ),
-          _SettingsTile(
-            icon: Icons.lock_outline_rounded,
-            title: 'Change Password',
-            onTap: () => _showComingSoon(context),
-          ),
-          _SettingsTile(
-            icon: Icons.logout_rounded,
-            title: 'Sign Out',
-            color: AppColors.error,
-            onTap: () => ref.read(authProvider.notifier).signOut(),
-          ),
+          _SettingsTile(icon: Icons.logout_rounded, title: 'Sign Out', color: AppColors.error,
+              onTap: () => ref.read(authProvider.notifier).signOut()),
 
-          // ── Notifications ─────────────────────────────────────────────
+          // ── Modes ──
+          _SectionHeader('Modes'),
+          _ToggleTile(icon: Icons.favorite_rounded, title: 'Dating Active',
+              value: s['dating_active'] as bool? ?? true, onChanged: (_) => n.toggleBool('dating_active')),
+          _ToggleTile(icon: Icons.favorite_outline, title: 'Dating Visible',
+              value: s['dating_visible'] as bool? ?? true, onChanged: (_) => n.toggleBool('dating_visible')),
+          _ToggleTile(icon: Icons.people_rounded, title: 'BFF Active',
+              value: s['bff_active'] as bool? ?? true, onChanged: (_) => n.toggleBool('bff_active')),
+          _ToggleTile(icon: Icons.people_outline, title: 'BFF Visible',
+              value: s['bff_visible'] as bool? ?? true, onChanged: (_) => n.toggleBool('bff_visible')),
+          _ToggleTile(icon: Icons.explore_rounded, title: 'Social Active',
+              value: s['social_active'] as bool? ?? true, onChanged: (_) => n.toggleBool('social_active')),
+          _ToggleTile(icon: Icons.explore_outlined, title: 'Social Visible',
+              value: s['social_visible'] as bool? ?? true, onChanged: (_) => n.toggleBool('social_visible')),
+
+          // ── Privacy ──
+          _SectionHeader('Privacy & Visibility'),
+          _ToggleTile(icon: Icons.visibility_off_rounded, title: 'Incognito Mode',
+              subtitle: 'Browse invisibly. Only connections can see you.',
+              value: s['incognito_mode'] as bool? ?? false, onChanged: (_) => n.toggleBool('incognito_mode')),
+          _ToggleTile(icon: Icons.shield_rounded, title: 'Calm Mode',
+              subtitle: 'Only Verified + Complete + Explorer+ can reach you.',
+              value: s['calm_mode'] as bool? ?? false, onChanged: (_) => n.toggleBool('calm_mode')),
+          _ToggleTile(icon: Icons.location_city_rounded, title: 'Show city only',
+              value: s['show_city_only'] as bool? ?? false, onChanged: (_) => n.toggleBool('show_city_only')),
+          _ToggleTile(icon: Icons.straighten_rounded, title: 'Hide exact distance',
+              value: s['hide_exact_distance'] as bool? ?? false, onChanged: (_) => n.toggleBool('hide_exact_distance')),
+          _ToggleTile(icon: Icons.access_time_rounded, title: 'Show when last active',
+              value: s['show_last_active'] as bool? ?? true, onChanged: (_) => n.toggleBool('show_last_active')),
+          _ToggleTile(icon: Icons.workspace_premium_rounded, title: 'Show status badge',
+              value: s['show_status_badge'] as bool? ?? true, onChanged: (_) => n.toggleBool('show_status_badge')),
+
+          // ── Notifications ──
           _SectionHeader('Notifications'),
-          _ToggleTile(
-            icon: Icons.favorite_outline_rounded,
-            title: 'New Match',
-            value: prefs['new_match'] ?? true,
-            onChanged: (_) =>
-                ref.read(_notifPrefsProvider.notifier).toggle('new_match'),
-          ),
-          _ToggleTile(
-            icon: Icons.chat_bubble_outline_rounded,
-            title: 'New Message',
-            value: prefs['new_message'] ?? true,
-            onChanged: (_) =>
-                ref.read(_notifPrefsProvider.notifier).toggle('new_message'),
-          ),
-          _ToggleTile(
-            icon: Icons.videocam_outlined,
-            title: 'Video Call Proposed',
-            value: prefs['video_proposed'] ?? true,
-            onChanged: (_) =>
-                ref.read(_notifPrefsProvider.notifier).toggle('video_proposed'),
-          ),
-          _ToggleTile(
-            icon: Icons.check_circle_outline_rounded,
-            title: 'Video Call Confirmed',
-            value: prefs['video_confirmed'] ?? true,
-            onChanged: (_) => ref
-                .read(_notifPrefsProvider.notifier)
-                .toggle('video_confirmed'),
-          ),
-          _ToggleTile(
-            icon: Icons.comment_outlined,
-            title: 'Post Comments',
-            value: prefs['post_comment'] ?? true,
-            onChanged: (_) =>
-                ref.read(_notifPrefsProvider.notifier).toggle('post_comment'),
-          ),
+          _ToggleTile(icon: Icons.favorite_outline_rounded, title: 'Connections',
+              value: n.notif('new_match'), onChanged: (_) => n.toggleNotif('new_match')),
+          _ToggleTile(icon: Icons.chat_bubble_outline_rounded, title: 'Messages',
+              value: n.notif('new_message'), onChanged: (_) => n.toggleNotif('new_message')),
+          _ToggleTile(icon: Icons.videocam_outlined, title: 'Video Calls',
+              value: n.notif('video_proposed'), onChanged: (_) => n.toggleNotif('video_proposed')),
+          _ToggleTile(icon: Icons.people_outline, title: 'BFF Suggestions',
+              value: n.notif('bff_suggestion'), onChanged: (_) => n.toggleNotif('bff_suggestion')),
+          _ToggleTile(icon: Icons.event_rounded, title: 'Event Activity',
+              value: n.notif('event_activity'), onChanged: (_) => n.toggleNotif('event_activity')),
+          _ToggleTile(icon: Icons.shield_outlined, title: 'Safety Alerts',
+              value: n.notif('safety'), onChanged: (_) => n.toggleNotif('safety')),
+          _ToggleTile(icon: Icons.preview_rounded, title: 'Message Previews',
+              value: s['message_preview'] as bool? ?? true, onChanged: (_) => n.toggleBool('message_preview')),
 
-          // ── Privacy ───────────────────────────────────────────────────
-          _SectionHeader('Privacy'),
-          _SettingsTile(
-            icon: Icons.visibility_outlined,
-            title: 'Profile Visibility',
-            subtitle: 'Visible to verified members',
-            onTap: () => _showComingSoon(context),
-          ),
-          _SettingsTile(
-            icon: Icons.block_rounded,
-            title: 'Blocked Users',
-            onTap: () => _showComingSoon(context),
-          ),
-          _SettingsTile(
-            icon: Icons.delete_outline_rounded,
-            title: 'Delete Account',
-            color: AppColors.error,
-            onTap: () => _confirmDelete(context, ref),
-          ),
+          // ── Danger Zone ──
+          _SectionHeader('Danger Zone'),
+          _SettingsTile(icon: Icons.pause_circle_outline_rounded, title: 'Pause Account',
+              subtitle: 'Your profile will be hidden. You can return anytime.',
+              color: AppColors.warning,
+              onTap: () => _confirmPause(context, ref)),
+          _SettingsTile(icon: Icons.delete_outline_rounded, title: 'Delete Account',
+              color: AppColors.error,
+              onTap: () => _confirmDelete(context, ref)),
 
-          // ── About ─────────────────────────────────────────────────────
+          // ── About ──
           _SectionHeader('About'),
-          _SettingsTile(
-            icon: Icons.info_outline_rounded,
-            title: 'Version',
-            subtitle: '1.0.0',
-            onTap: null,
-          ),
-          _SettingsTile(
-            icon: Icons.article_outlined,
-            title: 'Terms of Service',
-            onTap: () => _showComingSoon(context),
-          ),
-          _SettingsTile(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy',
-            onTap: () => _showComingSoon(context),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
+          const _SettingsTile(icon: Icons.info_outline_rounded, title: 'Version', subtitle: '1.0.0'),
+
+          const SizedBox(height: AppSpacing.xxxl),
         ],
       ),
     );
   }
 
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming soon')),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
+  void _confirmPause(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Account',
-            style: TextStyle(color: AppColors.error)),
+        title: const Text('Pause Account', style: TextStyle(color: AppColors.warning)),
         content: const Text(
-          'This will permanently delete your account and all data. This cannot be undone.',
+          'Your profile will be hidden from discovery. Your data stays safe. You can return anytime.',
           style: TextStyle(color: AppColors.textMuted),
         ),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              _showComingSoon(context);
+              final uid = ref.read(authProvider).userId;
+              if (uid != null && !isMockMode) {
+                await Supabase.instance.client.from('profiles')
+                    .update({'is_paused': true}).eq('id', uid);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Account paused. You can reactivate anytime.')),
+                );
+              }
             },
-            child: const Text('Delete',
-                style: TextStyle(color: AppColors.error)),
+            child: const Text('Pause', style: TextStyle(color: AppColors.warning)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    final deleteCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Delete Account', style: TextStyle(color: AppColors.error)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This will permanently delete your account and all data. This cannot be undone.',
+                  style: TextStyle(color: AppColors.textMuted)),
+              const SizedBox(height: AppSpacing.lg),
+              const Text('Type DELETE to confirm:', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: deleteCtrl,
+                style: const TextStyle(color: AppColors.textPrimary),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'DELETE',
+                  hintStyle: const TextStyle(color: AppColors.textDisabled),
+                  filled: true, fillColor: AppColors.bg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+            TextButton(
+              onPressed: deleteCtrl.text == 'DELETE'
+                  ? () async {
+                      Navigator.pop(ctx);
+                      await ref.read(authProvider.notifier).signOut();
+                      // In production: call Supabase admin delete user endpoint
+                    }
+                  : null,
+              child: Text('Delete', style: TextStyle(
+                  color: deleteCtrl.text == 'DELETE' ? AppColors.error : AppColors.textDisabled)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -236,17 +287,9 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.xs),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.textDisabled,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.xs),
+      child: Text(title.toUpperCase(),
+          style: const TextStyle(color: AppColors.textDisabled, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
     );
   }
 }
@@ -258,13 +301,7 @@ class _SettingsTile extends StatelessWidget {
   final Color? color;
   final VoidCallback? onTap;
 
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.color,
-    this.onTap,
-  });
+  const _SettingsTile({required this.icon, required this.title, this.subtitle, this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -273,15 +310,8 @@ class _SettingsTile extends StatelessWidget {
       tileColor: Colors.transparent,
       leading: Icon(icon, color: c, size: 20),
       title: Text(title, style: TextStyle(color: c, fontSize: 14)),
-      subtitle: subtitle != null
-          ? Text(subtitle!,
-              style: const TextStyle(
-                  color: AppColors.textDisabled, fontSize: 12))
-          : null,
-      trailing: onTap != null
-          ? const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textDisabled, size: 18)
-          : null,
+      subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(color: AppColors.textDisabled, fontSize: 12)) : null,
+      trailing: onTap != null ? const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled, size: 18) : null,
       onTap: onTap,
     );
   }
@@ -290,29 +320,23 @@ class _SettingsTile extends StatelessWidget {
 class _ToggleTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _ToggleTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onChanged,
-  });
+  const _ToggleTile({required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       tileColor: Colors.transparent,
       leading: Icon(icon, color: AppColors.textPrimary, size: 20),
-      title: Text(title,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-      trailing: Switch(
+      title: Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+      subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(color: AppColors.textDisabled, fontSize: 11)) : null,
+      trailing: Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: AppColors.gold,
         activeTrackColor: AppColors.gold.withValues(alpha: 0.4),
-        inactiveTrackColor: AppColors.border,
       ),
     );
   }

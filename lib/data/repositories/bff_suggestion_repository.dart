@@ -74,6 +74,15 @@ class BffSuggestionRepository {
     return result as bool? ?? false;
   }
 
+  /// Trigger real server-side BFF suggestion generation
+  Future<int> generateSuggestions(String userId) async {
+    if (isMockMode) return 0;
+    final result = await _supabase!.rpc('generate_bff_suggestions', params: {
+      'p_user_id': userId,
+    });
+    return (result as int?) ?? 0;
+  }
+
   // ─── Reach Out ───────────────────────────────────────────────────
 
   Future<bool> canReachOut(String userId) async {
