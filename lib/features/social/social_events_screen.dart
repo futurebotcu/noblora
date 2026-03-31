@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/filter_provider.dart';
+import '../filters/filter_bottom_sheet.dart';
 import 'event_card_widget.dart';
 import 'event_detail_screen.dart';
 import 'create_event_screen.dart';
@@ -48,6 +51,7 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen> {
           ],
         ),
         actions: [
+          _SocialFilterButton(ref: ref),
           IconButton(
             icon: const Icon(Icons.add_rounded, color: _violet),
             onPressed: () async {
@@ -122,6 +126,37 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SocialFilterButton extends StatelessWidget {
+  final WidgetRef ref;
+  const _SocialFilterButton({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final count = ref.watch(filterProvider.select((f) => f.activeCount(NobleMode.social)));
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.tune_rounded),
+          color: count > 0 ? _violet : AppColors.textMuted,
+          onPressed: () => FilterBottomSheet.show(context),
+        ),
+        if (count > 0)
+          Positioned(
+            right: 4, top: 4,
+            child: Container(
+              width: 16, height: 16,
+              decoration: const BoxDecoration(color: _violet, shape: BoxShape.circle),
+              child: Center(
+                child: Text('$count', style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

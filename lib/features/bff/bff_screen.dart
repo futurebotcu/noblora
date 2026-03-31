@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/bff_provider.dart';
+import '../../providers/filter_provider.dart';
+import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
 
 const _teal = Color(0xFF26C6DA);
@@ -46,6 +49,7 @@ class _BffScreenState extends ConsumerState<BffScreen> {
           ],
         ),
         actions: [
+          _FilterButton(ref: ref),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textMuted),
             onPressed: () => ref.read(bffProvider.notifier).load(),
@@ -139,6 +143,37 @@ class _HeaderBanner extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  final WidgetRef ref;
+  const _FilterButton({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final count = ref.watch(filterProvider.select((f) => f.activeCount(NobleMode.bff)));
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.tune_rounded),
+          color: count > 0 ? _teal : AppColors.textMuted,
+          onPressed: () => FilterBottomSheet.show(context),
+        ),
+        if (count > 0)
+          Positioned(
+            right: 4, top: 4,
+            child: Container(
+              width: 16, height: 16,
+              decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
+              child: Center(
+                child: Text('$count', style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
