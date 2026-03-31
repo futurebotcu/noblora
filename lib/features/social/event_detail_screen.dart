@@ -219,7 +219,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   Widget _participantRow(EventParticipant p) {
-    return Padding(
+    return GestureDetector(
+      onTap: () => _showParticipantProfile(p),
+      child: Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
@@ -251,6 +253,69 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           Text(p.statusIcon, style: const TextStyle(fontSize: 16)),
         ],
       ),
+    ),
+    );
+  }
+
+  void _showParticipantProfile(EventParticipant p) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.7,
+        expand: false,
+        builder: (context, scroll) => ListView(
+          controller: scroll,
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          children: [
+            Center(child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
+            const SizedBox(height: AppSpacing.xxl),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: _violet.withValues(alpha: 0.2),
+                  backgroundImage: p.photoUrl != null ? NetworkImage(p.photoUrl!) : null,
+                  child: p.photoUrl == null
+                      ? Text((p.displayName ?? '?')[0].toUpperCase(),
+                          style: const TextStyle(color: _violet, fontSize: 24, fontWeight: FontWeight.w600))
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.displayName ?? 'User',
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+                      if (p.isHost)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                          child: const Text('Host', style: TextStyle(color: _violet, fontSize: 10, fontWeight: FontWeight.w600)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text('Status: ${p.attendanceStatus.replaceAll('_', ' ')}',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            if (p.companionCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Text('Coming with +${p.companionCount}', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
+      ),
     );
   }
 
@@ -263,6 +328,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       return;
     }
 
+    final maxCompanion = event.plus3Enabled ? 3 : 2;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -272,11 +339,24 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('How many are coming?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+            if (event.plus3Enabled)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _violet.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _violet.withValues(alpha: 0.3)),
+                  ),
+                  child: const Text('+3 mode enabled', style: TextStyle(color: _violet, fontSize: 11)),
+                ),
+              ),
             const SizedBox(height: AppSpacing.xxl),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                for (final n in [0, 1, 2])
+                for (int n = 0; n <= maxCompanion; n++)
                   GestureDetector(
                     onTap: () { Navigator.pop(ctx); _doJoin(n); },
                     child: Container(
