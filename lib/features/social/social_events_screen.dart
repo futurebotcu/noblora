@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'event_card_widget.dart';
 import 'event_detail_screen.dart';
@@ -37,19 +38,8 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF090610),
         surfaceTintColor: Colors.transparent,
-        title: Row(
-          children: [
-            const Icon(Icons.explore_rounded, color: _violet, size: 22),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Noble Social',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: _violet,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
+        titleSpacing: AppSpacing.lg,
+        title: const ModeSwitcher(),
         actions: [
           _SocialFilterButton(ref: ref),
           IconButton(

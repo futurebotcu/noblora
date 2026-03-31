@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
 
@@ -48,19 +49,8 @@ class _BffScreenState extends ConsumerState<BffScreen>
       appBar: AppBar(
         backgroundColor: const Color(0xFF060E0E),
         surfaceTintColor: Colors.transparent,
-        title: Row(
-          children: [
-            const Icon(Icons.people_rounded, color: _teal, size: 22),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Noble BFF',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: _teal,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
+        titleSpacing: AppSpacing.lg,
+        title: const ModeSwitcher(),
         actions: [
           _FilterButton(ref: ref),
           IconButton(
