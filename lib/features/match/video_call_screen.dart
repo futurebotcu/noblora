@@ -32,6 +32,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   Timer? _timer;
   bool _callStarted = false;
   bool _callEnded = false;
+  bool _isAudioPhase = true; // first 60s is audio-only
   String? _topicSuggestion;
   bool _loadingTopic = false;
 
@@ -74,6 +75,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     _timer?.cancel();
     setState(() {
       _callStarted = true;
+      _isAudioPhase = true;
       _remaining = _callDuration;
     });
 
@@ -81,11 +83,10 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     notifier.markStarted(widget.session.id);
     notifier.startCallTimer(widget.session.id);
 
-    // Get current user's display name for Jitsi
     final displayName =
         ref.read(profileProvider).profile?.displayName ?? '';
 
-    // Open Jitsi Meet in browser with config params
+    // Open call (audio-only config for first 60s, then video)
     VideoService.openCall(widget.match.id, displayName: displayName)
         .catchError((e) {
       if (mounted) {
@@ -95,6 +96,13 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
             backgroundColor: AppColors.error,
           ),
         );
+      }
+    });
+
+    // Audio→video phase transition after 60 seconds
+    Future.delayed(const Duration(seconds: 60), () {
+      if (mounted && _callStarted && !_callEnded) {
+        setState(() => _isAudioPhase = false);
       }
     });
 
@@ -250,11 +258,30 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.videocam_rounded,
-                    color: AppColors.gold, size: 80),
+                Icon(
+                  _isAudioPhase ? Icons.mic_rounded : Icons.videocam_rounded,
+                  color: AppColors.gold, size: 80,
+                ),
                 const SizedBox(height: AppSpacing.xl),
+                // Phase indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: (_isAudioPhase ? Colors.blue : AppColors.gold).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                    border: Border.all(color: (_isAudioPhase ? Colors.blue : AppColors.gold).withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    _isAudioPhase ? 'Audio Only — Video starts soon' : 'Video Phase',
+                    style: TextStyle(
+                      color: _isAudioPhase ? Colors.blue : AppColors.gold,
+                      fontSize: 12, fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Video call open in browser',
+                  _isAudioPhase ? 'Just voices, no pressure' : 'Call open in browser',
                   style: Theme.of(context)
                       .textTheme
                       .bodyLarge

@@ -4,6 +4,7 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/feed_provider.dart';
+import '../../providers/note_provider.dart';
 import '../../providers/status_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/mode_provider.dart';
@@ -327,6 +328,50 @@ class _ActionRowState extends ConsumerState<_ActionRow>
     super.dispose();
   }
 
+  void _showNoteDialog(BuildContext context, String targetUserId) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Send a Note', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        content: TextField(
+          controller: ctrl,
+          maxLength: 280,
+          maxLines: 3,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Write something thoughtful...',
+            hintStyle: const TextStyle(color: AppColors.textMuted),
+            filled: true, fillColor: AppColors.bg,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () {
+              final text = ctrl.text.trim();
+              if (text.isEmpty) return;
+              Navigator.pop(ctx);
+              ref.read(noteInboxProvider.notifier).sendNote(
+                receiverId: targetUserId,
+                targetType: 'profile',
+                targetId: targetUserId,
+                content: text,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.gold),
+              );
+            },
+            child: const Text('Send', style: TextStyle(color: AppColors.gold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onConnect(String cardId) {
     setState(() => _showHandshake = true);
     _hsCtrl.forward(from: 0).then((_) {
@@ -394,12 +439,21 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                     : () =>
                         ref.read(feedProvider.notifier).swipeRight(topCard.id),
               ),
-              // Signal (replaces Super Like)
+              // Signal
               _CircleButton(
                 icon: Icons.bolt_rounded,
                 color: const Color(0xFF42A5F5),
+                size: 46,
                 onTap: () => ref.read(feedProvider.notifier).sendSignal(topCard.id),
               ),
+              // Note
+              if (mode == NobleMode.date)
+                _CircleButton(
+                  icon: Icons.mail_outline_rounded,
+                  color: AppColors.gold,
+                  size: 46,
+                  onTap: () => _showNoteDialog(context, topCard.id),
+                ),
             ],
           ),
         ),

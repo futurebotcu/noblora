@@ -20,6 +20,13 @@ class CheckInState {
   });
 }
 
+/// Provider that checks for pending check-ins (meetings >2h ago without check-in)
+final pendingCheckInsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) async {
+  if (isMockMode) return [];
+  final repo = ref.read(checkInRepositoryProvider);
+  return repo.fetchPendingCheckIns(userId);
+});
+
 class CheckInNotifier extends StateNotifier<CheckInState> {
   final CheckInRepository _repo;
 
