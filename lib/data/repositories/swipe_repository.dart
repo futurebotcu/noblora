@@ -30,8 +30,18 @@ class SwipeRepository {
       return null;
     }
 
-    // Increment swipe counter (server-side limit check happens in feed)
-    await _supabase!.rpc('increment_swipe_count', params: {'p_user_id': swiperId});
+    // Check swipe limit before proceeding
+    final canSwipe = await _supabase!.rpc('check_swipe_limit', params: {'p_user_id': swiperId});
+    if (canSwipe != true) return null;
+
+    // Check connection limit for right swipes
+    if (direction != 'left') {
+      final canConnect = await _supabase.rpc('check_connection_limit', params: {'p_user_id': swiperId});
+      if (canConnect != true) return null;
+    }
+
+    // Increment swipe counter
+    await _supabase.rpc('increment_swipe_count', params: {'p_user_id': swiperId});
 
     // Insert swipe record
     await _supabase.from('swipes').upsert({
