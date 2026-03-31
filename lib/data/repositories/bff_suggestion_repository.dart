@@ -113,6 +113,14 @@ class BffSuggestionRepository {
     });
   }
 
+  Future<Map<String, dynamic>> acceptReachOut(String reachOutId) async {
+    if (isMockMode) return {'result': 'connected'};
+    final result = await _supabase!.rpc('accept_reach_out', params: {
+      'p_reach_out_id': reachOutId,
+    });
+    return result as Map<String, dynamic>? ?? {'result': 'error'};
+  }
+
   Future<List<Map<String, dynamic>>> fetchReachOutsReceived(String userId) async {
     if (isMockMode) return [];
 

@@ -10,12 +10,16 @@ class BffSuggestionCard extends StatelessWidget {
   final BffSuggestion suggestion;
   final VoidCallback onConnect;
   final VoidCallback onPass;
+  final VoidCallback? onReachOut;
+  final VoidCallback? onNote;
 
   const BffSuggestionCard({
     super.key,
     required this.suggestion,
     required this.onConnect,
     required this.onPass,
+    this.onReachOut,
+    this.onNote,
   });
 
   @override
@@ -187,27 +191,31 @@ class BffSuggestionCard extends StatelessWidget {
                 separatorBuilder: (_, __) =>
                     const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (context, i) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    decoration: BoxDecoration(
-                      color: AppColors.bg,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      suggestion.otherUserNobPosts[i],
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                        height: 1.3,
+                  final text = suggestion.otherUserNobPosts[i];
+                  return GestureDetector(
+                    onTap: () => _showNobContent(context, text),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusSm),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        text,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   );
                 },
@@ -220,10 +228,7 @@ class BffSuggestionCard extends StatelessWidget {
           // ── Action Buttons ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              0,
-              AppSpacing.lg,
-              AppSpacing.lg,
+              AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm,
             ),
             child: Row(
               children: [
@@ -233,10 +238,7 @@ class BffSuggestionCard extends StatelessWidget {
                       side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.3)),
                       foregroundColor: AppColors.textMuted,
                       minimumSize: const Size.fromHeight(44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
                     ),
                     onPressed: onPass,
                     child: const Text('Pass'),
@@ -252,10 +254,7 @@ class BffSuggestionCard extends StatelessWidget {
                       backgroundColor: _teal,
                       foregroundColor: AppColors.bg,
                       minimumSize: const Size.fromHeight(44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
                     ),
                     onPressed: onConnect,
                   ),
@@ -263,7 +262,57 @@ class BffSuggestionCard extends StatelessWidget {
               ],
             ),
           ),
+          // ── Secondary actions: Reach Out + Note ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton.icon(
+                  icon: Icon(Icons.waving_hand_rounded, size: 14, color: _teal.withValues(alpha: 0.7)),
+                  label: Text('Reach Out', style: TextStyle(color: _teal.withValues(alpha: 0.7), fontSize: 12)),
+                  onPressed: onReachOut,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                TextButton.icon(
+                  icon: Icon(Icons.mail_outline_rounded, size: 14, color: _teal.withValues(alpha: 0.7)),
+                  label: Text('Note', style: TextStyle(color: _teal.withValues(alpha: 0.7), fontSize: 12)),
+                  onPressed: onNote,
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  static void _showNobContent(BuildContext context, String content) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
+            const SizedBox(height: AppSpacing.xxl),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('Nob', style: TextStyle(color: Color(0xFF26C6DA), fontSize: 10, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(content, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, height: 1.5)),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
       ),
     );
   }

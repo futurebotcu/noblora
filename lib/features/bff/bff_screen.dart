@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/models/bff_suggestion.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../providers/note_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
@@ -109,8 +111,59 @@ class _SuggestionsTab extends ConsumerWidget {
             suggestion: sug,
             onConnect: () => _onAction(context, ref, sug.id, 'connect'),
             onPass: () => _onAction(context, ref, sug.id, 'pass'),
+            onReachOut: () async {
+              final sent = await ref.read(bffProvider.notifier).sendReachOut(sug.otherUserId(ref.read(authProvider).userId ?? ''));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(sent ? 'Reached out!' : 'Limit reached'),
+                backgroundColor: sent ? _teal : AppColors.surface,
+              ));
+            },
+            onNote: () => _showNoteDialog(context, ref, sug),
           );
         },
+      ),
+    );
+  }
+
+  void _showNoteDialog(BuildContext context, WidgetRef ref, BffSuggestion sug) {
+    final ctrl = TextEditingController();
+    final uid = ref.read(authProvider).userId ?? '';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Note to ${sug.otherUserName ?? 'user'}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        content: TextField(
+          controller: ctrl, maxLength: 280, maxLines: 3,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Write something thoughtful...',
+            hintStyle: const TextStyle(color: AppColors.textMuted),
+            filled: true, fillColor: AppColors.bg,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(
+            onPressed: () {
+              final text = ctrl.text.trim();
+              if (text.isEmpty) return;
+              Navigator.pop(ctx);
+              ref.read(noteInboxProvider.notifier).sendNote(
+                receiverId: sug.otherUserId(uid),
+                targetType: 'profile',
+                targetId: sug.otherUserId(uid),
+                content: text,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Note sent'), backgroundColor: _teal),
+              );
+            },
+            child: const Text('Send', style: TextStyle(color: _teal)),
+          ),
+        ],
       ),
     );
   }
@@ -161,7 +214,6 @@ class _ReachOutsTab extends ConsumerWidget {
         final ro = reachOuts[i];
         final profile = ro['profiles'] as Map<String, dynamic>?;
         final name = profile?['display_name'] as String? ?? 'Someone';
-        final senderId = ro['sender_id'] as String;
 
         return Container(
           margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -197,15 +249,15 @@ class _ReachOutsTab extends ConsumerWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
                 ),
                 onPressed: () async {
-                  // Direct connect from reach out
-                  final uid = ref.read(authProvider).userId;
-                  if (uid == null) return;
+                  final roId = ro['id'] as String;
                   final repo = ref.read(bffRepositoryProvider);
-                  // Create a direct match via suggestion or swipe
-                  await repo.sendReachOut(senderId: uid, receiverId: senderId);
+                  final result = await repo.acceptReachOut(roId);
                   if (!context.mounted) return;
+                  final msg = result['result'] == 'connected'
+                      ? 'Connected! Check your chats.'
+                      : (result['error'] as String? ?? 'Error');
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Connected!'), backgroundColor: _teal),
+                    SnackBar(content: Text(msg), backgroundColor: result['result'] == 'connected' ? _teal : AppColors.surface),
                   );
                   ref.read(bffProvider.notifier).load();
                 },
