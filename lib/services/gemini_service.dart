@@ -363,4 +363,103 @@ Rules:
       raw: parsed,
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // BFF: Generate common ground between two users
+  // ---------------------------------------------------------------------------
+
+  static Future<List<String>> generateCommonGround({
+    required String userABio,
+    required String userBBio,
+    List<String> userAPosts = const [],
+    List<String> userBPosts = const [],
+  }) async {
+    final postsA = userAPosts.isNotEmpty
+        ? 'User A recent posts: ${userAPosts.join(" | ")}'
+        : '';
+    final postsB = userBPosts.isNotEmpty
+        ? 'User B recent posts: ${userBPosts.join(" | ")}'
+        : '';
+
+    final prompt = '''
+You are an AI for a friendship app (NOT dating). Analyze two users and find common ground.
+
+User A bio: $userABio
+User B bio: $userBBio
+$postsA
+$postsB
+
+Return exactly 2-3 short, natural phrases describing what they have in common.
+- Focus on lifestyle, rhythm, personality — NOT hobbies lists
+- Tone: relaxed, mature, observational
+- Examples: "You both prefer quieter places", "You both seem more structured", "You both like slower routines"
+- Do NOT use romantic language
+- Return ONLY a JSON array of 2-3 strings
+
+Example: ["You both prefer quieter places", "You both seem more structured"]
+''';
+
+    final result = await analyzeText(prompt);
+    if (result.containsKey('mock')) {
+      return [
+        'You both prefer quieter places',
+        'You both seem more structured',
+        'You both like slower routines',
+      ];
+    }
+
+    final text = result['text'] as String? ?? '[]';
+    try {
+      final listMatch = RegExp(r'\[[\s\S]*\]').firstMatch(text);
+      if (listMatch != null) {
+        final list = jsonDecode(listMatch.group(0)!) as List<dynamic>;
+        return list.map((e) => e.toString()).take(3).toList();
+      }
+    } catch (_) {}
+
+    return [
+      'You both seem to enjoy calm environments',
+      'You both value meaningful conversations',
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // BFF: Generate friendly opener suggestion
+  // ---------------------------------------------------------------------------
+
+  static Future<String> generateBffOpener({
+    required String userName,
+    required String otherName,
+    List<String> commonGround = const [],
+  }) async {
+    final cgStr = commonGround.isNotEmpty
+        ? 'Common ground: ${commonGround.join(", ")}'
+        : '';
+
+    final prompt = '''
+You are an AI for a friendship app (NOT dating). Generate ONE friendly conversation opener.
+
+$userName wants to start chatting with $otherName.
+$cgStr
+
+Rules:
+- Warm, casual, non-romantic tone
+- Reference common ground if available
+- 1-2 sentences, max 120 characters
+- No emojis unless natural
+- Return ONLY the opener text, no JSON
+
+Example: "Hey! I noticed we both like quiet cafes. Got any favorites?"
+''';
+
+    final result = await analyzeText(prompt);
+    if (result.containsKey('mock')) {
+      return 'Hey $otherName! Looks like we have some things in common. What are you into these days?';
+    }
+
+    final text = result['text'] as String? ?? '';
+    return text.trim().isNotEmpty
+        ? text.trim().replaceAll('"', '')
+        : 'Hey $otherName! Looks like we have some things in common.';
+  }
 }

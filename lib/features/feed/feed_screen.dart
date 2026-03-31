@@ -16,6 +16,7 @@ import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
 import '../social/group_chat_screen.dart';
 import '../social/widgets/table_card_widget.dart';
+import '../bff/bff_screen.dart';
 import 'swipe_card_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -63,6 +64,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
     final filterCount =
         ref.watch(filterProvider.select((f) => f.activeCount(mode)));
+
+    // BFF mode → dedicated BFF suggestion screen
+    if (mode == NobleMode.bff) {
+      return const BffScreen();
+    }
 
     // Social mode → show table feed
     if (mode == NobleMode.social) {
