@@ -25,8 +25,27 @@ class FeedRepository {
     final approvedIds = {for (final r in gatingData) r['user_id'] as String};
     final excluded = {userId, ...excludeIds};
     if (approvedIds.isEmpty) return [];
-    final toFetch = approvedIds.difference(excluded);
+    var toFetch = approvedIds.difference(excluded);
     if (toFetch.isEmpty) return [];
+
+    // Step 1b: Geo distance filtering — restricts toFetch to nearby profiles
+    if (filters != null && (filters.maxDistance < 100 || filters.sameCityOnly)) {
+      try {
+        final nearbyRows = await client.rpc('fetch_nearby_profiles', params: {
+          'p_user_id': userId,
+          'p_mode': mode,
+          'p_max_distance_km': filters.maxDistance,
+          'p_same_city_only': filters.sameCityOnly,
+        });
+        if (nearbyRows is List && nearbyRows.isNotEmpty) {
+          final nearbyIds = {for (final r in nearbyRows) r['profile_id'] as String};
+          toFetch = toFetch.intersection(nearbyIds);
+          if (toFetch.isEmpty) return [];
+        }
+      } catch (_) {
+        // If geo query fails (no location data etc.), continue without geo filter
+      }
+    }
 
     // Step 2: build filtered query
     // Mode visibility column name
@@ -113,11 +132,7 @@ class FeedRepository {
         query = query.gte('prompts_answered', 2);
       }
 
-      // Same city only (hard filter via city column)
-      if (filters.sameCityOnly) {
-        // Will be applied via fetch_nearby_profiles RPC if user has location
-        // Fallback: city equality check done in RPC
-      }
+      // Same city only: already handled by fetch_nearby_profiles RPC in Step 1b
 
       // 6+ photos (hard filter — query-backed via photo_count column)
       if (filters.sixPlusPhotos) {
