@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/messages_provider.dart';
 import '../../services/gemini_service.dart';
+import '../bff/bff_plan_screen.dart';
 import '../match/real_meeting_screen.dart';
 import '../match/video_scheduling_screen.dart';
 
@@ -305,17 +306,19 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         actions: [
           if (widget.matchId != null)
             IconButton(
-              icon: Icon(Icons.handshake_rounded, color: accent),
+              icon: Icon(_isBff ? Icons.coffee_rounded : Icons.handshake_rounded, color: accent),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => RealMeetingScreen(
-                    matchId: widget.matchId!,
-                    otherUserName: _item.name,
-                  ),
+                  builder: (_) => _isBff
+                      ? BffPlanScreen(conversationId: _item.id)
+                      : RealMeetingScreen(
+                          matchId: widget.matchId!,
+                          otherUserName: _item.name,
+                        ),
                 ),
               ),
-              tooltip: 'Plan Meeting',
+              tooltip: _isBff ? 'Make a plan' : 'Plan Meeting',
             ),
           IconButton(
             icon: Icon(Icons.video_call_rounded, color: accent),
