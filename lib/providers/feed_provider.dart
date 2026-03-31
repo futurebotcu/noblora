@@ -2,12 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/enums/noble_mode.dart';
 import '../core/utils/mock_mode.dart';
+import '../data/models/filter_state.dart';
 import '../data/models/match.dart';
 import '../data/models/profile_card.dart';
 import '../data/repositories/feed_repository.dart';
 import '../data/repositories/signal_repository.dart';
 import '../data/repositories/super_like_repository.dart';
 import 'auth_provider.dart';
+import 'filter_provider.dart';
 import 'match_provider.dart';
 import 'mode_provider.dart';
 import 'status_provider.dart';
@@ -34,8 +36,8 @@ class FeedState {
   final List<ProfileCard> cards;
   final bool isLoading;
   final String? error;
-  final NobleMatch? newMatch; // populated when a swipe creates a match
-  final ProfileCard? lastRemovedCard; // for rewind
+  final NobleMatch? newMatch;
+  final ProfileCard? lastRemovedCard;
   final String? lastRemovedDirection;
 
   const FeedState({
@@ -85,6 +87,12 @@ class FeedNotifier extends StateNotifier<FeedState> {
       final hasUser = next.userId != null;
       if (wasNull && hasUser) loadFeed();
     });
+
+    // Reload feed when filters change
+    _ref.listen<FilterState>(filterProvider, (prev, next) {
+      if (prev != next) loadFeed();
+    });
+
     // Also load immediately if userId is already available.
     if (_ref.read(authProvider).userId != null) loadFeed();
   }
@@ -92,8 +100,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
   Future<void> loadFeed([NobleMode? mode]) async {
     state = state.copyWith(isLoading: true, clearError: true);
     final NobleMode resolved = mode ?? _ref.read(modeProvider);
-    // ignore: avoid_print
-    print('[FeedProvider] loadFeed called — mode=$resolved isMockMode=$isMockMode userId=${_ref.read(authProvider).userId}');
 
     if (isMockMode) {
       state = state.copyWith(cards: [], isLoading: false);
@@ -107,22 +113,22 @@ class FeedNotifier extends StateNotifier<FeedState> {
     }
 
     try {
-      // Fetch IDs already swiped in this mode to exclude from feed
       final swipeRepo = _ref.read(swipeRepositoryProvider);
       final swipedIds = await swipeRepo.fetchSwipedIds(userId, resolved.name);
 
-      // Fetch real profiles from DB
+      // Read current filters and pass to repository
+      final filters = _ref.read(filterProvider);
+
       final feedRepo = _ref.read(feedRepositoryProvider);
       final cards = await feedRepo.fetchFeedProfiles(
         userId: userId,
         mode: resolved.name,
         excludeIds: swipedIds,
+        filters: filters,
       );
 
       state = state.copyWith(cards: cards, isLoading: false);
-    } catch (e, st) {
-      // ignore: avoid_print
-      print('[FeedProvider] loadFeed ERROR: $e\n$st');
+    } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -150,8 +156,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
         );
   }
 
-  /// Send a Signal — strong interest indicator (does NOT auto-match).
-  /// Unlike super like, signal is one-sided; recipient decides to act.
   Future<void> sendSignal(String cardId) async {
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return;
@@ -163,7 +167,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
     await signalRepo.sendSignal(senderId: userId, receiverId: cardId);
   }
 
-  /// Legacy super like — kept for backward compatibility, delegates to signal.
   Future<void> superLike(String cardId) async {
     await sendSignal(cardId);
   }
@@ -200,7 +203,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
       lastRemovedCard: card,
       lastRemovedDirection: direction,
     );
-    // Reload when deck runs out
     if (remaining.isEmpty) loadFeed();
   }
 }
