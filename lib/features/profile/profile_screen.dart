@@ -65,6 +65,8 @@ class ProfileScreen extends ConsumerWidget {
                 displayName: displayName,
                 city: city,
                 activeMode: activeMode,
+                avatarUrl: profile.profile?.dateAvatarUrl ?? profile.profile?.bffAvatarUrl,
+                userId: auth.userId,
               ),
             ),
           ),
@@ -117,11 +119,15 @@ class _ProfileHeader extends StatelessWidget {
   final String displayName;
   final String city;
   final NobleMode activeMode;
+  final String? avatarUrl;
+  final String? userId;
 
   const _ProfileHeader({
     required this.displayName,
     required this.city,
     required this.activeMode,
+    this.avatarUrl,
+    this.userId,
   });
 
   @override
@@ -159,7 +165,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: Image.network(
-                    'https://picsum.photos/seed/noblara_me/200/200',
+                    avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: activeMode.accentColor.withValues(alpha: 0.2),
@@ -781,24 +787,16 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
 // Noble Scorecard — AI-powered percentile + animated breakdown bars
 // ---------------------------------------------------------------------------
 
-class _NobleScorecardSection extends StatefulWidget {
+class _NobleScorecardSection extends ConsumerStatefulWidget {
   const _NobleScorecardSection();
 
   @override
-  State<_NobleScorecardSection> createState() =>
+  ConsumerState<_NobleScorecardSection> createState() =>
       _NobleScorecardSectionState();
 }
 
-class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
+class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> {
   bool _animate = false;
-
-  static const int _percentile = 87;
-  static const List<_ScoreBar> _bars = [
-    _ScoreBar('Photo Quality', 0.92),
-    _ScoreBar('Bio Depth', 0.78),
-    _ScoreBar('Interest Match', 0.88),
-    _ScoreBar('Engagement', 0.82),
-  ];
 
   @override
   void initState() {
@@ -810,6 +808,17 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
 
   @override
   Widget build(BuildContext context) {
+    final p = ref.watch(profileProvider).profile;
+    if (p == null) return const SizedBox.shrink();
+
+    final maturity = p.maturityScore.round().clamp(0, 100);
+    final bars = [
+      _ScoreBar('Profile', p.profileCompletenessScore / 100),
+      _ScoreBar('Community', p.communityScore / 100),
+      _ScoreBar('Depth', p.depthScore / 100),
+      _ScoreBar('Follow-through', p.followThroughScore / 100),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -822,7 +831,7 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'NOBLE SCORE',
+                    'MATURITY SCORE',
                     style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 11,
@@ -832,7 +841,7 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'AI-powered profile quality',
+                    'Based on your real activity',
                     style: TextStyle(
                         color: AppColors.textDisabled, fontSize: 11),
                   ),
@@ -849,15 +858,15 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                   border: Border.all(
                       color: AppColors.gold.withValues(alpha: 0.3)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome,
+                    const Icon(Icons.auto_awesome,
                         size: 10, color: AppColors.gold),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      'AI Analysis',
-                      style: TextStyle(
+                      p.nobTier.label,
+                      style: const TextStyle(
                           color: AppColors.gold,
                           fontSize: 10,
                           fontWeight: FontWeight.w700),
@@ -881,13 +890,13 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
             ),
             child: Column(
               children: [
-                // Percentile display
+                // Score display
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      '$_percentile',
+                      '$maturity',
                       style: const TextStyle(
                         color: AppColors.gold,
                         fontSize: 56,
@@ -896,25 +905,25 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                       ),
                     ),
                     const Text(
-                      'th',
+                      '/100',
                       style: TextStyle(
-                        color: AppColors.gold,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const Spacer(),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          'percentile',
+                        const Text(
+                          'maturity',
                           style: TextStyle(
                               color: AppColors.textMuted, fontSize: 12),
                         ),
                         Text(
-                          'Top 13%',
-                          style: TextStyle(
+                          p.strengthLabel,
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -932,7 +941,7 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                   child: TweenAnimationBuilder<double>(
                     tween: Tween(
                         begin: 0,
-                        end: _animate ? _percentile / 100.0 : 0),
+                        end: _animate ? maturity / 100.0 : 0),
                     duration: const Duration(milliseconds: 900),
                     curve: Curves.easeOutCubic,
                     builder: (_, value, __) => LinearProgressIndicator(
@@ -946,7 +955,7 @@ class _NobleScorecardSectionState extends State<_NobleScorecardSection> {
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 // Breakdown bars
-                ..._bars.map((bar) =>
+                ...bars.map((bar) =>
                     _ScoreBarRow(bar: bar, animate: _animate)),
               ],
             ),

@@ -115,6 +115,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isInitialized: true,
         isLoading: false,
       );
+      // Update last active + trigger maturity score recalculation
+      if (!isMockMode && id != null) {
+        Supabase.instance.client.rpc('update_last_active', params: {'p_user_id': id}).ignore();
+        Supabase.instance.client.rpc('calculate_maturity_score', params: {'p_user_id': id}).ignore();
+      }
       if (!isMockMode) {
         _authSub = _repo.authStateChanges.listen((authState) {
           final event = authState.event;

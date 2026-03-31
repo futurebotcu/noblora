@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../data/models/filter_state.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../providers/feed_provider.dart';
 import '../../providers/mode_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -30,11 +34,20 @@ class FilterBottomSheet extends ConsumerStatefulWidget {
 
 class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
   late FilterState _local;
+  int _realResultCount = -1; // -1 = loading
+  Timer? _countDebounce;
 
   @override
   void initState() {
     super.initState();
     _local = ref.read(filterProvider);
+    _fetchCount();
+  }
+
+  @override
+  void dispose() {
+    _countDebounce?.cancel();
+    super.dispose();
   }
 
   void _apply() {
@@ -42,9 +55,40 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
     Navigator.of(context).pop();
   }
 
-  void _reset() => setState(() => _local = const FilterState());
+  void _reset() {
+    setState(() => _local = const FilterState());
+    _debounceFetchCount();
+  }
 
-  void _update(FilterState s) => setState(() => _local = s.copyWith(clearPreset: true));
+  void _update(FilterState s) {
+    setState(() => _local = s.copyWith(clearPreset: true));
+    _debounceFetchCount();
+  }
+
+  void _debounceFetchCount() {
+    _countDebounce?.cancel();
+    _countDebounce = Timer(const Duration(milliseconds: 300), _fetchCount);
+  }
+
+  Future<void> _fetchCount() async {
+    if (isMockMode) {
+      setState(() => _realResultCount = _local.estimatedResults(ref.read(modeProvider)));
+      return;
+    }
+    final uid = ref.read(authProvider).userId;
+    if (uid == null) return;
+    try {
+      final repo = ref.read(feedRepositoryProvider);
+      final count = await repo.countFilteredProfiles(
+        userId: uid,
+        mode: ref.read(modeProvider).name,
+        filters: _local,
+      );
+      if (mounted) setState(() => _realResultCount = count);
+    } catch (_) {
+      if (mounted) setState(() => _realResultCount = _local.estimatedResults(ref.read(modeProvider)));
+    }
+  }
 
   void _applyPreset(FilterPreset preset) {
     setState(() {
@@ -57,7 +101,7 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
     final mode = ref.watch(modeProvider);
     final accent = mode.accentColor;
     final count = _local.activeCount(mode);
-    final results = _local.estimatedResults(mode);
+    final results = _realResultCount >= 0 ? _realResultCount : _local.estimatedResults(mode);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.92,

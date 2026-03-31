@@ -16,35 +16,29 @@ class FeedRepository {
   }) async {
     final client = _supabase!;
 
-    // Step 1: fetch entry-approved user IDs from gating_status
-    late List<Map<String, dynamic>> gatingData;
-    try {
-      gatingData = await client
-          .from('gating_status')
-          .select('user_id')
-          .eq('is_entry_approved', true);
-    } catch (e) {
-      rethrow;
-    }
+    // Step 1: approved users
+    final gatingData = await client
+        .from('gating_status')
+        .select('user_id')
+        .eq('is_entry_approved', true);
+
     final approvedIds = {for (final r in gatingData) r['user_id'] as String};
     final excluded = {userId, ...excludeIds};
-
     if (approvedIds.isEmpty) return [];
-
     final toFetch = approvedIds.difference(excluded);
     if (toFetch.isEmpty) return [];
 
-    // Step 2: Build filtered query
+    // Step 2: build filtered query
     var query = client
         .from('profiles')
         .select()
         .eq('is_verified', true)
+        .eq('is_paused', false)
         .filter('active_modes', 'cs', '{"$mode"}')
         .inFilter('id', toFetch.toList());
 
-    // ── Apply filters from FilterState ──
     if (filters != null) {
-      // Age range
+      // Age
       if (filters.ageRange.start > 18) {
         query = query.gte('age', filters.ageRange.start.round());
       }
@@ -52,106 +46,127 @@ class FeedRepository {
         query = query.lte('age', filters.ageRange.end.round());
       }
 
-      // City / distance (text-based for now)
-      // Note: geo-distance filtering would require PostGIS; use city match as proxy
-
-      // Trust Shield: Verified + Complete + Explorer+
+      // Trust Shield
       if (filters.trustShieldEnabled) {
         query = query
-            .eq('is_verified', true)
             .eq('is_onboarded', true)
             .inFilter('nob_tier', ['explorer', 'noble']);
       }
 
-      // Verified only
-      if (filters.verifiedOnly) {
-        query = query.eq('is_verified', true);
-      }
+      // Verified / Complete
+      if (filters.verifiedOnly) query = query.eq('is_verified', true);
+      if (filters.completeOnly) query = query.eq('is_onboarded', true);
 
-      // Complete profiles only
-      if (filters.completeOnly) {
-        query = query.eq('is_onboarded', true);
-      }
-
-      // Status badge filter
+      // Tier badge
       if (filters.statusBadge == 'Explorer+') {
         query = query.inFilter('nob_tier', ['explorer', 'noble']);
       } else if (filters.statusBadge == 'Noble only') {
         query = query.eq('nob_tier', 'noble');
       }
 
-      // Has Nob posts — can't filter in profiles query directly,
-      // would need a subquery or post-filter. Skip for now.
+      // Lifestyle DB filters (strict = hard filter, preference = sort later)
+      if (filters.drinks != null && filters.isStrict('drinks')) {
+        query = query.eq('drinks', filters.drinks!);
+      }
+      if (filters.smokes != null && filters.isStrict('smokes')) {
+        query = query.eq('smokes', filters.smokes!);
+      }
+      if (filters.nightlife != null && filters.isStrict('nightlife')) {
+        query = query.eq('nightlife', filters.nightlife!);
+      }
+      if (filters.socialEnergy != null && filters.isStrict('socialEnergy')) {
+        query = query.eq('social_energy', filters.socialEnergy!);
+      }
+      if (filters.routine != null && filters.isStrict('routine')) {
+        query = query.eq('routine', filters.routine!);
+      }
+      if (filters.faithSensitivity != null && filters.isStrict('faith')) {
+        query = query.eq('faith_sensitivity', filters.faithSensitivity!);
+      }
+
+      // Looking for (dating)
+      if (filters.lookingFor != null && filters.isStrict('lookingFor')) {
+        query = query.eq('looking_for', filters.lookingFor!);
+      }
+
+      // BFF looking for
+      if (filters.bffLookingFor != null && filters.isStrict('bffLookingFor')) {
+        query = query.eq('bff_looking_for', filters.bffLookingFor!);
+      }
+
+      // Has Nob posts (6+ photos not checkable from profiles alone)
+      if (filters.hasNobs) {
+        query = query.gt('daily_nob_count', 0);
+      }
+
+      // Has prompts
+      if (filters.hasPrompts) {
+        query = query.gte('prompts_answered', 2);
+      }
     }
 
-    // Step 3: Order by tier ranking + maturity score, execute
-    late List<Map<String, dynamic>> data;
-    try {
-      data = await query
-          .order('maturity_score', ascending: false)
-          .limit(30);
-    } catch (e) {
-      rethrow;
-    }
+    // Step 3: execute with ranking
+    final data = await query
+        .order('maturity_score', ascending: false)
+        .limit(30);
 
     final nobleMode = NobleMode.values
         .firstWhere((m) => m.name == mode, orElse: () => NobleMode.date);
 
-    // Step 4: Client-side filtering for fields not in DB
     var results = data.map((row) => ProfileCard.fromDb(row, nobleMode)).toList();
 
+    // Step 4: client-side preference sorting (non-strict filters)
     if (filters != null) {
-      results = _applyClientFilters(results, filters, mode);
+      results = _applyPreferenceSorting(results, filters);
     }
 
     return results;
   }
 
-  /// Client-side filtering for lifestyle/preference fields
-  /// These would ideally be DB columns, but for now we filter post-fetch
-  List<ProfileCard> _applyClientFilters(
+  /// Real oracle counter
+  Future<int> countFilteredProfiles({
+    required String userId,
+    required String mode,
+    FilterState? filters,
+  }) async {
+    final client = _supabase!;
+    final result = await client.rpc('count_filtered_profiles', params: {
+      'p_user_id': userId,
+      'p_mode': mode,
+      'p_age_min': filters?.ageRange.start.round() ?? 18,
+      'p_age_max': filters?.ageRange.end.round() ?? 65,
+      'p_verified_only': filters?.verifiedOnly ?? false,
+      'p_complete_only': filters?.completeOnly ?? false,
+      'p_tier_filter': filters?.statusBadge == 'Noble only'
+          ? 'noble'
+          : filters?.statusBadge == 'Explorer+'
+              ? null
+              : null,
+    });
+    return (result as int?) ?? 0;
+  }
+
+  List<ProfileCard> _applyPreferenceSorting(
     List<ProfileCard> cards,
     FilterState filters,
-    String mode,
   ) {
-    var result = cards;
+    if (cards.isEmpty) return cards;
 
-    // Language filter
-    if (filters.languages.isNotEmpty) {
-      if (filters.isStrict('languages')) {
-        result = result.where((c) =>
-            c.languages.any((l) => filters.languages.contains(l))).toList();
+    // Score each card by preference match count
+    int score(ProfileCard c) {
+      int s = 0;
+      if (filters.languages.isNotEmpty &&
+          c.languages.any((l) => filters.languages.contains(l))) {
+        s += 2;
       }
-      // Preference: sort matching ones first
-      else {
-        result.sort((a, b) {
-          final aMatch = a.languages.where((l) => filters.languages.contains(l)).length;
-          final bMatch = b.languages.where((l) => filters.languages.contains(l)).length;
-          return bMatch.compareTo(aMatch);
-        });
+      if (filters.interests.isNotEmpty &&
+          c.interests.any((i) => filters.interests.contains(i))) {
+        s += 2;
       }
+      return s;
     }
 
-    // Interest filter (BFF mode)
-    if (filters.interests.isNotEmpty) {
-      if (filters.isStrict('interests')) {
-        result = result.where((c) =>
-            c.interests.any((i) => filters.interests.contains(i))).toList();
-      } else {
-        result.sort((a, b) {
-          final aMatch = a.interests.where((i) => filters.interests.contains(i)).length;
-          final bMatch = b.interests.where((i) => filters.interests.contains(i)).length;
-          return bMatch.compareTo(aMatch);
-        });
-      }
-    }
-
-    // 6+ photos filter
-    if (filters.sixPlusPhotos) {
-      // Can't check from ProfileCard — would need photos count in model
-      // This is a known gap
-    }
-
-    return result;
+    cards.sort((a, b) => score(b).compareTo(score(a)));
+    return cards;
   }
 }
