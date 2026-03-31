@@ -17,6 +17,7 @@ import '../match/mini_intro_screen.dart';
 import '../social/group_chat_screen.dart';
 import '../social/widgets/table_card_widget.dart';
 import '../bff/bff_screen.dart';
+import '../social/social_events_screen.dart';
 import 'swipe_card_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -70,9 +71,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return const BffScreen();
     }
 
-    // Social mode → show table feed
+    // Social mode → events feed
     if (mode == NobleMode.social) {
-      return _SocialFeed(mode: mode, filterCount: filterCount);
+      return const SocialEventsScreen();
     }
 
     return Scaffold(
