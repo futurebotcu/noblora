@@ -462,4 +462,42 @@ Example: "Hey! I noticed we both like quiet cafes. Got any favorites?"
         ? text.trim().replaceAll('"', '')
         : 'Hey $otherName! Looks like we have some things in common.';
   }
+
+  // ---------------------------------------------------------------------------
+  // Tier explanation — social guide tone
+  // ---------------------------------------------------------------------------
+
+  static Future<String> getTierExplanation({
+    required String tier,
+    required int profileCompleteness,
+    required int communityScore,
+    required int depthScore,
+    required int followThrough,
+  }) async {
+    final prompt = '''
+You are Noblara Guide — an encouraging social mentor (NOT a grade teacher).
+User's current tier: $tier
+Scores: Profile $profileCompleteness%, Community $communityScore%,
+Depth $depthScore%, Follow-through $followThrough%.
+
+Explain their tier in 2-3 sentences. Tone: warm, specific, actionable.
+If Explorer: mention what they're doing well + what could get them to Noble.
+If Observer: be encouraging, suggest concrete next steps.
+If Noble: congratulate briefly, suggest maintaining consistency.
+Do NOT mention numbers or percentages. Speak naturally.
+Return ONLY the explanation text.
+''';
+
+    final result = await analyzeText(prompt);
+    if (result.containsKey('mock')) {
+      return switch (tier) {
+        'noble' => 'Noble means your profile has depth and consistency. You\'re in the top tier — keep engaging authentically.',
+        'explorer' => 'Explorer means your profile has great foundations. Noble is about consistency and depth — your recent meetups and Nob activity are key.',
+        _ => 'You\'re just getting started. Add a photo, write a short bio, and join an event — your profile will grow naturally.',
+      };
+    }
+
+    final text = result['text'] as String? ?? '';
+    return text.trim().isNotEmpty ? text.trim() : 'Keep engaging — your profile grows with every interaction.';
+  }
 }
