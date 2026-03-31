@@ -57,10 +57,12 @@ class Profile {
   String? get currentMode => mode;
 
   String get strengthLabel {
-    if (profileCompletenessScore >= 80) return 'Complete';
-    if (profileCompletenessScore >= 60) return 'Strong';
-    if (profileCompletenessScore >= 40) return 'Good';
-    return 'Getting started';
+    final score = maturityScore.round();
+    if (score >= 80) return 'Complete';
+    if (score >= 60) return 'Strong';
+    if (score >= 40) return 'Good';
+    if (score >= 20) return 'Building up';
+    return 'Just getting started';
   }
 
   List<String> get profileTips {

@@ -8,7 +8,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/mode_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
-import '../../data/models/profile.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../providers/posts_provider.dart';
@@ -77,7 +76,19 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xxl),
                 const _ActiveModesSection(),
                 const SizedBox(height: AppSpacing.xxxl),
-                _ProfileStrengthSection(profile: profile.profile),
+                // Compact tier badge (full details in Status tab)
+                if (profile.profile != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                    child: Row(
+                      children: [
+                        TierBadge(tier: profile.profile!.nobTier, showLabel: true),
+                        const Spacer(),
+                        Text('${profile.profile!.strengthLabel} profile',
+                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: AppSpacing.xxxl),
                 const _PersonaSection(),
                 const SizedBox(height: AppSpacing.xxxl),
@@ -1710,87 +1721,3 @@ class _LastNobsSection extends ConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Profile Strength & Tier Section
-// ---------------------------------------------------------------------------
-
-class _ProfileStrengthSection extends StatelessWidget {
-  final Profile? profile;
-  const _ProfileStrengthSection({this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    if (profile == null) return const SizedBox.shrink();
-    final p = profile!;
-    final pct = (p.profileCompletenessScore / 100).clamp(0.0, 1.0);
-    final tips = p.profileTips;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Tier badge + Maturity label
-          Row(
-            children: [
-              TierBadge(tier: p.nobTier, showLabel: true),
-              const Spacer(),
-              Text(
-                'Profile Strength: ${p.strengthLabel}',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 5,
-              backgroundColor: AppColors.border,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                pct >= 0.8
-                    ? AppColors.success
-                    : pct >= 0.5
-                        ? AppColors.gold
-                        : AppColors.textMuted,
-              ),
-            ),
-          ),
-
-          // Tips
-          if (tips.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            ...tips.take(2).map((tip) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.lightbulb_outline_rounded,
-                          color: AppColors.gold, size: 14),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          tip,
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                            height: 1.3,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
-        ],
-      ),
-    );
-  }
-}
