@@ -1,0 +1,219 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/enums/noble_mode.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../providers/mode_provider.dart';
+
+class ModeSwitcher extends ConsumerWidget {
+  const ModeSwitcher({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(modeProvider);
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [NobleMode.social, NobleMode.bff, NobleMode.date]
+            .map((mode) => _ModeTab(mode: mode, isSelected: mode == current))
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _ModeTab extends ConsumerWidget {
+  final NobleMode mode;
+  final bool isSelected;
+
+  const _ModeTab({required this.mode, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => ref.read(modeProvider.notifier).setMode(mode),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? mode.accentColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              mode.icon,
+              size: 14,
+              color: isSelected ? AppColors.bg : AppColors.textMuted,
+            ),
+            const SizedBox(width: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.w400,
+                color: isSelected ? AppColors.bg : AppColors.textMuted,
+              ),
+              child: Text(mode.shortLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-screen mode selection dialog (used from Profile tab or onboarding)
+class ModeSelectionDialog extends ConsumerWidget {
+  const ModeSelectionDialog({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const ModeSelectionDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(modeProvider);
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusXl),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+        AppSpacing.xxxxl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            'Choose Your Mode',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Switch anytime from your profile.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.xxxl),
+          ...[NobleMode.social, NobleMode.bff, NobleMode.date]
+              .map(
+                (mode) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: _ModeCard(mode: mode, isSelected: mode == current),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeCard extends ConsumerWidget {
+  final NobleMode mode;
+  final bool isSelected;
+
+  const _ModeCard({required this.mode, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(modeProvider.notifier).setMode(mode);
+        Navigator.of(context).pop();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        decoration: BoxDecoration(
+          color: isSelected ? mode.accentLight : AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          border: Border.all(
+            color: isSelected ? mode.accentColor : AppColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: mode.accentLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(mode.icon, color: mode.accentColor, size: 24),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mode.label,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: isSelected
+                              ? mode.accentColor
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    mode.subtitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle_rounded,
+                color: mode.accentColor,
+                size: 22,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

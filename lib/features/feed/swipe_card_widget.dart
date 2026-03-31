@@ -1,0 +1,680 @@
+import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/enums/noble_mode.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../data/models/profile_card.dart';
+
+class SwipeCardWidget extends StatefulWidget {
+  final ProfileCard card;
+  final bool isTop;
+  final NobleMode mode;
+  final VoidCallback onSwipeRight;
+  final VoidCallback onSwipeLeft;
+
+  const SwipeCardWidget({
+    super.key,
+    required this.card,
+    required this.isTop,
+    required this.mode,
+    required this.onSwipeRight,
+    required this.onSwipeLeft,
+  });
+
+  @override
+  State<SwipeCardWidget> createState() => _SwipeCardWidgetState();
+}
+
+class _SwipeCardWidgetState extends State<SwipeCardWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Offset> _animation;
+  Offset _offset = Offset.zero;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    if (!widget.isTop) return;
+    setState(() {
+      _offset += details.delta;
+      _isDragging = true;
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    if (!widget.isTop) return;
+    final screenW = MediaQuery.of(context).size.width;
+    final threshold = screenW * 0.3;
+
+    if (_offset.dx > threshold) {
+      _flyOff(Offset(screenW * 2.5, _offset.dy));
+      widget.onSwipeRight();
+    } else if (_offset.dx < -threshold) {
+      _flyOff(Offset(-screenW * 2.5, _offset.dy));
+      widget.onSwipeLeft();
+    } else {
+      _springBack();
+    }
+  }
+
+  void _flyOff(Offset target) {
+    _animation = Tween<Offset>(begin: _offset, end: target).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    )..addListener(() => setState(() => _offset = _animation.value));
+    _ctrl.forward(from: 0);
+    setState(() => _isDragging = false);
+  }
+
+  void _springBack() {
+    _animation = Tween<Offset>(begin: _offset, end: Offset.zero).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
+    )..addListener(() => setState(() => _offset = _animation.value));
+    _ctrl.forward(from: 0);
+    setState(() => _isDragging = false);
+  }
+
+  double get _rotationAngle {
+    final screenW = MediaQuery.of(context).size.width;
+    return _offset.dx / screenW * 0.4;
+  }
+
+  double get _swipeProgress {
+    final screenW = MediaQuery.of(context).size.width;
+    return (_offset.dx / (screenW * 0.4)).clamp(-1.0, 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanUpdate: _onPanUpdate,
+      onPanEnd: _onPanEnd,
+      child: Transform.translate(
+        offset: _offset,
+        child: Transform.rotate(
+          angle: widget.isTop ? _rotationAngle : 0,
+          child: Stack(
+            children: [
+              _CardBody(card: widget.card, mode: widget.mode),
+              if (widget.isTop && _isDragging) ...[
+                // SELECT overlay
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: _swipeProgress.clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.selectOverlay,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusXl),
+                      ),
+                      child: Align(
+                        alignment: const Alignment(0.85, -0.8),
+                        child: _SwipeLabel(
+                          text: widget.mode == NobleMode.date
+                              ? 'LIKE'
+                              : widget.mode == NobleMode.bff
+                                  ? 'CONNECT'
+                                  : 'JOIN',
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // PASS overlay
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: (-_swipeProgress).clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.passOverlay,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusXl),
+                      ),
+                      child: const Align(
+                        alignment: Alignment(-0.85, -0.8),
+                        child: _SwipeLabel(text: 'PASS', color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Card body — routes to BFF or Date layout
+// ---------------------------------------------------------------------------
+
+class _CardBody extends StatelessWidget {
+  final ProfileCard card;
+  final NobleMode mode;
+
+  const _CardBody({required this.card, required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    if (mode == NobleMode.bff) return _BffCardBody(card: card);
+
+    final size = MediaQuery.of(context).size;
+    final cardH = size.height * 0.62;
+
+    return Container(
+      width: size.width - AppSpacing.xxxl * 2,
+      height: cardH,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
+              imageUrl: card.photoUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: AppColors.surface,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: mode.accentColor,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: AppColors.surface,
+                child: const Icon(
+                  Icons.person,
+                  color: AppColors.textMuted,
+                  size: 64,
+                ),
+              ),
+            ),
+            // Gradient
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.45, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.88),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Verified badge
+            if (card.isVerified)
+              Positioned(
+                top: AppSpacing.lg,
+                right: AppSpacing.lg,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: mode.accentColor,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusCircle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified_rounded,
+                          color: AppColors.bg, size: 12),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Verified',
+                        style: TextStyle(
+                          color: AppColors.bg,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // Info overlay
+            Positioned(
+              left: AppSpacing.xxl,
+              right: AppSpacing.xxl,
+              bottom: AppSpacing.xxl,
+              child: _CardInfo(card: card, mode: mode),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardInfo extends StatelessWidget {
+  final ProfileCard card;
+  final NobleMode mode;
+
+  const _CardInfo({required this.card, required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Name + age
+        Text(
+          '${card.name}, ${card.age}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        // City
+        Row(
+          children: [
+            Icon(Icons.location_on_rounded, color: mode.accentColor, size: 14),
+            const SizedBox(width: AppSpacing.xxs),
+            Text(
+              card.city,
+              style: TextStyle(color: mode.accentColor, fontSize: 13),
+            ),
+            if (card.profession != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              const Text('·', style: TextStyle(color: Colors.white54)),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  card.profession!,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (card.bio != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            card.bio!,
+            style:
+                const TextStyle(color: Colors.white70, fontSize: 13),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+        if (card.interests.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: card.interests.take(3).map((tag) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xxs,
+                ),
+                decoration: BoxDecoration(
+                  color: mode.accentLight,
+                  borderRadius:
+                      BorderRadius.circular(AppSpacing.radiusCircle),
+                  border: Border.all(
+                    color: mode.accentColor.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  tag,
+                  style: TextStyle(
+                    color: mode.accentColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SwipeLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _SwipeLabel({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 3),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 2,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// BFF card body — split layout: photo top (58%) + networking panel (42%)
+// ---------------------------------------------------------------------------
+
+class _BffCardBody extends StatelessWidget {
+  final ProfileCard card;
+
+  const _BffCardBody({required this.card});
+
+  static const _mode = NobleMode.bff;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final cardH = size.height * 0.62;
+
+    return Container(
+      width: size.width - AppSpacing.xxxl * 2,
+      height: cardH,
+      decoration: BoxDecoration(
+        color: const Color(0xFF060E0E),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        boxShadow: [
+          BoxShadow(
+            color: _mode.accentColor.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Photo area (58%)
+            SizedBox(
+              height: cardH * 0.58,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: card.photoUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Container(color: const Color(0xFF060E0E)),
+                    errorWidget: (_, __, ___) =>
+                        Container(color: const Color(0xFF060E0E)),
+                  ),
+                  // Gradient fading into dark panel below
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.0, 0.55, 1.0],
+                          colors: [
+                            Colors.transparent,
+                            Colors.transparent,
+                            const Color(0xFF060E0E),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Verified badge
+                  if (card.isVerified)
+                    Positioned(
+                      top: AppSpacing.md,
+                      right: AppSpacing.md,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xxs),
+                        decoration: BoxDecoration(
+                          color: _mode.accentColor,
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusCircle),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified_rounded,
+                                color: AppColors.bg, size: 12),
+                            SizedBox(width: 3),
+                            Text(
+                              'Verified',
+                              style: TextStyle(
+                                color: AppColors.bg,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Networking Profile panel (42%)
+            Expanded(
+              child: Container(
+                color: const Color(0xFF081010),
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.lg),
+                child: _NetworkingPanel(card: card),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Networking panel — professional identity block
+// ---------------------------------------------------------------------------
+
+class _NetworkingPanel extends StatelessWidget {
+  final ProfileCard card;
+
+  const _NetworkingPanel({required this.card});
+
+  static const _teal = Color(0xFF26C6DA);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section label
+        Row(
+          children: [
+            const Icon(Icons.business_center_rounded, color: _teal, size: 10),
+            const SizedBox(width: 4),
+            Text(
+              'NETWORKING PROFILE',
+              style: TextStyle(
+                color: _teal,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        // Name + Age
+        Text(
+          '${card.name}, ${card.age}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        // Industry + City pills
+        Wrap(
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xs,
+          children: [
+            if (card.industry != null)
+              _ProfessionalPill(label: card.industry!, color: _teal),
+            _ProfessionalPill(
+              label: card.city,
+              color: Colors.white.withValues(alpha: 0.45),
+              icon: Icons.location_on_rounded,
+            ),
+          ],
+        ),
+        // Expertise row
+        if (card.expertise != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Icon(Icons.star_outline_rounded,
+                  color: _teal.withValues(alpha: 0.7), size: 12),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  card.expertise!,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.68),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+        const Spacer(),
+        // Connection Goal — highlighted teal box
+        if (card.connectionGoal != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: _teal.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              border:
+                  Border.all(color: _teal.withValues(alpha: 0.28), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.handshake_outlined, color: _teal, size: 14),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    card.connectionGoal!,
+                    style: const TextStyle(
+                      color: _teal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ProfessionalPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData? icon;
+
+  const _ProfessionalPill({
+    required this.label,
+    required this.color,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+        border: Border.all(color: color.withValues(alpha: 0.30), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, color: color, size: 10),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

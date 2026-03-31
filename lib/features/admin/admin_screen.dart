@@ -1,0 +1,678 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/utils/mock_mode.dart';
+
+// ---------------------------------------------------------------------------
+// Admin data models
+// ---------------------------------------------------------------------------
+
+class _VerificationItem {
+  final String userId;
+  final String displayName;
+  final String type; // 'photo' | 'gender' | 'instagram'
+  final String status;
+  final String? photoUrl;
+  final DateTime createdAt;
+
+  const _VerificationItem({
+    required this.userId,
+    required this.displayName,
+    required this.type,
+    required this.status,
+    this.photoUrl,
+    required this.createdAt,
+  });
+}
+
+class _AdminStats {
+  final int totalUsers;
+  final int pendingVerifications;
+  final int activeMatches;
+  final int postsToday;
+
+  const _AdminStats({
+    this.totalUsers = 0,
+    this.pendingVerifications = 0,
+    this.activeMatches = 0,
+    this.postsToday = 0,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Providers
+// ---------------------------------------------------------------------------
+
+final _adminStatsProvider = FutureProvider<_AdminStats>((ref) async {
+  if (isMockMode) {
+    return const _AdminStats(
+      totalUsers: 42,
+      pendingVerifications: 5,
+      activeMatches: 12,
+      postsToday: 8,
+    );
+  }
+  final db = Supabase.instance.client;
+  final results = await Future.wait([
+    db.from('profiles').select('id'),
+    db.from('photo_verifications').select('id').eq('status', 'pending'),
+    db.from('matches').select('id').inFilter('status', ['pending_video', 'video_scheduled', 'chatting']),
+    db.from('posts').select('id').gte('created_at',
+        DateTime.now().subtract(const Duration(days: 1)).toIso8601String()),
+  ]);
+  return _AdminStats(
+    totalUsers: (results[0] as List).length,
+    pendingVerifications: (results[1] as List).length,
+    activeMatches: (results[2] as List).length,
+    postsToday: (results[3] as List).length,
+  );
+});
+
+final _pendingVerificationsProvider =
+    FutureProvider<List<_VerificationItem>>((ref) async {
+  if (isMockMode) {
+    return [
+      _VerificationItem(
+        userId: 'mock-u1',
+        displayName: 'Zeynep K.',
+        type: 'photo',
+        status: 'pending',
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      _VerificationItem(
+        userId: 'mock-u2',
+        displayName: 'Ali M.',
+        type: 'gender',
+        status: 'manual_review',
+        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      ),
+    ];
+  }
+  final db = Supabase.instance.client;
+  final rows = await db
+      .from('photo_verifications')
+      .select('user_id, status, photo_url, created_at')
+      .inFilter('status', ['pending', 'manual_review'])
+      .order('created_at')
+      .limit(50);
+
+  if (rows.isEmpty) return [];
+
+  final userIds = rows.map((r) => r['user_id'] as String).toList();
+  final profiles = await db
+      .from('profiles')
+      .select('id, display_name')
+      .inFilter('id', userIds);
+  final profileMap = {
+    for (final p in profiles) p['id'] as String: p['display_name'] as String? ?? 'Unknown'
+  };
+
+  return rows
+      .map((r) => _VerificationItem(
+            userId: r['user_id'] as String,
+            displayName: profileMap[r['user_id']] ?? 'Unknown',
+            type: 'photo',
+            status: r['status'] as String,
+            photoUrl: r['photo_url'] as String?,
+            createdAt: DateTime.parse(r['created_at'] as String),
+          ))
+      .toList();
+});
+
+// ---------------------------------------------------------------------------
+// Admin Screen
+// ---------------------------------------------------------------------------
+
+class AdminScreen extends ConsumerStatefulWidget {
+  const AdminScreen({super.key});
+
+  @override
+  ConsumerState<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends ConsumerState<AdminScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        surfaceTintColor: Colors.transparent,
+        title: const Row(
+          children: [
+            Icon(Icons.admin_panel_settings_rounded,
+                color: AppColors.gold, size: 20),
+            SizedBox(width: AppSpacing.sm),
+            Text('Admin',
+                style: TextStyle(
+                    color: AppColors.gold, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        bottom: TabBar(
+          controller: _tabs,
+          labelColor: AppColors.gold,
+          unselectedLabelColor: AppColors.textMuted,
+          indicatorColor: AppColors.gold,
+          tabs: const [
+            Tab(text: 'Overview'),
+            Tab(text: 'Verifications'),
+            Tab(text: 'Posts'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabs,
+        children: const [
+          _OverviewTab(),
+          _VerificationsTab(),
+          _PostsModerationTab(),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Overview tab
+// ---------------------------------------------------------------------------
+
+class _OverviewTab extends ConsumerWidget {
+  const _OverviewTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(_adminStatsProvider);
+
+    return statsAsync.when(
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold)),
+      error: (e, _) => Center(
+          child: Text('Error: $e',
+              style: const TextStyle(color: AppColors.error))),
+      data: (stats) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.md,
+              children: [
+                _StatCard(
+                    label: 'Total Users',
+                    value: stats.totalUsers,
+                    icon: Icons.people_rounded,
+                    color: AppColors.gold),
+                _StatCard(
+                    label: 'Pending Reviews',
+                    value: stats.pendingVerifications,
+                    icon: Icons.pending_actions_rounded,
+                    color: AppColors.warning),
+                _StatCard(
+                    label: 'Active Matches',
+                    value: stats.activeMatches,
+                    icon: Icons.favorite_rounded,
+                    color: const Color(0xFF26C6DA)),
+                _StatCard(
+                    label: 'Posts Today',
+                    value: stats.postsToday,
+                    icon: Icons.article_rounded,
+                    color: const Color(0xFF9C27B0)),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ListTile(
+              tileColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  side: const BorderSide(color: AppColors.border)),
+              leading: const Icon(Icons.refresh_rounded, color: AppColors.gold),
+              title: const Text('Refresh Stats',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+              onTap: () => ref.invalidate(_adminStatsProvider),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final int value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '$value',
+            style: TextStyle(
+                color: color, fontSize: 26, fontWeight: FontWeight.w700),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+                color: AppColors.textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Verifications tab
+// ---------------------------------------------------------------------------
+
+class _VerificationsTab extends ConsumerWidget {
+  const _VerificationsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listAsync = ref.watch(_pendingVerificationsProvider);
+
+    return listAsync.when(
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold)),
+      error: (e, _) => Center(
+          child: Text('Error: $e',
+              style: const TextStyle(color: AppColors.error))),
+      data: (items) {
+        if (items.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle_outline_rounded,
+                    color: AppColors.gold, size: 48),
+                SizedBox(height: AppSpacing.lg),
+                Text('All caught up!',
+                    style: TextStyle(
+                        color: AppColors.textMuted, fontSize: 14)),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          itemCount: items.length,
+          itemBuilder: (_, i) => _VerificationCard(
+            item: items[i],
+            onApprove: () => _approve(context, ref, items[i]),
+            onReject: () => _reject(context, ref, items[i]),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _approve(
+      BuildContext context, WidgetRef ref, _VerificationItem item) async {
+    if (!isMockMode) {
+      await Supabase.instance.client
+          .from('photo_verifications')
+          .update({'status': 'approved'}).eq('user_id', item.userId);
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'photo_verified': true}).eq('id', item.userId);
+    }
+    ref.invalidate(_pendingVerificationsProvider);
+    ref.invalidate(_adminStatsProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${item.displayName} approved'),
+          backgroundColor: AppColors.surface,
+        ),
+      );
+    }
+  }
+
+  Future<void> _reject(
+      BuildContext context, WidgetRef ref, _VerificationItem item) async {
+    if (!isMockMode) {
+      await Supabase.instance.client
+          .from('photo_verifications')
+          .update({'status': 'rejected'}).eq('user_id', item.userId);
+    }
+    ref.invalidate(_pendingVerificationsProvider);
+    ref.invalidate(_adminStatsProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Rejected'),
+          backgroundColor: AppColors.surface,
+        ),
+      );
+    }
+  }
+}
+
+class _VerificationCard extends StatelessWidget {
+  final _VerificationItem item;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  const _VerificationCard({
+    required this.item,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final diff = DateTime.now().difference(item.createdAt);
+    final ago = diff.inHours < 1
+        ? '${diff.inMinutes}m ago'
+        : '${diff.inHours}h ago';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (item.photoUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    item.photoUrl!,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 56,
+                      height: 56,
+                      color: AppColors.surfaceAlt,
+                      child: const Icon(Icons.person_rounded,
+                          color: AppColors.textDisabled),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.person_rounded,
+                      color: AppColors.textDisabled),
+                ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.displayName,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            item.type.toUpperCase(),
+                            style: const TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          ago,
+                          style: const TextStyle(
+                              color: AppColors.textDisabled, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  label: const Text('Reject'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                  onPressed: onReject,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.check_rounded, size: 16),
+                  label: const Text('Approve'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: AppColors.bg,
+                  ),
+                  onPressed: onApprove,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Posts moderation tab
+// ---------------------------------------------------------------------------
+
+class _PostsModerationTab extends ConsumerWidget {
+  const _PostsModerationTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return FutureBuilder(
+      future: _loadRecentPosts(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(
+              child: CircularProgressIndicator(color: AppColors.gold));
+        }
+        final posts = snap.data ?? <Map<String, dynamic>>[];
+        if (posts.isEmpty) {
+          return const Center(
+            child: Text('No posts to moderate.',
+                style: TextStyle(color: AppColors.textMuted)),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          itemCount: posts.length,
+          itemBuilder: (_, i) {
+            final p = posts[i];
+            return _PostModerationCard(
+              postId: p['id'] as String,
+              content: p['content'] as String,
+              authorName: p['author'] as String? ?? 'Unknown',
+              onDelete: () async {
+                if (!isMockMode) {
+                  await Supabase.instance.client
+                      .from('posts')
+                      .delete()
+                      .eq('id', p['id'] as String);
+                }
+                // ignore: use_build_context_synchronously
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post removed')),
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadRecentPosts() async {
+    if (isMockMode) {
+      return [
+        {'id': 'mock-p1', 'content': 'Hello Noblara!', 'author': 'Ali'},
+        {'id': 'mock-p2', 'content': 'Great community here.', 'author': 'Zeynep'},
+      ];
+    }
+    final rows = await Supabase.instance.client
+        .from('posts')
+        .select('id, content, user_id, created_at')
+        .order('created_at', ascending: false)
+        .limit(30);
+    if (rows.isEmpty) return [];
+
+    final userIds = rows.map((r) => r['user_id'] as String).toSet().toList();
+    final profiles = await Supabase.instance.client
+        .from('profiles')
+        .select('id, display_name')
+        .inFilter('id', userIds);
+    final nameMap = {
+      for (final p in profiles) p['id'] as String: p['display_name'] as String? ?? 'Unknown'
+    };
+
+    return rows
+        .map((r) => {
+              'id': r['id'],
+              'content': r['content'],
+              'author': nameMap[r['user_id']] ?? 'Unknown',
+            })
+        .toList();
+  }
+}
+
+class _PostModerationCard extends StatelessWidget {
+  final String postId;
+  final String content;
+  final String authorName;
+  final VoidCallback onDelete;
+
+  const _PostModerationCard({
+    required this.postId,
+    required this.content,
+    required this.authorName,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            authorName,
+            style: const TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w600,
+                fontSize: 12),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            content,
+            style: const TextStyle(
+                color: AppColors.textPrimary, fontSize: 13, height: 1.4),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.error, size: 16),
+              label: const Text('Remove',
+                  style: TextStyle(color: AppColors.error, fontSize: 12)),
+              onPressed: onDelete,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

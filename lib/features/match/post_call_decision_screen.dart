@@ -1,0 +1,342 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../data/models/match.dart';
+import '../../data/models/video_session.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/video_provider.dart';
+
+class PostCallDecisionScreen extends ConsumerStatefulWidget {
+  final NobleMatch match;
+  final VideoSession session;
+
+  const PostCallDecisionScreen({
+    super.key,
+    required this.match,
+    required this.session,
+  });
+
+  @override
+  ConsumerState<PostCallDecisionScreen> createState() =>
+      _PostCallDecisionScreenState();
+}
+
+class _PostCallDecisionScreenState
+    extends ConsumerState<PostCallDecisionScreen> {
+  bool _submitting = false;
+  bool _decided = false;
+  bool _waiting = false; // submitted, waiting for other person
+  StreamSubscription<List<Map<String, dynamic>>>? _decisionSub;
+
+  @override
+  void dispose() {
+    _decisionSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _submit(bool enjoyed) async {
+    if (_decided) return;
+    setState(() {
+      _submitting = true;
+      _decided = true;
+    });
+
+    final userId = ref.read(authProvider).userId ?? '';
+    final result = await ref
+        .read(videoProvider(widget.match.id).notifier)
+        .submitDecision(userId: userId, enjoyed: enjoyed);
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (result == 'waiting') {
+      // My decision is in — wait for the other person via realtime
+      setState(() => _waiting = true);
+      _listenForOtherDecision();
+    } else {
+      _handleResult(result);
+    }
+  }
+
+  void _listenForOtherDecision() {
+    _decisionSub?.cancel();
+    _decisionSub = Supabase.instance.client
+        .from('call_decisions')
+        .stream(primaryKey: ['id'])
+        .eq('video_session_id', widget.session.id)
+        .listen((rows) async {
+          if (rows.length < 2) return; // still waiting
+          // Both decisions are in — finalize without re-upserting
+          try {
+            final userId = ref.read(authProvider).userId ?? '';
+            final myRow = rows.firstWhere(
+              (r) => r['user_id'] == userId,
+              orElse: () => <String, dynamic>{},
+            );
+            final myEnjoyed = myRow['enjoyed'] as bool? ?? false;
+            final result = await ref
+                .read(videoProvider(widget.match.id).notifier)
+                .finalizeDecision(userId: userId, enjoyed: myEnjoyed);
+            if (!mounted) return;
+            _decisionSub?.cancel();
+            _handleResult(result);
+          } catch (_) {}
+        });
+  }
+
+  void _handleResult(String result) {
+    if (result == 'chat_opened') {
+      _showChatOpenedDialog();
+    } else if (result == 'closed' || result == 'expired') {
+      _showClosedDialog();
+    }
+    // 'waiting' → already handled above
+  }
+
+  void _showChatOpenedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Row(children: [
+          Icon(Icons.chat_bubble_rounded, color: AppColors.gold),
+          SizedBox(width: AppSpacing.sm),
+          Text('Chat is Open!', style: TextStyle(color: AppColors.gold)),
+        ]),
+        content: Text(
+          'You both chose to keep it open!\nStart chatting — take your time getting to know each other.',
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: AppColors.textMuted),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.gold,
+              foregroundColor: AppColors.bg,
+            ),
+            onPressed: () {
+              Navigator.of(context)
+                ..pop()
+                ..pop()
+                ..pop();
+            },
+            child: const Text('Start Chatting'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClosedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Row(children: [
+          Icon(Icons.link_off_rounded,
+              color: AppColors.textMuted, size: 20),
+          SizedBox(width: AppSpacing.sm),
+          Text('Connection Ended',
+              style: TextStyle(color: AppColors.textMuted)),
+        ]),
+        content: Text(
+          "This connection has come to a close. Sometimes the spark doesn't ignite — and that's okay.",
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context)
+                ..pop()
+                ..pop()
+                ..pop();
+            },
+            child: const Text('Back to Feed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: _waiting ? _buildWaitingView() : _buildDecisionView(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitingView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 48,
+          height: 48,
+          child: CircularProgressIndicator(
+            color: AppColors.gold,
+            strokeWidth: 2,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          'Decision sent!',
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(color: Colors.white),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'Waiting for ${widget.match.otherUserName ?? "your match"} to share their decision…',
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: AppColors.textMuted),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          'Both decisions are private.\nYou\'ll be notified as soon as they respond.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: AppColors.textDisabled),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDecisionView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.videocam_off_rounded,
+            color: AppColors.gold, size: 64),
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          'Call Ended',
+          style: Theme.of(context)
+              .textTheme
+              .headlineMedium
+              ?.copyWith(color: Colors.white),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'How was your Short Intro with ${widget.match.otherUserName ?? "this person"}?',
+          style: Theme.of(context)
+              .textTheme
+              .bodyLarge
+              ?.copyWith(color: AppColors.textMuted),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.xxxl),
+        if (_submitting)
+          const CircularProgressIndicator(color: AppColors.gold)
+        else ...[
+          _DecisionButton(
+            label: 'Keep Open',
+            icon: Icons.check_circle_outline_rounded,
+            color: AppColors.gold,
+            onTap: () => _submit(true),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _DecisionButton(
+            label: 'Pass',
+            icon: Icons.close_rounded,
+            color: AppColors.textMuted,
+            onTap: () => _submit(false),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xxl),
+        Text(
+          'Both decisions are private.\nChat opens only if both choose Keep Open.',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: AppColors.textMuted),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // Privacy notice
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline_rounded,
+                color: AppColors.textDisabled, size: 12),
+            const SizedBox(width: 4),
+            Text(
+              'Calls are not recorded.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(
+                      color: AppColors.textDisabled, fontSize: 11),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DecisionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _DecisionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
