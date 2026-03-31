@@ -7,6 +7,8 @@ import '../features/matches/matches_screen.dart';
 import '../features/noblara_feed/noblara_feed_screen.dart';
 import '../features/status/status_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/profile/tier_promotion_screen.dart';
+import '../data/models/post.dart';
 import '../providers/notification_provider.dart';
 import '../providers/posts_provider.dart';
 
@@ -62,6 +64,21 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       if (prev?.latestUnread?.id == latest.id) return;
 
       ref.read(notificationProvider.notifier).clearLatest();
+
+      // Tier promotion → show celebration screen
+      if (latest.type == 'tier_promoted') {
+        final newTier = latest.data?['new_tier'] as String?;
+        if (newTier != null && (newTier == 'noble' || newTier == 'explorer')) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TierPromotionScreen(
+                newTier: NobTier.fromString(newTier),
+              ),
+            ),
+          );
+          return;
+        }
+      }
 
       final isVideoProposed = latest.type == 'video_proposed' ||
           latest.type == 'video_confirmed';
