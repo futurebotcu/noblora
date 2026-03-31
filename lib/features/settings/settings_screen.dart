@@ -37,7 +37,8 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
               'dating_active, dating_visible, bff_active, bff_visible, '
               'social_active, social_visible, show_city_only, hide_exact_distance, '
               'show_last_active, show_status_badge, message_preview, '
-              'reach_permission, signal_permission, note_permission')
+              'reach_permission, signal_permission, note_permission, '
+              'city, travel_mode, travel_city')
           .eq('id', userId)
           .maybeSingle();
       if (row != null) state = row;
@@ -160,6 +161,31 @@ class SettingsScreen extends ConsumerWidget {
               value: s['show_last_active'] as bool? ?? true, onChanged: (_) => n.toggleBool('show_last_active')),
           _ToggleTile(icon: Icons.workspace_premium_rounded, title: 'Show status badge',
               value: s['show_status_badge'] as bool? ?? true, onChanged: (_) => n.toggleBool('show_status_badge')),
+
+          // ── Travel & Location ──
+          _SectionHeader('Travel & Location'),
+          _EditableCityTile(
+            currentCity: s['city'] as String? ?? '',
+            onChanged: (v) => n.setString('city', v),
+          ),
+          _ToggleTile(icon: Icons.flight_rounded, title: 'Travel Mode',
+              subtitle: 'Show profiles from your destination city.',
+              value: s['travel_mode'] as bool? ?? false, onChanged: (_) => n.toggleBool('travel_mode')),
+          if (s['travel_mode'] as bool? ?? false)
+            _EditableCityTile(
+              label: 'Destination city',
+              currentCity: s['travel_city'] as String? ?? '',
+              onChanged: (v) => n.setString('travel_city', v),
+            ),
+          _SettingsTile(
+            icon: Icons.tune_rounded,
+            title: 'Distance preference',
+            subtitle: 'Opens filter panel',
+            onTap: () {
+              Navigator.pop(context);
+              // Filter panel is accessible from feed
+            },
+          ),
 
           // ── Notifications ──
           _SectionHeader('Notifications'),
@@ -429,6 +455,64 @@ class _AppearanceAccentSelector extends StatelessWidget {
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Editable city field
+// ---------------------------------------------------------------------------
+
+class _EditableCityTile extends StatefulWidget {
+  final String currentCity;
+  final ValueChanged<String> onChanged;
+  final String label;
+
+  const _EditableCityTile({required this.currentCity, required this.onChanged, this.label = 'Current city'});
+
+  @override
+  State<_EditableCityTile> createState() => _EditableCityTileState();
+}
+
+class _EditableCityTileState extends State<_EditableCityTile> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.currentCity);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      tileColor: Colors.transparent,
+      leading: const Icon(Icons.location_on_rounded, color: AppColors.textPrimary, size: 20),
+      title: Text(widget.label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+      subtitle: SizedBox(
+        height: 36,
+        child: TextField(
+          controller: _ctrl,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: 'e.g. Istanbul',
+            hintStyle: const TextStyle(color: AppColors.textDisabled, fontSize: 13),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.gold)),
+          ),
+          onSubmitted: widget.onChanged,
+          onEditingComplete: () => widget.onChanged(_ctrl.text.trim()),
+        ),
       ),
     );
   }
