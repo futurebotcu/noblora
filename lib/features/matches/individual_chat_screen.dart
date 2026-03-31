@@ -70,6 +70,22 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     super.dispose();
   }
 
+  Future<void> _suggestBffOpener() async {
+    try {
+      final opener = await GeminiService.generateBffOpener(
+        userName: 'You',
+        otherName: _item.name,
+      );
+      if (mounted) {
+        _msgCtrl.text = opener;
+      }
+    } catch (_) {
+      if (mounted) {
+        _msgCtrl.text = 'Hey ${_item.name}! Looks like we have some things in common.';
+      }
+    }
+  }
+
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
@@ -431,6 +447,32 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                         },
                       ),
           ),
+          // BFF opener helper — shown when chat is empty
+          if (_isBff && messages.isEmpty && !isClosed)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+              child: GestureDetector(
+                onTap: _suggestBffOpener,
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: accent.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome_rounded, color: accent, size: 16),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text('Need an opener? Tap for a friendly suggestion.',
+                            style: TextStyle(color: accent, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // Input bar
           _ChatInputBar(
             controller: _msgCtrl,

@@ -23,6 +23,18 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 14, minute: 0);
   bool _submitting = false;
+  List<BffPlan> _existingPlans = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlans());
+  }
+
+  Future<void> _loadPlans() async {
+    final plans = await ref.read(bffProvider.notifier).fetchPlans(widget.conversationId);
+    if (mounted) setState(() => _existingPlans = plans);
+  }
 
   @override
   void dispose() {
@@ -111,6 +123,51 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Existing plans ──
+              if (_existingPlans.isNotEmpty) ...[
+                Text('Your plans', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+                const SizedBox(height: AppSpacing.md),
+                ..._existingPlans.map((p) => Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: _teal.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(p.typeEmoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.typeLabel, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                            if (p.location != null)
+                              Text(p.location!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            Text(DateFormat('EEE, d MMM · HH:mm').format(p.scheduledAt),
+                                style: TextStyle(color: _teal, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: p.isAccepted ? _teal.withValues(alpha: 0.15) : AppColors.bg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(p.status[0].toUpperCase() + p.status.substring(1),
+                            style: TextStyle(color: p.isAccepted ? _teal : AppColors.textMuted, fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                )),
+                const SizedBox(height: AppSpacing.xxl),
+                Container(height: 1, color: AppColors.border),
+                const SizedBox(height: AppSpacing.xxl),
+              ],
+
               Text(
                 'What kind of plan?',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(

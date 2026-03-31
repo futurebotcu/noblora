@@ -4,7 +4,9 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/bff_suggestion.dart';
+import '../../data/models/profile_card.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/feed_provider.dart';
 import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/note_provider.dart';
@@ -28,7 +30,7 @@ class _BffScreenState extends ConsumerState<BffScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bffProvider.notifier).load();
       // Trigger real suggestion generation
@@ -68,6 +70,7 @@ class _BffScreenState extends ConsumerState<BffScreen>
           dividerColor: Colors.transparent,
           tabs: [
             Tab(text: 'Suggestions${state.suggestions.isNotEmpty ? ' (${state.suggestions.length})' : ''}'),
+            const Tab(text: 'Discover'),
             Tab(text: 'Reach Outs${state.reachOuts.isNotEmpty ? ' (${state.reachOuts.length})' : ''}'),
           ],
         ),
@@ -75,9 +78,8 @@ class _BffScreenState extends ConsumerState<BffScreen>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          // ── Tab 1: AI Suggestions ──
           _SuggestionsTab(state: state),
-          // ── Tab 2: Reach Outs Received ──
+          const _FreeDiscoveryTab(),
           _ReachOutsTab(reachOuts: state.reachOuts),
         ],
       ),
@@ -179,6 +181,155 @@ class _SuggestionsTab extends ConsumerWidget {
     };
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: result == 'connected' ? _teal : AppColors.surface),
+    );
+  }
+}
+
+// ─── Reach Outs Tab ──────────────────────────────────────────────────
+
+// ─── Free Discovery Tab ──────────────────────────────────────────────
+
+class _FreeDiscoveryTab extends ConsumerStatefulWidget {
+  const _FreeDiscoveryTab();
+
+  @override
+  ConsumerState<_FreeDiscoveryTab> createState() => _FreeDiscoveryTabState();
+}
+
+class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(feedProvider.notifier).loadFeed(NobleMode.bff);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final feed = ref.watch(feedProvider);
+
+    if (feed.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: _teal));
+    }
+    if (feed.cards.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
+            const SizedBox(height: AppSpacing.lg),
+            Text('No profiles to discover', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            const SizedBox(height: AppSpacing.sm),
+            const Text('Try adjusting your filters or check back later.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13), textAlign: TextAlign.center),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xxxxl),
+      itemCount: feed.cards.length,
+      itemBuilder: (context, i) {
+        final card = feed.cards[i];
+        return _BffDiscoveryCard(
+          card: card,
+          onConnect: () => ref.read(feedProvider.notifier).swipeRight(card.id),
+          onPass: () => ref.read(feedProvider.notifier).swipeLeft(card.id),
+        );
+      },
+    );
+  }
+}
+
+class _BffDiscoveryCard extends StatelessWidget {
+  final ProfileCard card;
+  final VoidCallback onConnect;
+  final VoidCallback onPass;
+  const _BffDiscoveryCard({required this.card, required this.onConnect, required this.onPass});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: _teal.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: _teal.withValues(alpha: 0.2),
+                  backgroundImage: card.photoUrl.startsWith('http') ? NetworkImage(card.photoUrl) : null,
+                  child: !card.photoUrl.startsWith('http')
+                      ? Text(card.name[0].toUpperCase(), style: const TextStyle(color: _teal, fontSize: 22, fontWeight: FontWeight.w600))
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${card.name}, ${card.age}',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                      if (card.city.isNotEmpty)
+                        Text(card.city, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                if (card.isVerified)
+                  Icon(Icons.verified_rounded, color: _teal, size: 18),
+              ],
+            ),
+          ),
+          if (card.bio != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text(card.bio!, style: const TextStyle(color: AppColors.textMuted, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.3)),
+                      foregroundColor: AppColors.textMuted,
+                      minimumSize: const Size.fromHeight(40),
+                    ),
+                    onPressed: onPass,
+                    child: const Text('Pass'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.people_rounded, size: 16),
+                    label: const Text('Connect'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _teal,
+                      foregroundColor: AppColors.bg,
+                      minimumSize: const Size.fromHeight(40),
+                    ),
+                    onPressed: onConnect,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

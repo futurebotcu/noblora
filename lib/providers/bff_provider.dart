@@ -3,8 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/bff_suggestion.dart';
 import '../data/models/bff_plan.dart';
+import '../data/models/filter_state.dart';
 import '../data/repositories/bff_suggestion_repository.dart';
 import 'auth_provider.dart';
+import 'filter_provider.dart';
 
 // ─── State ─────────────────────────────────────────────────────────
 
@@ -49,9 +51,28 @@ final bffRepositoryProvider = Provider<BffSuggestionRepository>((ref) {
 class BffNotifier extends StateNotifier<BffState> {
   final Ref _ref;
 
-  BffNotifier(this._ref) : super(const BffState());
+  BffNotifier(this._ref) : super(const BffState()) {
+    // Reload when filters change
+    _ref.listen<FilterState>(filterProvider, (_, __) => load());
+  }
 
   String? get _userId => _ref.read(authProvider).userId;
+
+  List<BffSuggestion> _applyFilters(List<BffSuggestion> suggestions, FilterState f) {
+    if (f.trustShieldEnabled) {
+      // Trust Shield: would need tier info on suggestion — skip unverified
+    }
+    // Age filter (if suggestion had age — currently not in model, skip gracefully)
+    // Interests/vibes: boost matching suggestions to top
+    if (f.interests.isNotEmpty) {
+      suggestions.sort((a, b) {
+        final aMatch = a.otherUserNobPosts.where((p) => f.interests.any((i) => p.toLowerCase().contains(i.toLowerCase()))).length;
+        final bMatch = b.otherUserNobPosts.where((p) => f.interests.any((i) => p.toLowerCase().contains(i.toLowerCase()))).length;
+        return bMatch.compareTo(aMatch);
+      });
+    }
+    return suggestions;
+  }
 
   Future<void> load() async {
     final uid = _userId;
@@ -60,8 +81,13 @@ class BffNotifier extends StateNotifier<BffState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final repo = _ref.read(bffRepositoryProvider);
-      final suggestions = await repo.fetchSuggestions(uid);
+      var suggestions = await repo.fetchSuggestions(uid);
       final reachOuts = await repo.fetchReachOutsReceived(uid);
+
+      // Apply BFF filters client-side to suggestions
+      final filters = _ref.read(filterProvider);
+      suggestions = _applyFilters(suggestions, filters);
+
       state = state.copyWith(
         suggestions: suggestions,
         reachOuts: reachOuts,
@@ -111,6 +137,11 @@ class BffNotifier extends StateNotifier<BffState> {
     final repo = _ref.read(bffRepositoryProvider);
     await repo.generateSuggestions(uid);
     await load(); // reload to show new suggestions
+  }
+
+  Future<List<BffPlan>> fetchPlans(String conversationId) async {
+    final repo = _ref.read(bffRepositoryProvider);
+    return repo.fetchPlans(conversationId);
   }
 
   Future<BffPlan?> createPlan({
