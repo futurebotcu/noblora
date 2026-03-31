@@ -6,8 +6,7 @@ import '../providers/profile_provider.dart';
 import '../providers/gating_provider.dart';
 import '../providers/verification_provider.dart';
 import '../features/auth/welcome_screen.dart';
-import '../features/onboarding/profile_basics_screen.dart';
-import '../features/onboarding/gender_selection_screen.dart';
+import '../features/onboarding/onboarding_flow_screen.dart';
 import '../features/verification/verification_hub_screen.dart';
 import '../features/entry_gate/entry_gate_screen.dart';
 import 'main_tab_navigator.dart';
@@ -174,22 +173,12 @@ class _AppRouterState extends ConsumerState<AppRouter> {
       return _splash('loading verifications…');
     }
 
-    // ── 5. Profile missing or incomplete ─────────────────────────────────────
-    if (!profile.hasProfile) {
+    // ── 5+6. Profile not complete → full onboarding flow ───────────────────
+    if (!profile.hasProfile || !profile.hasGender) {
       return _withDiag(
-        const ProfileBasicsScreen(),
+        const OnboardingFlowScreen(),
         auth: auth, profile: profile, verif: verif, gating: gating,
         route: 'onboarding',
-      );
-    }
-
-    // ── 6. Gender not declared ────────────────────────────────────────────────
-    // Must come after hasProfile so profile row exists to update.
-    if (!profile.hasGender) {
-      return _withDiag(
-        const GenderSelectionScreen(),
-        auth: auth, profile: profile, verif: verif, gating: gating,
-        route: 'gender_selection',
       );
     }
 
