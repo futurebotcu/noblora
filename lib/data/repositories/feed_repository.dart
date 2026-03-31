@@ -29,11 +29,20 @@ class FeedRepository {
     if (toFetch.isEmpty) return [];
 
     // Step 2: build filtered query
+    // Mode visibility column name
+    final visibleCol = switch (mode) {
+      'date' => 'dating_visible',
+      'bff' => 'bff_visible',
+      'social' => 'social_visible',
+      _ => 'dating_visible',
+    };
+
     var query = client
         .from('profiles')
         .select()
         .eq('is_verified', true)
         .eq('is_paused', false)
+        .eq(visibleCol, true)
         .filter('active_modes', 'cs', '{"$mode"}')
         .inFilter('id', toFetch.toList());
 
