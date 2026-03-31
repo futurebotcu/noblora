@@ -63,6 +63,25 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   // ── AI Edit ──────────────────────────────────────────────────────────────
 
   Future<void> _aiEdit(String editType) async {
+    // Check AI writing help setting
+    if (!isMockMode) {
+      final uid = ref.read(authProvider).userId;
+      if (uid != null) {
+        try {
+          final row = await Supabase.instance.client.from('profiles')
+              .select('ai_writing_help').eq('id', uid).maybeSingle();
+          final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
+          if (prefs != null && prefs['nob_cleanup'] == false) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('AI writing help is disabled in Settings')));
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
     final text = _activeCtrl.text.trim();
     if (text.isEmpty) return;
     setState(() => _aiLoading = true);

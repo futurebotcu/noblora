@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/enums/noble_mode.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/inbox_item.dart';
@@ -71,6 +73,25 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   }
 
   Future<void> _suggestBffOpener() async {
+    // Check AI message softening setting
+    if (!isMockMode) {
+      final uid = ref.read(authProvider).userId;
+      if (uid != null) {
+        try {
+          final row = await Supabase.instance.client.from('profiles')
+              .select('ai_writing_help').eq('id', uid).maybeSingle();
+          final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
+          if (prefs != null && prefs['message_softening'] == false) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('AI opener help is disabled in Settings')));
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
     try {
       final opener = await GeminiService.generateBffOpener(
         userName: 'You',

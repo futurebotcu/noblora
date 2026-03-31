@@ -98,7 +98,15 @@ class BffSuggestionRepository {
   }) async {
     if (isMockMode) return;
 
-    await _supabase!.from('reach_outs').upsert({
+    // Check if target allows reach from this sender
+    final allowed = await _supabase!.rpc('can_reach_user', params: {
+      'p_sender_id': senderId,
+      'p_target_id': receiverId,
+      'p_action': 'reach',
+    });
+    if (allowed != true) return;
+
+    await _supabase.from('reach_outs').upsert({
       'sender_id': senderId,
       'receiver_id': receiverId,
       'mode': 'bff',

@@ -235,8 +235,8 @@ class _CardBody extends StatelessWidget {
                 ),
               ),
             ),
-            // Verified badge
-            if (card.isVerified)
+            // Verified badge (respects showStatusBadge setting)
+            if (card.isVerified && card.showStatusBadge)
               Positioned(
                 top: AppSpacing.lg,
                 right: AppSpacing.lg,

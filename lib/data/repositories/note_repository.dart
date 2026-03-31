@@ -15,17 +15,25 @@ class NoteRepository {
     return result as bool? ?? false;
   }
 
-  /// Send a note to a profile or post.
-  Future<void> sendNote({
+  /// Send a note to a profile or post. Checks permission first.
+  Future<bool> sendNote({
     required String senderId,
     required String receiverId,
     required String targetType, // 'profile' | 'post'
     required String targetId,
     required String content,
   }) async {
-    if (isMockMode) return;
+    if (isMockMode) return true;
 
-    await _supabase!.from('notes').insert({
+    // Check if target allows notes from this sender
+    final allowed = await _supabase!.rpc('can_reach_user', params: {
+      'p_sender_id': senderId,
+      'p_target_id': receiverId,
+      'p_action': 'note',
+    });
+    if (allowed != true) return false;
+
+    await _supabase.from('notes').insert({
       'sender_id': senderId,
       'receiver_id': receiverId,
       'target_type': targetType,
@@ -49,6 +57,7 @@ class NoteRepository {
         'target_id': targetId,
       },
     });
+    return true;
   }
 
   /// Fetch notes received by [userId].

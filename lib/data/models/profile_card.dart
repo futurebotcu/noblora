@@ -19,6 +19,10 @@ class ProfileCard {
   final String? expertise;      // e.g. 'AI Investments · Deep Tech'
   final String? connectionGoal; // e.g. 'Looking for a Tennis Partner'
 
+  // Privacy display settings (from target user)
+  final bool showCityOnly;
+  final bool showStatusBadge;
+
   const ProfileCard({
     required this.id,
     required this.name,
@@ -35,6 +39,8 @@ class ProfileCard {
     this.industry,
     this.expertise,
     this.connectionGoal,
+    this.showCityOnly = false,
+    this.showStatusBadge = true,
   });
 
   /// Maps a public.profiles DB row to a ProfileCard for the feed.
@@ -78,6 +84,8 @@ class ProfileCard {
           (row['languages'] as List<dynamic>?)?.cast<String>() ?? [],
       isVerified: (row['is_verified'] as bool?) ?? false,
       mode: mode,
+      showCityOnly: (row['show_city_only'] as bool?) ?? false,
+      showStatusBadge: (row['show_status_badge'] as bool?) ?? true,
     );
   }
 

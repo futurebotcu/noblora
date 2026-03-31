@@ -15,14 +15,22 @@ class SignalRepository {
     return result as bool? ?? false;
   }
 
-  /// Send a signal to [receiverId].
-  Future<void> sendSignal({
+  /// Send a signal to [receiverId]. Checks permission first.
+  Future<bool> sendSignal({
     required String senderId,
     required String receiverId,
   }) async {
-    if (isMockMode) return;
+    if (isMockMode) return true;
 
-    await _supabase!.from('signals').upsert({
+    // Check if target allows signals from this sender
+    final allowed = await _supabase!.rpc('can_reach_user', params: {
+      'p_sender_id': senderId,
+      'p_target_id': receiverId,
+      'p_action': 'signal',
+    });
+    if (allowed != true) return false;
+
+    await _supabase.from('signals').upsert({
       'sender_id': senderId,
       'receiver_id': receiverId,
     });
@@ -39,6 +47,7 @@ class SignalRepository {
       'body': 'Someone is interested in you. Check it out!',
       'data': {'sender_id': senderId},
     });
+    return true;
   }
 
   /// Signals received by [userId].
