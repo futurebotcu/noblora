@@ -1,17 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/models/filter_options.dart';
+import '../data/models/filter_state.dart';
 
-class FilterNotifier extends StateNotifier<FilterOptions> {
-  FilterNotifier() : super(const FilterOptions());
+class FilterNotifier extends StateNotifier<FilterState> {
+  FilterNotifier() : super(const FilterState());
 
-  void update(FilterOptions Function(FilterOptions) updater) {
+  void set(FilterState newState) => state = newState;
+
+  void update(FilterState Function(FilterState) updater) {
     state = updater(state);
   }
 
-  void reset() => state = const FilterOptions();
+  void reset() => state = const FilterState();
 }
 
 final filterProvider =
-    StateNotifierProvider<FilterNotifier, FilterOptions>((ref) {
+    StateNotifierProvider<FilterNotifier, FilterState>((ref) {
   return FilterNotifier();
 });
