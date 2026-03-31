@@ -90,9 +90,10 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
 
   String _statusLine(Profile p) {
     final n = ref.read(notificationProvider).notifications.where((n) => n.isUnread).length;
-    if (n > 0) return '$n new things happening around you.';
-    if (p.maturityScore > 60) return 'Your profile is growing steadily.';
-    return 'A few things are moving around you.';
+    if (n > 0) return '$n new things in your world.';
+    if (p.maturityScore > 60) return 'Quiet momentum. Growing steadily.';
+    if (p.maturityScore > 30) return 'Building up. A few things moving.';
+    return 'Your private overview.';
   }
 
   @override
@@ -180,7 +181,7 @@ class _OverviewTab extends StatelessWidget {
       const SizedBox(height: AppSpacing.xxl),
 
       // Growth
-      _Sec('Growth'),
+      _Sec('Where you stand'),
       _GrowthRow('Profile', p.profileCompletenessScore / 100, tc, animate),
       _GrowthRow('Community', p.communityScore / 100, tc, animate),
       _GrowthRow('Depth', p.depthScore / 100, tc, animate),
@@ -191,14 +192,14 @@ class _OverviewTab extends StatelessWidget {
 
       // Tips
       if (p.profileTips.isNotEmpty) ...[
-        _Sec('Next Steps'),
+        _Sec('What would help next'),
         ...p.profileTips.take(3).map((t) => _Tip(t)),
         const SizedBox(height: AppSpacing.xxl),
       ],
 
       // Upcoming
       if (matchState.matches.any((m) => m.status == 'video_scheduled') || eventState.events.isNotEmpty) ...[
-        _Sec('Upcoming'),
+        _Sec('Coming up'),
         ...matchState.matches.where((m) => m.status == 'video_scheduled').take(2).map((m) =>
             _Upcoming(Icons.videocam_rounded, 'Intro with ${m.otherUserName ?? "match"}', 'Scheduled', AppColors.gold)),
         ...eventState.events.take(2).map((e) =>
@@ -209,7 +210,7 @@ class _OverviewTab extends StatelessWidget {
       // AI Guide
       _Card(borderColor: tc.withValues(alpha: 0.2), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [Icon(Icons.auto_awesome_rounded, color: tc, size: 16), const SizedBox(width: 6),
-          Text('Guide', style: TextStyle(color: tc, fontSize: 13, fontWeight: FontWeight.w600))]),
+          Text('Your guide', style: TextStyle(color: tc, fontSize: 13, fontWeight: FontWeight.w600))]),
         const SizedBox(height: AppSpacing.md),
         if (aiLoading) const SizedBox(height: 30, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)))
         else Text(ai ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5)),
@@ -243,22 +244,35 @@ class _InterestTab extends StatelessWidget {
     final pending = matchState.matches.where((m) => m.mode == 'date' && (m.status == 'pending_intro' || m.status == 'pending_video')).length;
     final chatting = matchState.matches.where((m) => m.mode == 'date' && m.status == 'chatting').length;
 
+    final hasAny = signalsReceived + notesReceived + pending + signalsSent + notesSent + connections + chatting > 0;
+
     return ListView(padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-      _Sec('Incoming'),
-      _Stat(Icons.bolt_rounded, 'Signals received', '$signalsReceived'),
-      _Stat(Icons.mail_outline_rounded, 'Notes received', '$notesReceived'),
-      _Stat(Icons.favorite_outline_rounded, 'Pending intros', '$pending'),
-      const SizedBox(height: AppSpacing.xxl),
+      if (!hasAny) ...[
+        const SizedBox(height: AppSpacing.xxxxl),
+        Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
+          const SizedBox(height: AppSpacing.lg),
+          const Text('Quiet for now', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          const SizedBox(height: AppSpacing.xs),
+          Text('Interest will appear as people engage with you.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+        ])),
+      ] else ...[
+        _Sec('Reaching toward you'),
+        _Stat(Icons.bolt_rounded, 'Signals', '$signalsReceived'),
+        _Stat(Icons.mail_outline_rounded, 'Notes', '$notesReceived'),
+        if (pending > 0) _Stat(Icons.schedule_rounded, 'Intros waiting', '$pending'),
+        const SizedBox(height: AppSpacing.xxl),
 
-      _Sec('Outgoing'),
-      _Stat(Icons.bolt_outlined, 'Signals sent', '$signalsSent'),
-      _Stat(Icons.mail_outlined, 'Notes sent', '$notesSent'),
-      const SizedBox(height: AppSpacing.xxl),
+        _Sec('Your movement'),
+        _Stat(Icons.bolt_outlined, 'Signals sent', '$signalsSent'),
+        _Stat(Icons.mail_outlined, 'Notes sent', '$notesSent'),
+        const SizedBox(height: AppSpacing.xxl),
 
-      _Sec('Connections'),
-      _Stat(Icons.people_outline_rounded, 'Active connections', '$connections'),
-      _Stat(Icons.chat_bubble_outline_rounded, 'Open chats', '$chatting'),
-      _Stat(Icons.videocam_outlined, 'Intros pending', '$pending'),
+        _Sec('Open threads'),
+        _Stat(Icons.people_outline_rounded, 'Connections', '$connections'),
+        if (chatting > 0) _Stat(Icons.chat_bubble_outline_rounded, 'Conversations', '$chatting'),
+        if (pending > 0) _Stat(Icons.videocam_outlined, 'Pending intros', '$pending'),
+      ],
       const SizedBox(height: AppSpacing.xxxxl),
     ]);
   }
@@ -274,17 +288,31 @@ class _SocialTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-      _Sec('BFF'),
-      _Stat(Icons.auto_awesome_rounded, 'Suggestions', '${bffState.suggestions.length}'),
-      _Stat(Icons.waving_hand_rounded, 'Reach outs received', '${bffState.reachOuts.length}'),
-      const SizedBox(height: AppSpacing.xxl),
+    final hasAny = bffState.suggestions.isNotEmpty || bffState.reachOuts.isNotEmpty || eventState.events.isNotEmpty;
 
-      _Sec('Events'),
-      _Stat(Icons.event_rounded, 'Upcoming events', '${eventState.events.length}'),
-      if (eventState.events.isNotEmpty)
-        ...eventState.events.take(3).map((e) =>
-            _Upcoming(Icons.event_rounded, e.title, '${e.timeLabel} · ${e.attendeeCount}/${e.maxAttendees}', const Color(0xFFAB47BC))),
+    return ListView(padding: const EdgeInsets.all(AppSpacing.xxl), children: [
+      if (!hasAny) ...[
+        const SizedBox(height: AppSpacing.xxxxl),
+        Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.groups_outlined, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
+          const SizedBox(height: AppSpacing.lg),
+          const Text('Nothing scheduled right now', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          const SizedBox(height: AppSpacing.xs),
+          Text('Social plans and BFF activity will show here.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+        ])),
+      ] else ...[
+        _Sec('Friendship circle'),
+        _Stat(Icons.auto_awesome_rounded, 'Suggestions for you', '${bffState.suggestions.length}'),
+        if (bffState.reachOuts.isNotEmpty)
+          _Stat(Icons.waving_hand_rounded, 'Reach outs', '${bffState.reachOuts.length}'),
+        const SizedBox(height: AppSpacing.xxl),
+
+        _Sec('Your events'),
+        _Stat(Icons.event_rounded, 'Upcoming', '${eventState.events.length}'),
+        if (eventState.events.isNotEmpty)
+          ...eventState.events.take(3).map((e) =>
+              _Upcoming(Icons.event_rounded, e.title, '${e.timeLabel} \u00B7 ${e.attendeeCount}/${e.maxAttendees}', const Color(0xFFAB47BC))),
+      ],
       const SizedBox(height: AppSpacing.xxxxl),
     ]);
   }
@@ -302,9 +330,11 @@ class _ActivityTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (activity.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.history_rounded, color: AppColors.textMuted.withValues(alpha: 0.3), size: 48),
+        Icon(Icons.history_rounded, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
         const SizedBox(height: AppSpacing.lg),
-        const Text('No recent activity', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        const Text('This space is clear', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Your recent movement will appear here.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
       ]));
     }
     return ListView.builder(
@@ -358,10 +388,14 @@ class _MarketTab extends StatelessWidget {
           child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 28),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.7), fontSize: 18, fontWeight: FontWeight.w600)),
+        Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.6), fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
         const SizedBox(height: AppSpacing.md),
-        Text('Private upgrades will appear here.',
-            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 13),
+        Text('Reserved for private tools and access.',
+            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.5), fontSize: 13),
+            textAlign: TextAlign.center),
+        const SizedBox(height: AppSpacing.sm),
+        Text('This space will stay quiet until it matters.',
+            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.35), fontSize: 11),
             textAlign: TextAlign.center),
       ]),
     ));
@@ -404,7 +438,7 @@ class _Bar extends StatelessWidget {
 class _GrowthRow extends StatelessWidget {
   final String label; final double value; final Color color; final bool animate;
   const _GrowthRow(this.label, this.value, this.color, this.animate);
-  String get _q => value >= 0.8 ? 'Strong' : value >= 0.5 ? 'Good' : value >= 0.2 ? 'Growing' : 'New';
+  String get _q => value >= 0.8 ? 'Solid' : value >= 0.5 ? 'Healthy' : value >= 0.2 ? 'Building' : 'Early';
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
