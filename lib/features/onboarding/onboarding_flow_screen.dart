@@ -55,11 +55,44 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
     }
   }
 
+  /// Validate minimum requirements before allowing completion
+  String? _validateCompletion() {
+    if (_nameCtrl.text.trim().isEmpty) return 'Name is required';
+    if (_datingActive && _photoUrl == null) return 'A photo is required for Dating mode';
+    if (!_datingActive && !_bffActive && !_socialActive) return 'Select at least one mode';
+    return null;
+  }
+
   Future<void> _complete() async {
+    // Final validation
+    final error = _validateCompletion();
+    if (error != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error));
+      }
+      return;
+    }
+
     final uid = ref.read(authProvider).userId;
     if (uid == null) return;
 
     if (!isMockMode) {
+      // Upload photo to Supabase Storage if local path exists
+      String? remotePhotoUrl = _photoUrl;
+      if (_photoUrl != null && !_photoUrl!.startsWith('http')) {
+        try {
+          final bytes = await XFile(_photoUrl!).readAsBytes();
+          final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg'));
+          remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
+        } catch (_) {
+          // Upload failed — continue without photo
+          remotePhotoUrl = null;
+        }
+      }
+
       await Supabase.instance.client.from('profiles').update({
         'full_name': _nameCtrl.text.trim(),
         'display_name': _nameCtrl.text.trim(),
@@ -67,7 +100,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'gender': _gender,
         'city': _city,
         'bio': _bioCtrl.text.trim(),
-        'date_avatar_url': _photoUrl,
+        'date_avatar_url': remotePhotoUrl,
+        'bff_avatar_url': remotePhotoUrl,
         'dating_active': _datingActive,
         'dating_visible': _datingActive,
         'bff_active': _bffActive,
@@ -76,6 +110,17 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'social_visible': _socialActive,
         'looking_for': _lookingFor,
         'is_onboarded': true,
+        // Privacy defaults (explicit, not null)
+        'incognito_mode': false,
+        'calm_mode': false,
+        'show_city_only': false,
+        'hide_exact_distance': false,
+        'show_last_active': true,
+        'show_status_badge': true,
+        'reach_permission': 'everyone',
+        'signal_permission': 'everyone',
+        'note_permission': 'everyone',
+        'message_preview': true,
         'active_modes': [
           if (_datingActive) 'date',
           if (_bffActive) 'bff',
@@ -140,7 +185,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                       onLookingForChanged: (v) => setState(() => _lookingFor = v),
                       onAgeRangeChanged: (min, max) => setState(() { _ageMin = min; _ageMax = max; }),
                       onNext: _next),
-                  _CompletePage(name: _nameCtrl.text, onComplete: _complete),
+                  _CompletePage(name: _nameCtrl.text, onComplete: _complete,
+                      validationError: _validateCompletion()),
                 ],
               ),
             ),
@@ -437,8 +483,8 @@ class _PrefsPage extends StatelessWidget {
 }
 
 class _CompletePage extends StatefulWidget {
-  final String name; final Future<void> Function() onComplete;
-  const _CompletePage({required this.name, required this.onComplete});
+  final String name; final Future<void> Function() onComplete; final String? validationError;
+  const _CompletePage({required this.name, required this.onComplete, this.validationError});
   @override
   State<_CompletePage> createState() => _CompletePageState();
 }
@@ -454,13 +500,24 @@ class _CompletePageState extends State<_CompletePage> {
         Text('You\'re all set${widget.name.isNotEmpty ? ', ${widget.name}' : ''}',
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.md),
-        const Text('Your private world is ready.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        Text(widget.validationError != null ? '' : 'Your private world is ready.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        if (widget.validationError != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Container(padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+            child: Row(children: [
+              const Icon(Icons.warning_rounded, color: AppColors.error, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(widget.validationError!, style: const TextStyle(color: AppColors.error, fontSize: 13))),
+            ])),
+        ],
         const SizedBox(height: AppSpacing.xxxxl),
         SizedBox(width: double.infinity, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
-                minimumSize: const Size.fromHeight(52)),
-            onPressed: _loading ? null : () async {
+            style: ElevatedButton.styleFrom(backgroundColor: widget.validationError != null ? AppColors.textMuted : AppColors.gold,
+                foregroundColor: AppColors.bg, minimumSize: const Size.fromHeight(52)),
+            onPressed: (_loading || widget.validationError != null) ? null : () async {
               setState(() => _loading = true);
               await widget.onComplete();
             },
