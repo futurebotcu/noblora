@@ -55,17 +55,26 @@ CREATE TABLE IF NOT EXISTS public.signals (
 
 ALTER TABLE public.signals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "signals_select" ON public.signals
-  FOR SELECT TO authenticated
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+DO $$ BEGIN
+  CREATE POLICY "signals_select" ON public.signals
+    FOR SELECT TO authenticated
+    USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "signals_insert" ON public.signals
-  FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "signals_insert" ON public.signals
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "signals_delete" ON public.signals
-  FOR DELETE TO authenticated
-  USING (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "signals_delete" ON public.signals
+    FOR DELETE TO authenticated
+    USING (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS signals_sender_idx ON public.signals(sender_id);
 CREATE INDEX IF NOT EXISTS signals_receiver_idx ON public.signals(receiver_id);
@@ -89,18 +98,27 @@ CREATE TABLE IF NOT EXISTS public.notes (
 
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "notes_select" ON public.notes
-  FOR SELECT TO authenticated
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+DO $$ BEGIN
+  CREATE POLICY "notes_select" ON public.notes
+    FOR SELECT TO authenticated
+    USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "notes_insert" ON public.notes
-  FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "notes_insert" ON public.notes
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "notes_update" ON public.notes
-  FOR UPDATE TO authenticated
-  USING (auth.uid() = receiver_id)   -- only receiver can mark as read
-  WITH CHECK (auth.uid() = receiver_id);
+DO $$ BEGIN
+  CREATE POLICY "notes_update" ON public.notes
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = receiver_id)   -- only receiver can mark as read
+    WITH CHECK (auth.uid() = receiver_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS notes_sender_idx ON public.notes(sender_id);
 CREATE INDEX IF NOT EXISTS notes_receiver_idx ON public.notes(receiver_id);
@@ -123,24 +141,34 @@ CREATE TABLE IF NOT EXISTS public.mini_intros (
 ALTER TABLE public.mini_intros ENABLE ROW LEVEL SECURITY;
 
 -- Both users in the match can see intros
-CREATE POLICY "mini_intros_select" ON public.mini_intros
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.matches m
-      WHERE m.id = match_id
-        AND (m.user1_id = auth.uid() OR m.user2_id = auth.uid())
-    )
-  );
+DO $$ BEGIN
+  CREATE POLICY "mini_intros_select" ON public.mini_intros
+    FOR SELECT TO authenticated
+    USING (
+      EXISTS (
+        SELECT 1 FROM public.matches m
+        WHERE m.id = match_id
+          AND (m.user1_id = auth.uid() OR m.user2_id = auth.uid())
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "mini_intros_insert" ON public.mini_intros
-  FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "mini_intros_insert" ON public.mini_intros
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS mini_intros_match_idx ON public.mini_intros(match_id);
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.mini_intros;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'mini_intros') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.mini_intros;
+  END IF;
+END $$;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 5. CHECK-INS TABLE (post-meetup safety check)
@@ -158,13 +186,19 @@ CREATE TABLE IF NOT EXISTS public.check_ins (
 
 ALTER TABLE public.check_ins ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "check_ins_select" ON public.check_ins
-  FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "check_ins_select" ON public.check_ins
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "check_ins_insert" ON public.check_ins
-  FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "check_ins_insert" ON public.check_ins
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS check_ins_meeting_idx ON public.check_ins(meeting_id);
 CREATE INDEX IF NOT EXISTS check_ins_user_idx ON public.check_ins(user_id);
@@ -207,6 +241,7 @@ ALTER TABLE public.video_sessions ADD CONSTRAINT video_sessions_status_check
 -- 8. PROCESS_CALL_DECISION: Remove chat expiry (infinite chat)
 -- ═══════════════════════════════════════════════════════════════════
 
+DROP FUNCTION IF EXISTS public.process_call_decision(UUID, UUID, BOOLEAN);
 CREATE OR REPLACE FUNCTION public.process_call_decision(
   p_video_session_id UUID,
   p_user_id UUID,
@@ -282,6 +317,7 @@ $$;
 -- 9. CHECK_AND_CREATE_MATCH: Create as pending_intro (not pending_video)
 -- ═══════════════════════════════════════════════════════════════════
 
+DROP FUNCTION IF EXISTS public.check_and_create_match(UUID, UUID, TEXT);
 CREATE OR REPLACE FUNCTION public.check_and_create_match(
   p_swiper UUID,
   p_target UUID,
@@ -575,9 +611,16 @@ $$;
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Remove the chatting-matches expiry cron (chat is infinite now)
-SELECT cron.unschedule('expire-chatting-matches');
+DO $$ BEGIN
+  PERFORM cron.unschedule('expire-chatting-matches');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- Daily usage limit reset (midnight UTC)
+DO $$ BEGIN
+  PERFORM cron.unschedule('reset-daily-usage-limits');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 SELECT cron.schedule('reset-daily-usage-limits', '0 0 * * *', $$
   UPDATE public.profiles SET
     daily_swipes_used    = 0, daily_swipes_reset    = NOW(),
@@ -587,6 +630,10 @@ SELECT cron.schedule('reset-daily-usage-limits', '0 0 * * *', $$
 $$);
 
 -- Weekly usage limit reset (Monday midnight UTC)
+DO $$ BEGIN
+  PERFORM cron.unschedule('reset-weekly-usage-limits');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 SELECT cron.schedule('reset-weekly-usage-limits', '0 0 * * 1', $$
   UPDATE public.profiles SET
     weekly_signals_used  = 0, weekly_signals_reset  = NOW(),
@@ -594,12 +641,24 @@ SELECT cron.schedule('reset-weekly-usage-limits', '0 0 * * 1', $$
 $$);
 
 -- Monthly signal reset (1st of month midnight UTC)
+DO $$ BEGIN
+  PERFORM cron.unschedule('reset-monthly-signals');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 SELECT cron.schedule('reset-monthly-signals', '0 0 1 * *', $$
   UPDATE public.profiles SET
     monthly_signals_used = 0, monthly_signals_reset = NOW();
 $$);
 
 -- Enable realtime on new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.signals;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notes;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.check_ins;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'signals') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.signals;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'notes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notes;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'check_ins') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.check_ins;
+  END IF;
+END $$;

@@ -13,7 +13,10 @@ $$;
 
 -- 2. pg_cron: clear boost_active_until when it expires
 -- Runs every 5 minutes; named so re-running is idempotent
-SELECT cron.unschedule('expire-boosts');
+DO $$ BEGIN
+  PERFORM cron.unschedule('expire-boosts');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 SELECT cron.schedule(
   'expire-boosts',

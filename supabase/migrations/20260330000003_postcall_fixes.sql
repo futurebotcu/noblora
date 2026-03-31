@@ -84,6 +84,11 @@ END;
 $$;
 
 -- 3. Cron: expire chatting matches where chat_expires_at has passed
+DO $$ BEGIN
+  PERFORM cron.unschedule('expire-chatting-matches');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 SELECT cron.schedule(
   'expire-chatting-matches',
   '*/30 * * * *',

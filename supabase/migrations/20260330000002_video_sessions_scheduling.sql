@@ -55,6 +55,11 @@ ALTER TABLE public.video_sessions
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 -- 4. Cron job: every 15 min — expire sessions past 12h, delete their matches
+DO $$ BEGIN
+  PERFORM cron.unschedule('expire-video-sessions');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 SELECT cron.schedule(
   'expire-video-sessions',
   '*/15 * * * *',

@@ -22,15 +22,24 @@ CREATE TABLE IF NOT EXISTS public.super_likes (
 
 ALTER TABLE public.super_likes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "super_likes_select" ON public.super_likes
-  FOR SELECT TO authenticated
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+DO $$ BEGIN
+  CREATE POLICY "super_likes_select" ON public.super_likes
+    FOR SELECT TO authenticated
+    USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "super_likes_insert" ON public.super_likes
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "super_likes_insert" ON public.super_likes
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "super_likes_delete" ON public.super_likes
-  FOR DELETE TO authenticated USING (auth.uid() = sender_id);
+DO $$ BEGIN
+  CREATE POLICY "super_likes_delete" ON public.super_likes
+    FOR DELETE TO authenticated USING (auth.uid() = sender_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS super_likes_sender_idx ON public.super_likes(sender_id);
 CREATE INDEX IF NOT EXISTS super_likes_receiver_idx ON public.super_likes(receiver_id);

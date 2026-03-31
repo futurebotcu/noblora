@@ -14,7 +14,10 @@ UPDATE public.profiles
 
 -- 3. RLS policy: users can update their own active_modes
 -- (profiles table must already have RLS enabled)
-CREATE POLICY "profiles_update_active_modes" ON public.profiles
-  FOR UPDATE TO authenticated
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+DO $$ BEGIN
+  CREATE POLICY "profiles_update_active_modes" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

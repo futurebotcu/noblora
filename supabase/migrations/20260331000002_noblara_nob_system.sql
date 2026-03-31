@@ -114,19 +114,34 @@ DROP POLICY IF EXISTS "posts_select" ON public.posts;
 DROP POLICY IF EXISTS "posts_select_public" ON public.posts;
 DROP POLICY IF EXISTS "posts_insert" ON public.posts;
 
-CREATE POLICY "posts_select" ON public.posts
-  FOR SELECT TO authenticated
-  USING ((is_draft = false AND is_archived = false) OR auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "posts_select" ON public.posts
+    FOR SELECT TO authenticated
+    USING ((is_draft = false AND is_archived = false) OR auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "posts_insert" ON public.posts
-  FOR INSERT TO authenticated
-  WITH CHECK (
-    auth.uid() = user_id
-    AND (is_draft = true OR public.check_nob_limit(auth.uid(), nob_type) = true)
-  );
+DO $$ BEGIN
+  CREATE POLICY "posts_insert" ON public.posts
+    FOR INSERT TO authenticated
+    WITH CHECK (
+      auth.uid() = user_id
+      AND (is_draft = true OR public.check_nob_limit(auth.uid(), nob_type) = true)
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 8. Cron jobs
+DO $$ BEGIN
+  PERFORM cron.unschedule('reset-daily-nob-count');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 SELECT cron.schedule('reset-daily-nob-count', '0 0 * * *',
   $$UPDATE public.profiles SET daily_nob_count = 0, daily_nob_reset_at = NOW();$$);
+
+DO $$ BEGIN
+  PERFORM cron.unschedule('reset-weekly-nob-count');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 SELECT cron.schedule('reset-weekly-nob-count', '0 0 * * 1',
   $$UPDATE public.profiles SET weekly_nob_count = 0, weekly_photo_nob_count = 0, weekly_nob_reset_at = NOW();$$);
