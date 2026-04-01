@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../data/models/event_participant.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'edit_event_screen.dart';
 import 'event_chat_screen.dart';
 import 'event_checkin_screen.dart';
 
@@ -52,6 +53,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
         actions: [
+          if (isHost && !isLocked)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: _violet),
+              onPressed: () async {
+                final edited = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (_) => EditEventScreen(event: event)),
+                );
+                if (edited == true) {
+                  ref.read(eventDetailProvider(widget.eventId).notifier).load();
+                  ref.read(eventListProvider.notifier).load();
+                }
+              },
+            ),
           if (!isLocked)
             IconButton(
               icon: const Icon(Icons.chat_rounded, color: _violet),

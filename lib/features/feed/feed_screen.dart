@@ -112,8 +112,6 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remaining = ref.watch(remainingSwipesProvider);
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -132,19 +130,6 @@ class _Header extends ConsumerWidget {
               fontFamily: 'serif',
             ),
           ),
-          // Remaining swipe count (Dating only, subtle)
-          if (mode == NobleMode.date)
-            Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.sm),
-              child: remaining.when(
-                data: (count) => Text(
-                  '$count',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w500),
-                ),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ),
           const SizedBox(width: AppSpacing.md),
           const Expanded(child: ModeSwitcher()),
           const SizedBox(width: AppSpacing.sm),

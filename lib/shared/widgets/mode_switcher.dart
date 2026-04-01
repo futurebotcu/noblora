@@ -13,17 +13,18 @@ class ModeSwitcher extends ConsumerWidget {
     final current = ref.watch(modeProvider);
 
     return Container(
-      height: 40,
+      height: 38,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderSubtle, width: 0.5),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [NobleMode.social, NobleMode.bff, NobleMode.date]
-            .map((mode) => _ModeTab(mode: mode, isSelected: mode == current))
+        children: const [NobleMode.date, NobleMode.bff, NobleMode.social]
+            .map((mode) => Expanded(
+                  child: _ModeTab(mode: mode, isSelected: mode == current),
+                ))
             .toList(),
       ),
     );
@@ -43,15 +44,13 @@ class _ModeTab extends ConsumerWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? mode.accentColor : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(

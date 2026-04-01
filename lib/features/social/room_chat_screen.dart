@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/models/room.dart';
 import '../../data/models/room_message.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/room_provider.dart';
+import 'edit_room_screen.dart';
 
 const _violet = Color(0xFF9B6DFF);
 
@@ -85,6 +87,30 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
           ],
         ),
         actions: [
+          // Edit button (host only)
+          if (isHost)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              color: _violet,
+              onPressed: () async {
+                final room = Room(
+                  id: widget.roomId,
+                  hostId: widget.hostId,
+                  title: widget.roomTitle,
+                  topicTags: const [],
+                  lastActivityAt: DateTime.now(),
+                  createdAt: DateTime.now(),
+                );
+                final edited = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (_) => EditRoomScreen(room: room)),
+                );
+                if (edited == true) {
+                  ref.invalidate(roomChatProvider(args));
+                  ref.read(roomListProvider.notifier).load();
+                }
+              },
+            ),
           // Participants button
           IconButton(
             icon: const Icon(Icons.people_outline_rounded),
