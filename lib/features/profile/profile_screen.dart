@@ -15,7 +15,7 @@ import '../../providers/posts_provider.dart';
 import '../noblara_feed/nob_drafts_screen.dart';
 import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
-import 'edit_profile_screen.dart';
+import 'edit/edit_profile_main_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Profile Screen
@@ -90,7 +90,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                      MaterialPageRoute(builder: (_) => const EditProfileMainScreen()),
                     ),
                   ),
                 ),
