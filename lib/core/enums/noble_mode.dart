@@ -61,24 +61,24 @@ extension NobleModeX on NobleMode {
       case NobleMode.date:
         return AppColors.gold;
       case NobleMode.bff:
-        return const Color(0xFF26C6DA); // Teal
+        return AppColors.teal;
       case NobleMode.social:
-        return const Color(0xFFAB47BC); // Violet
+        return AppColors.violet;
       case NobleMode.noblara:
-        return const Color(0xFFEF5350); // Red
+        return AppColors.gold;
     }
   }
 
   Color get accentLight {
     switch (this) {
       case NobleMode.date:
-        return const Color(0x33C9A84C);
+        return AppColors.goldLight;
       case NobleMode.bff:
-        return const Color(0x3326C6DA);
+        return const Color(0x2226C6DA);
       case NobleMode.social:
-        return const Color(0x33AB47BC);
+        return const Color(0x229B6DFF);
       case NobleMode.noblara:
-        return const Color(0x33EF5350);
+        return AppColors.goldLight;
     }
   }
 
@@ -86,13 +86,13 @@ extension NobleModeX on NobleMode {
   Color get bgTint {
     switch (this) {
       case NobleMode.date:
-        return const Color(0xFF0D0D0D);
+        return AppColors.bg;
       case NobleMode.bff:
-        return const Color(0xFF060E0E); // barely-perceptible teal undertone
+        return const Color(0xFF070A0A);
       case NobleMode.social:
-        return const Color(0xFF090610); // barely-perceptible violet undertone
+        return const Color(0xFF08070B);
       case NobleMode.noblara:
-        return const Color(0xFF0D0606); // barely-perceptible red undertone
+        return AppColors.bg;
     }
   }
 }
