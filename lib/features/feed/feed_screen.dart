@@ -524,22 +524,23 @@ class _CircleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final disabled = onTap == null;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: disabled ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: disabled ? AppColors.surface : AppColors.elevated,
           shape: BoxShape.circle,
           border: Border.all(
-              color: disabled ? AppColors.border : color.withValues(alpha: 0.5)),
+              color: disabled ? AppColors.borderSubtle : color.withValues(alpha: 0.35), width: 1.5),
           boxShadow: disabled
               ? null
               : [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.15),
-                    blurRadius: 12,
-                    spreadRadius: 2,
+                    color: color.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    spreadRadius: 0,
                   ),
                 ],
         ),

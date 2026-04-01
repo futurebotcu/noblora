@@ -178,18 +178,19 @@ class _CardBody extends StatelessWidget {
     if (mode == NobleMode.bff) return _BffCardBody(card: card);
 
     final size = MediaQuery.of(context).size;
-    final cardH = size.height * 0.62;
+    final cardH = size.height * 0.66;
 
     return Container(
-      width: size.width - AppSpacing.xxxl * 2,
+      width: size.width - AppSpacing.xxl * 2,
       height: cardH,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(color: AppColors.borderSubtle, width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -198,38 +199,35 @@ class _CardBody extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Cinematic photo
             CachedNetworkImage(
               imageUrl: card.photoUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+              placeholder: (_, __) => Container(
                 color: AppColors.surface,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: mode.accentColor,
-                    strokeWidth: 2,
-                  ),
-                ),
+                child: Center(child: CircularProgressIndicator(color: mode.accentColor, strokeWidth: 1.5)),
               ),
-              errorWidget: (context, url, error) => Container(
+              errorWidget: (_, __, ___) => Container(
                 color: AppColors.surface,
-                child: const Icon(
-                  Icons.person,
-                  color: AppColors.textMuted,
-                  size: 64,
-                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.person_rounded, color: AppColors.textDisabled, size: 48),
+                  const SizedBox(height: 8),
+                  Text('No photo', style: TextStyle(color: AppColors.textDisabled, fontSize: 12)),
+                ]),
               ),
             ),
-            // Gradient
+            // Premium cinematic gradient — deeper, more dramatic
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.45, 1.0],
+                    stops: const [0.35, 0.65, 1.0],
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.88),
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.black.withValues(alpha: 0.92),
                     ],
                   ),
                 ),
@@ -296,16 +294,18 @@ class _CardInfo extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Name + age
+        // Name + age — editorial headline
         Text(
           '${card.name}, ${card.age}',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 26,
+            fontSize: 28,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.1,
           ),
         ),
-        const SizedBox(height: AppSpacing.xxs),
+        const SizedBox(height: AppSpacing.xs),
         // City
         Row(
           children: [
@@ -342,28 +342,26 @@ class _CardInfo extends ConsumerWidget {
         if (card.interests.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Wrap(
-            spacing: AppSpacing.xs,
+            spacing: AppSpacing.sm,
             runSpacing: AppSpacing.xs,
             children: card.interests.take(3).map((tag) {
               return Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xxs,
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: mode.accentLight,
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusCircle),
-                  border: Border.all(
-                    color: mode.accentColor.withValues(alpha: 0.4),
-                  ),
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 child: Text(
                   tag,
-                  style: TextStyle(
-                    color: mode.accentColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
                 ),
               );
