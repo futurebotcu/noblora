@@ -136,7 +136,10 @@ class EventRepository {
 
   Future<void> sendMessage(String eventId, String senderId, String content) async {
     if (isMockMode) return;
-    await _supabase!.from('event_messages').insert({
+    // Check interaction eligibility
+    final eligible = await _supabase!.rpc('can_user_interact', params: {'p_user_id': senderId, 'p_mode': 'social'});
+    if (eligible != true) return;
+    await _supabase.from('event_messages').insert({
       'event_id': eventId,
       'sender_id': senderId,
       'content': content,

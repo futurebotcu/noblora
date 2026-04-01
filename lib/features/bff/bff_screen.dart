@@ -116,6 +116,8 @@ class _SuggestionsTab extends ConsumerWidget {
             onConnect: () => _onAction(context, ref, sug.id, 'connect'),
             onPass: () => _onAction(context, ref, sug.id, 'pass'),
             onReachOut: () async {
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, gate.blockReason('bff')); return; }
               final sent = await ref.read(bffProvider.notifier).sendReachOut(sug.otherUserId(ref.read(authProvider).userId ?? ''));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -123,7 +125,11 @@ class _SuggestionsTab extends ConsumerWidget {
                 backgroundColor: sent ? _teal : AppColors.surface,
               ));
             },
-            onNote: () => _showNoteDialog(context, ref, sug),
+            onNote: () {
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, gate.blockReason('bff')); return; }
+              _showNoteDialog(context, ref, sug);
+            },
           );
         },
       ),

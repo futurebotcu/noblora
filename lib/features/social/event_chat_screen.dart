@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 
 const _violet = Color(0xFFAB47BC);
 const _gold = AppColors.gold;
@@ -74,6 +75,12 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
   }
 
   void _send() {
+    // Social interaction gating
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    if (!gate.canSocialInteract) {
+      showGatingPopup(context, gate.blockReason('social'));
+      return;
+    }
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
     _msgCtrl.clear();

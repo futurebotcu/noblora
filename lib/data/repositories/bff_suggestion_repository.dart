@@ -98,8 +98,12 @@ class BffSuggestionRepository {
   }) async {
     if (isMockMode) return;
 
+    // Check interaction eligibility
+    final eligible = await _supabase!.rpc('can_user_interact', params: {'p_user_id': senderId, 'p_mode': 'bff'});
+    if (eligible != true) return;
+
     // Check if target allows reach from this sender
-    final allowed = await _supabase!.rpc('can_reach_user', params: {
+    final allowed = await _supabase.rpc('can_reach_user', params: {
       'p_sender_id': senderId,
       'p_target_id': receiverId,
       'p_action': 'reach',

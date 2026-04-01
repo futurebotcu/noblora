@@ -46,6 +46,11 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen> {
           IconButton(
             icon: const Icon(Icons.add_rounded, color: _violet),
             onPressed: () async {
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              if (!gate.canSocialInteract) {
+                if (context.mounted) showGatingPopup(context, gate.blockReason('social'));
+                return;
+              }
               final created = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(builder: (_) => const CreateEventScreen()),
