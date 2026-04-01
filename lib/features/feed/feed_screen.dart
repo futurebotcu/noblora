@@ -15,7 +15,7 @@ import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
 import '../bff/bff_screen.dart';
-import '../noblara_feed/noblara_feed_screen.dart';
+import '../../navigation/main_tab_navigator.dart';
 import '../social/social_events_screen.dart';
 import 'swipe_card_widget.dart';
 
@@ -276,11 +276,7 @@ class _EmptyDeck extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusCircle)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const NoblaraFeedScreen(),
-                ));
-              },
+              onPressed: () => MainTabNavigator.switchTab(1),
             ),
           ],
         ),

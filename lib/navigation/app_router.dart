@@ -188,7 +188,7 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     }
 
     // ── 9. All clear ─────────────────────────────────────────────────────────
-    return const MainTabNavigator();
+    return MainTabNavigator(key: MainTabNavigator.navigatorKey);
   }
 
   Widget _splash(String reason) {

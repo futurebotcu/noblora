@@ -19,6 +19,13 @@ import '../providers/posts_provider.dart';
 class MainTabNavigator extends ConsumerStatefulWidget {
   const MainTabNavigator({super.key});
 
+  static final navigatorKey = GlobalKey<_MainTabNavigatorState>();
+
+  /// Switch to a tab by index from anywhere in the app.
+  static void switchTab(int index) {
+    navigatorKey.currentState?._switchTo(index);
+  }
+
   @override
   ConsumerState<MainTabNavigator> createState() => _MainTabNavigatorState();
 }
@@ -27,6 +34,13 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   int _currentIndex = 0;
   // Tracks which tab indices have been visited — unvisited tabs are not built
   final Set<int> _visitedTabs = {0};
+
+  void _switchTo(int index) {
+    setState(() {
+      _currentIndex = index;
+      _visitedTabs.add(index);
+    });
+  }
 
   static const _baseTabs = [
     _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_outlined),
