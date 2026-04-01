@@ -297,6 +297,73 @@ class ProfileDraft {
   String lifestyleStatus() => '$lifestyleCount/5 completed';
   String promptsStatus() => '${prompts.where((p) => p.answer.isNotEmpty).length}/3 answered';
 
+  // ── Preview strings for cards (real data) ──
+  String? interestsPreview() => interests.isEmpty ? null : _joinPreview(interests, 5);
+  String? relationshipPreview() {
+    final parts = <String>[...lookingFor.take(2), ...relationshipType.take(1), ...datingStyle.take(1)];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? identityPreview() {
+    final parts = <String>[];
+    if (gender != null) parts.add(gender!);
+    if (socialEnergy != null) parts.add(socialEnergy!);
+    if (personalityStyle != null) parts.add(personalityStyle!);
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? lifestylePreview() {
+    final parts = <String>[];
+    if (sleepStyle != null) parts.add(sleepStyle!);
+    if (fitnessRoutine != null) parts.add('Fitness: $fitnessRoutine');
+    if (dietStyle != null) parts.add(dietStyle!);
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? culturePreview() {
+    final parts = <String>[...musicGenres.take(3), ...movieGenres.take(2)];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? travelPreview() {
+    if (visitedCountries.isEmpty) return null;
+    return _joinPreview(visitedCountries, 4);
+  }
+  String? careerPreview() {
+    final parts = <String>[];
+    if (primaryRole != null && primaryRole!.isNotEmpty) parts.add(primaryRole!);
+    if (workStyle != null) parts.add(workStyle!);
+    if (entrepreneurshipStatus != null) parts.add(entrepreneurshipStatus!);
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? digitalPreview() {
+    if (aiTools.isEmpty) return null;
+    return _joinPreview(aiTools, 4);
+  }
+  String? basicInfoPreview() {
+    final parts = <String>[];
+    if (city != null && city!.isNotEmpty) parts.add(city!);
+    if (age != null) parts.add('${age}y');
+    if (zodiac != null) parts.add(zodiac!);
+    if (languages.isNotEmpty) parts.add(languages.map((l) => l.label).take(2).join(', '));
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+  String? aboutPreview() {
+    if (shortBio != null && shortBio!.isNotEmpty) {
+      return shortBio!.length > 60 ? '${shortBio!.substring(0, 60)}...' : shortBio!;
+    }
+    return tagline;
+  }
+  String? promptsPreview() {
+    final answered = prompts.where((p) => p.answer.isNotEmpty);
+    if (answered.isEmpty) return null;
+    final first = answered.first;
+    final ans = first.answer.length > 50 ? '${first.answer.substring(0, 50)}...' : first.answer;
+    return '"$ans"';
+  }
+
+  String _joinPreview(List<String> items, int max) {
+    final shown = items.take(max).join(', ');
+    final extra = items.length - max;
+    return extra > 0 ? '$shown +$extra' : shown;
+  }
+
   double sectionProgress(int filled, int total) => total > 0 ? (filled / total).clamp(0.0, 1.0) : 0.0;
 
   // ── Serialization ──
