@@ -121,8 +121,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.selectOverlay,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusXl),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: Align(
                         alignment: const Alignment(0.85, -0.8),
@@ -145,8 +144,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.passOverlay,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusXl),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: const Align(
                         alignment: Alignment(-0.85, -0.8),
@@ -179,13 +177,13 @@ class _CardBody extends StatelessWidget {
     if (mode == NobleMode.bff) return _BffCardBody(card: card);
 
     final size = MediaQuery.of(context).size;
-    final cardH = size.height * 0.66;
+    final cardH = size.height * 0.78;
 
     return Container(
-      width: size.width - AppSpacing.xxl * 2,
+      width: size.width - 40,
       height: cardH,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.borderSubtleColor, width: 0.5),
         boxShadow: [
           BoxShadow(
@@ -196,11 +194,11 @@ class _CardBody extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        borderRadius: BorderRadius.circular(24),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Cinematic photo
+            // Photo fills entire card
             CachedNetworkImage(
               imageUrl: card.photoUrl,
               fit: BoxFit.cover,
@@ -217,18 +215,17 @@ class _CardBody extends StatelessWidget {
                 ]),
               ),
             ),
-            // Premium cinematic gradient — deeper, more dramatic
+            // Bottom gradient overlay
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.35, 0.65, 1.0],
+                    stops: const [0.4, 1.0],
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.92),
+                      Colors.black.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -269,9 +266,9 @@ class _CardBody extends StatelessWidget {
               ),
             // Info overlay
             Positioned(
-              left: AppSpacing.xxl,
-              right: AppSpacing.xxl,
-              bottom: AppSpacing.xxl,
+              left: 20,
+              right: 20,
+              bottom: 24,
               child: _CardInfo(card: card, mode: mode),
             ),
           ],
@@ -295,26 +292,26 @@ class _CardInfo extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Name + age — editorial headline
+        // Name + age
         Text(
           '${card.name}, ${card.age}',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 28,
+            fontSize: 26,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
             height: 1.1,
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
-        // City
+        // Location
         Row(
           children: [
-            Icon(Icons.location_on_rounded, color: mode.accentColor, size: 14),
+            const Icon(Icons.location_on_rounded, color: AppColors.gold, size: 14),
             const SizedBox(width: AppSpacing.xxs),
             Text(
               card.city,
-              style: TextStyle(color: mode.accentColor, fontSize: 13),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
             ),
             if (card.profession != null) ...[
               const SizedBox(width: AppSpacing.sm),
@@ -323,7 +320,7 @@ class _CardInfo extends ConsumerWidget {
               Flexible(
                 child: Text(
                   card.profession!,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -334,39 +331,37 @@ class _CardInfo extends ConsumerWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             card.bio!,
-            style:
-                const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],
         if (card.interests.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: card.interests.take(3).map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
+          SizedBox(
+            height: 28,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: card.interests.length > 5 ? 5 : card.interests.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (_, i) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
-                child: Text(
-                  tag,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.2,
+                child: Center(
+                  child: Text(
+                    card.interests[i],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              );
-            }).toList(),
+              ),
+            ),
           ),
         ],
         // Last 3 Nobs
@@ -376,7 +371,7 @@ class _CardInfo extends ConsumerWidget {
             return [
               const SizedBox(height: AppSpacing.sm),
               SizedBox(
-                height: 36,
+                height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: nobs.length,
@@ -384,16 +379,26 @@ class _CardInfo extends ConsumerWidget {
                   itemBuilder: (_, i) => GestureDetector(
                     onTap: () => _showNobDetail(context, nobs[i]),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       constraints: const BoxConstraints(maxWidth: 160),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white12),
+                      decoration: const BoxDecoration(
+                        color: Color(0x1AFFFFFF),
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(6),
+                          bottomRight: Radius.circular(6),
+                        ),
+                        border: Border(
+                          left: BorderSide(color: AppColors.gold, width: 2),
+                        ),
                       ),
                       child: Text(
                         nobs[i].content.isNotEmpty ? nobs[i].content : (nobs[i].caption ?? ''),
-                        style: const TextStyle(color: Colors.white70, fontSize: 10, height: 1.3),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          height: 1.3,
+                        ),
                         maxLines: 2, overflow: TextOverflow.ellipsis,
                       ),
                     ),

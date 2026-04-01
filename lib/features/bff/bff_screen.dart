@@ -27,6 +27,7 @@ class BffScreen extends ConsumerStatefulWidget {
 class _BffScreenState extends ConsumerState<BffScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
+  bool _loadTimedOut = false;
 
   @override
   void initState() {
@@ -34,8 +35,10 @@ class _BffScreenState extends ConsumerState<BffScreen>
     _tabCtrl = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(bffProvider.notifier).load();
-      // Trigger real suggestion generation
       ref.read(bffProvider.notifier).generateSuggestions();
+    });
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _loadTimedOut = true);
     });
   }
 
@@ -79,7 +82,7 @@ class _BffScreenState extends ConsumerState<BffScreen>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _SuggestionsTab(state: state),
+          _SuggestionsTab(state: state, timedOut: _loadTimedOut),
           const _FreeDiscoveryTab(),
           _ReachOutsTab(reachOuts: state.reachOuts),
         ],
@@ -92,11 +95,12 @@ class _BffScreenState extends ConsumerState<BffScreen>
 
 class _SuggestionsTab extends ConsumerWidget {
   final BffState state;
-  const _SuggestionsTab({required this.state});
+  final bool timedOut;
+  const _SuggestionsTab({required this.state, this.timedOut = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (state.isLoading) {
+    if (state.isLoading && !timedOut) {
       return const Center(child: CircularProgressIndicator(color: _teal));
     }
     if (state.suggestions.isEmpty) return _EmptyState();
@@ -213,11 +217,16 @@ class _FreeDiscoveryTab extends ConsumerStatefulWidget {
 }
 
 class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
+  bool _timedOut = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(feedProvider.notifier).loadFeed(NobleMode.bff);
+    });
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _timedOut = true);
     });
   }
 
@@ -225,7 +234,7 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
   Widget build(BuildContext context) {
     final feed = ref.watch(feedProvider);
 
-    if (feed.isLoading) {
+    if (feed.isLoading && !_timedOut) {
       return const Center(child: CircularProgressIndicator(color: _teal));
     }
     if (feed.cards.isEmpty) {

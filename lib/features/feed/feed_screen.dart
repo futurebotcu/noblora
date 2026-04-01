@@ -408,8 +408,8 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                 onTap: () =>
                     ref.read(feedProvider.notifier).swipeLeft(topCard.id),
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: context.surfaceColor,
                     shape: BoxShape.circle,
@@ -448,14 +448,21 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                     ? () { if (_checkGate(context, 'bff')) _onConnect(topCard.id); }
                     : () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
                 child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
                     color: AppColors.gold,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.gold.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Icon(Icons.favorite_rounded,
-                      color: context.bgColor, size: 26),
+                  child: const Icon(Icons.favorite_rounded,
+                      color: Colors.black, size: 28),
                 ),
               ),
             ],
