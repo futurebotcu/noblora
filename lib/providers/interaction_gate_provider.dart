@@ -59,30 +59,40 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
 void showGatingPopup(BuildContext context, String reason) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: const Color(0xFF1A1A1A),
+    backgroundColor: const Color(0xFF111113),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     builder: (_) => Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(
-              color: const Color(0xFF2C2C2C), borderRadius: BorderRadius.circular(999))),
-          const SizedBox(height: 24),
-          const Icon(Icons.lock_outline_rounded, color: Color(0xFFC9A84C), size: 36),
-          const SizedBox(height: 16),
-          const Text('Browse mode', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          Container(width: 36, height: 3, decoration: BoxDecoration(
+              color: const Color(0xFF222225), borderRadius: BorderRadius.circular(999))),
+          const SizedBox(height: 32),
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFCBA135).withValues(alpha: 0.06),
+              border: Border.all(color: const Color(0xFFCBA135).withValues(alpha: 0.15)),
+            ),
+            child: const Icon(Icons.lock_outline_rounded, color: Color(0xFFCBA135), size: 28),
+          ),
+          const SizedBox(height: 20),
+          const Text('Browse mode', style: TextStyle(color: Color(0xFFF2F2F2), fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
           const SizedBox(height: 8),
-          Text('You can look around for now.', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
-          const SizedBox(height: 16),
+          Text('You can explore for now.', style: TextStyle(color: const Color(0xFFF2F2F2).withValues(alpha: 0.4), fontSize: 14)),
+          const SizedBox(height: 20),
           Text(reason, textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFC9A84C), fontSize: 14, height: 1.4)),
-          const SizedBox(height: 24),
+              style: const TextStyle(color: Color(0xFFCBA135), fontSize: 14, height: 1.5)),
+          const SizedBox(height: 28),
           SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC9A84C), foregroundColor: const Color(0xFF0D0D0D),
-                  minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFCBA135), foregroundColor: const Color(0xFF080808),
+                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
               onPressed: () => Navigator.pop(context),
-              child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.w600)))),
-          const SizedBox(height: 16),
+              child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.3)))),
         ],
       ),
     ),

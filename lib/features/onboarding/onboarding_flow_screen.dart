@@ -152,12 +152,10 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                     onPressed: _back, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
                 if (_step > 0) const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: ClipRRect(borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 3,
-                        backgroundColor: AppColors.border, valueColor: const AlwaysStoppedAnimation(AppColors.gold))),
+                  child: ClipRRect(borderRadius: BorderRadius.circular(1),
+                    child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 2,
+                        backgroundColor: AppColors.borderSubtle, valueColor: const AlwaysStoppedAnimation(AppColors.gold))),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Text('${_step + 1}/$_totalSteps', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
               ]),
             ),
 
@@ -206,20 +204,30 @@ class _WelcomePage extends StatelessWidget {
   const _WelcomePage({required this.onNext});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(AppSpacing.xxxl), child: Column(
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl), child: Column(
       mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 56),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Welcome to Noblara', style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+        const Spacer(flex: 2),
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.gold.withValues(alpha: 0.06),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+          ),
+          child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 32),
+        ),
+        const SizedBox(height: AppSpacing.xxxl),
+        Text('Noblara', style: Theme.of(context).textTheme.displayMedium?.copyWith(
+            color: AppColors.textPrimary, fontWeight: FontWeight.w300, letterSpacing: 2)),
         const SizedBox(height: AppSpacing.lg),
-        const Text('A private space for meaningful connections.\nCalm. Selective. Real.',
-            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 15, height: 1.5)),
-        const SizedBox(height: AppSpacing.xxxxl),
+        Text('A private space for\nmeaningful connections.',
+            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 16, height: 1.6, letterSpacing: 0.2)),
+        const Spacer(flex: 3),
         SizedBox(width: double.infinity, child: ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
-                minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
-            onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)))),
+                minimumSize: const Size.fromHeight(56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
+            onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.5)))),
+        const SizedBox(height: AppSpacing.xxxxl),
     ]));
   }
 }

@@ -668,14 +668,22 @@ class _MsgBubble extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg, vertical: AppSpacing.md),
               decoration: BoxDecoration(
-                color: msg.isSelf ? accentColor : AppColors.surfaceAlt,
+                color: msg.isSelf
+                    ? accentColor.withValues(alpha: 0.15)
+                    : AppColors.elevated,
+                border: Border.all(
+                  color: msg.isSelf
+                      ? accentColor.withValues(alpha: 0.2)
+                      : AppColors.borderSubtle,
+                  width: 0.5,
+                ),
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(AppSpacing.radiusMd),
-                  topRight: const Radius.circular(AppSpacing.radiusMd),
+                  topLeft: const Radius.circular(AppSpacing.radiusLg),
+                  topRight: const Radius.circular(AppSpacing.radiusLg),
                   bottomLeft:
-                      Radius.circular(msg.isSelf ? AppSpacing.radiusMd : 4),
+                      Radius.circular(msg.isSelf ? AppSpacing.radiusLg : 4),
                   bottomRight:
-                      Radius.circular(msg.isSelf ? 4 : AppSpacing.radiusMd),
+                      Radius.circular(msg.isSelf ? 4 : AppSpacing.radiusLg),
                 ),
               ),
               child: Text(
@@ -800,10 +808,13 @@ class _ChatInputBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
         AppSpacing.lg,
         AppSpacing.md,
-        AppSpacing.lg,
+        AppSpacing.sm,
         MediaQuery.of(context).padding.bottom + AppSpacing.md,
       ),
-      color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.borderSubtle, width: 0.5)),
+      ),
       child: Row(
         children: [
           Expanded(
