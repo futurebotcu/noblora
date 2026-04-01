@@ -22,8 +22,12 @@ class SignalRepository {
   }) async {
     if (isMockMode) return true;
 
+    // Check interaction eligibility
+    final eligible = await _supabase!.rpc('can_user_interact', params: {'p_user_id': senderId, 'p_mode': 'date'});
+    if (eligible != true) return false;
+
     // Check if target allows signals from this sender
-    final allowed = await _supabase!.rpc('can_reach_user', params: {
+    final allowed = await _supabase.rpc('can_reach_user', params: {
       'p_sender_id': senderId,
       'p_target_id': receiverId,
       'p_action': 'signal',

@@ -25,8 +25,12 @@ class NoteRepository {
   }) async {
     if (isMockMode) return true;
 
+    // Check interaction eligibility (use 'date' as default mode for notes)
+    final eligible = await _supabase!.rpc('can_user_interact', params: {'p_user_id': senderId, 'p_mode': 'date'});
+    if (eligible != true) return false;
+
     // Check if target allows notes from this sender
-    final allowed = await _supabase!.rpc('can_reach_user', params: {
+    final allowed = await _supabase.rpc('can_reach_user', params: {
       'p_sender_id': senderId,
       'p_target_id': receiverId,
       'p_action': 'note',

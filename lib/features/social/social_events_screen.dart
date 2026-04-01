@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'event_card_widget.dart';
@@ -75,6 +76,12 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen> {
                         onJoin: event.isFull
                             ? null
                             : () async {
+                                // Social gating check
+                                final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+                                if (!gate.canSocialInteract) {
+                                  if (context.mounted) showGatingPopup(context, gate.blockReason('social'));
+                                  return;
+                                }
                                 final result = await ref.read(eventListProvider.notifier).joinEvent(event.id);
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(

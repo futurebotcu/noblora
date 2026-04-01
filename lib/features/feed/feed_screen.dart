@@ -4,6 +4,7 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/feed_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/status_provider.dart';
 import '../../providers/filter_provider.dart';
@@ -395,6 +396,14 @@ class _ActionRowState extends ConsumerState<_ActionRow>
     ref.read(feedProvider.notifier).swipeRight(cardId);
   }
 
+  /// Check gating before allowing an interaction action
+  bool _checkGate(BuildContext context, String mode) {
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    if (gate.canInteract(mode)) return true;
+    showGatingPopup(context, gate.blockReason(mode));
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final topCard = widget.feed.cards.first;
@@ -444,22 +453,21 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                 onTap: () =>
                     ref.read(feedProvider.notifier).swipeLeft(topCard.id),
               ),
-              // Like / Connect
+              // Like / Connect (GATED)
               _CircleButton(
                 icon: centerIcon,
                 color: mode.accentColor,
                 size: 64,
                 onTap: mode == NobleMode.bff
-                    ? () => _onConnect(topCard.id)
-                    : () =>
-                        ref.read(feedProvider.notifier).swipeRight(topCard.id),
+                    ? () { if (_checkGate(context, 'bff')) _onConnect(topCard.id); }
+                    : () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
               ),
-              // Signal
+              // Signal (GATED)
               _CircleButton(
                 icon: Icons.bolt_rounded,
                 color: const Color(0xFF42A5F5),
                 size: 46,
-                onTap: () => ref.read(feedProvider.notifier).sendSignal(topCard.id),
+                onTap: () { if (_checkGate(context, mode.name)) ref.read(feedProvider.notifier).sendSignal(topCard.id); },
               ),
               // Note
               if (mode == NobleMode.date)
@@ -467,7 +475,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   icon: Icons.mail_outline_rounded,
                   color: AppColors.gold,
                   size: 46,
-                  onTap: () => _showNoteDialog(context, topCard.id),
+                  onTap: () { if (_checkGate(context, 'date')) _showNoteDialog(context, topCard.id); },
                 ),
             ],
           ),

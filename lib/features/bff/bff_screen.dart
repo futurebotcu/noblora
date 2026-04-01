@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
@@ -172,6 +173,14 @@ class _SuggestionsTab extends ConsumerWidget {
   }
 
   Future<void> _onAction(BuildContext context, WidgetRef ref, String id, String action) async {
+    // Gate connect action (pass is always allowed)
+    if (action == 'connect') {
+      final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+      if (!gate.canBffInteract) {
+        showGatingPopup(context, gate.blockReason('bff'));
+        return;
+      }
+    }
     final result = await ref.read(bffProvider.notifier).actOnSuggestion(id, action);
     if (!context.mounted) return;
     final message = switch (result) {
