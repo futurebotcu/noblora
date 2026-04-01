@@ -30,7 +30,8 @@ class EventCardWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: _violet.withValues(alpha: 0.15)),
+          border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 3))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

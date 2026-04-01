@@ -494,12 +494,14 @@ class _NobCard extends StatelessWidget {
           AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
       decoration: BoxDecoration(
         color: AppColors.nobSurface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
           color: post.isPinned
-              ? AppColors.noblaraGold.withValues(alpha: 0.35)
-              : AppColors.nobBorder,
+              ? AppColors.noblaraGold.withValues(alpha: 0.2)
+              : AppColors.borderSubtle,
+          width: 0.5,
         ),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

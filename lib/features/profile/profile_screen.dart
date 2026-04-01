@@ -146,14 +146,16 @@ class _ProfileHeader extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Gradient cover
+        // Cinematic gradient cover
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
+              stops: const [0.0, 0.5, 1.0],
               colors: [
-                activeMode.accentColor.withValues(alpha: 0.22),
+                activeMode.accentColor.withValues(alpha: 0.08),
+                activeMode.accentColor.withValues(alpha: 0.03),
                 AppColors.bg,
               ],
             ),
@@ -167,10 +169,11 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 90,
-                height: 90,
+                width: 96,
+                height: 96,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 4))],
                   border:
                       Border.all(color: activeMode.accentColor, width: 2.5),
                 ),

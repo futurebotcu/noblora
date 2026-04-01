@@ -114,29 +114,43 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
         headerSliverBuilder: (ctx, inner) => [
           SliverAppBar(
             backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent, pinned: true, floating: false,
-            expandedHeight: 100, collapsedHeight: 60,
+            expandedHeight: 120, collapsedHeight: 60,
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
-              background: Padding(
-                padding: EdgeInsets.fromLTRB(AppSpacing.xxl, MediaQuery.of(ctx).padding.top + 8, AppSpacing.xxl, 0),
-                child: Row(children: [
-                  CircleAvatar(radius: 20, backgroundColor: tc.withValues(alpha: 0.2),
-                      child: Text((p.displayName.isNotEmpty ? p.displayName[0] : 'N').toUpperCase(),
-                          style: TextStyle(color: tc, fontWeight: FontWeight.w700))),
-                  const SizedBox(width: AppSpacing.md),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [tc.withValues(alpha: 0.04), AppColors.bg]),
+                ),
+                padding: EdgeInsets.fromLTRB(AppSpacing.xxl, MediaQuery.of(ctx).padding.top + 12, AppSpacing.xxl, 0),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: tc.withValues(alpha: 0.08),
+                      border: Border.all(color: tc.withValues(alpha: 0.2), width: 1.5),
+                    ),
+                    child: Center(child: Text((p.displayName.isNotEmpty ? p.displayName[0] : 'N').toUpperCase(),
+                        style: TextStyle(color: tc, fontWeight: FontWeight.w700, fontSize: 18))),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     Text(p.displayName.isNotEmpty ? p.displayName : 'You',
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-                    Text(_statusLine(p), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+                    const SizedBox(height: 2),
+                    Text(_statusLine(p), style: TextStyle(color: AppColors.textMuted, fontSize: 12, letterSpacing: 0.1)),
                   ])),
-                  TierBadge(tier: p.nobTier, size: 24, showLabel: true),
+                  TierBadge(tier: p.nobTier, size: 28, showLabel: true),
                 ]),
               ),
             ),
             bottom: TabBar(controller: _tabs, isScrollable: true,
-              indicatorColor: tc, labelColor: tc, unselectedLabelColor: AppColors.textMuted,
-              dividerColor: AppColors.border, tabAlignment: TabAlignment.start,
-              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              indicatorColor: tc, indicatorWeight: 2,
+              labelColor: tc, unselectedLabelColor: AppColors.textDisabled,
+              dividerColor: AppColors.borderSubtle, tabAlignment: TabAlignment.start,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+              unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
               tabs: const [Tab(text: 'Overview'), Tab(text: 'Interest'), Tab(text: 'Social'), Tab(text: 'Activity'), Tab(text: 'Market')],
             ),
           ),
@@ -379,16 +393,17 @@ class _MarketTab extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xxxl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 64, height: 64,
+          width: 80, height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.gold.withValues(alpha: 0.08),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+            color: AppColors.gold.withValues(alpha: 0.04),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.1)),
+            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.05), blurRadius: 40)],
           ),
-          child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 28),
+          child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 30),
         ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.6), fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+        const SizedBox(height: AppSpacing.xxxl),
+        Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
         const SizedBox(height: AppSpacing.md),
         Text('Reserved for private tools and access.',
             style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.5), fontSize: 13),
@@ -412,8 +427,12 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.xxl),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: borderColor ?? AppColors.border.withValues(alpha: 0.5))),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      border: Border.all(color: borderColor ?? AppColors.borderSubtle, width: 0.5),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 4))],
+    ),
     child: child);
 }
 

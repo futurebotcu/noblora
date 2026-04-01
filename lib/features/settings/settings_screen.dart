@@ -441,8 +441,12 @@ class _H extends StatelessWidget {
   const _H(this.t);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.xs),
-    child: Text(t.toUpperCase(), style: const TextStyle(color: AppColors.textDisabled, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xxxl, AppSpacing.lg, AppSpacing.sm),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(width: 24, height: 1.5, decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
+      const SizedBox(height: AppSpacing.sm),
+      Text(t.toUpperCase(), style: TextStyle(color: AppColors.textDisabled, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.8)),
+    ]),
   );
 }
 

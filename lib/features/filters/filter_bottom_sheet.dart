@@ -67,8 +67,11 @@ class _State extends ConsumerState<FilterBottomSheet> {
     return DraggableScrollableSheet(
       initialChildSize: 0.85, minChildSize: 0.4, maxChildSize: 0.95,
       builder: (_, scroll) => Container(
-        decoration: BoxDecoration(color: AppColors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl))),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border(top: BorderSide(color: accent.withValues(alpha: 0.08))),
+        ),
         child: Column(children: [
           // Header
           Padding(padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
@@ -274,14 +277,15 @@ class _Chip extends StatelessWidget {
   final String label; final bool active; final VoidCallback onTap; final Color accent;
   const _Chip(this.label, this.active, this.onTap, this.accent);
   @override
-  Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+  Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: AnimatedContainer(
+    duration: const Duration(milliseconds: 180),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
     decoration: BoxDecoration(
-      color: active ? accent.withValues(alpha: 0.12) : AppColors.surfaceAlt,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      border: Border.all(color: active ? accent.withValues(alpha: 0.4) : AppColors.border)),
-    child: Text(label, style: TextStyle(color: active ? accent : AppColors.textSecondary, fontSize: 12,
-        fontWeight: active ? FontWeight.w600 : FontWeight.w400))));
+      color: active ? accent.withValues(alpha: 0.08) : AppColors.elevated,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+      border: Border.all(color: active ? accent.withValues(alpha: 0.3) : AppColors.borderSubtle, width: 0.5)),
+    child: Text(label, style: TextStyle(color: active ? accent : AppColors.textMuted, fontSize: 12,
+        fontWeight: active ? FontWeight.w600 : FontWeight.w400, letterSpacing: 0.1))));
 }
 
 class _Toggle extends StatelessWidget {
