@@ -37,9 +37,7 @@ class EditProfileMainScreen extends ConsumerWidget {
       backgroundColor: context.bgColor,
       body: CustomScrollView(
         slivers: [
-          // ── Collapsing app bar ──
           SliverAppBar(
-            expandedHeight: 0,
             pinned: true,
             backgroundColor: context.bgColor,
             surfaceTintColor: Colors.transparent,
@@ -57,72 +55,70 @@ class EditProfileMainScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ════════════════════════════════════════════════════════
-                  // PHOTO HERO SECTION
-                  // ════════════════════════════════════════════════════════
+                  // ═══ PHOTO HERO ═══
                   _PhotoHero(
                     photoUrls: d.photoUrls,
-                    onTap: () => _push(context, const PhotosMediaSection()),
+                    onEdit: () => _push(context, const PhotosMediaSection()),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
-                  // ════════════════════════════════════════════════════════
-                  // COMPLETION
-                  // ════════════════════════════════════════════════════════
+                  // ═══ HOOK BANNER ═══
+                  if (d.completionScore < 80)
+                    _HookBanner(score: d.completionScore),
+
+                  if (d.completionScore < 80)
+                    const SizedBox(height: 20),
+
+                  // ═══ COMPLETION ═══
                   _CompletionStrip(score: d.completionScore),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 22),
 
-                  // ════════════════════════════════════════════════════════
-                  // SECTION CARDS
-                  // ════════════════════════════════════════════════════════
-
+                  // ═══ SECTION CARDS ═══
                   ProfileSectionCard(
                     icon: Icons.person_outline_rounded,
                     title: 'The Basics',
-                    subtitle: _humanSub(d.basicInfoCount(), 9, 'Tell us a bit about yourself'),
+                    subtitle: _sub(d.basicInfoCount(), 9, 'Tell us a bit about yourself'),
                     progress: d.sectionProgress(d.basicInfoCount(), 9),
                     isEmpty: d.basicInfoCount() == 0,
-                    preview: d.basicInfoPreview(),
+                    previewChips: _chips(d.basicInfoPreview()),
                     onTap: () => _push(context, const BasicInfoSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.auto_awesome_outlined,
                     title: 'In Your Own Words',
-                    subtitle: _humanSub(d.aboutCount(), 4, 'Let your personality shine'),
+                    subtitle: _sub(d.aboutCount(), 4, 'Let your personality shine'),
                     progress: d.sectionProgress(d.aboutCount(), 4),
                     isEmpty: d.aboutCount() == 0,
-                    preview: d.aboutPreview(),
+                    previewChips: d.aboutPreview() != null ? [d.aboutPreview()!] : [],
                     onTap: () => _push(context, const AboutMeSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.favorite_outline_rounded,
                     title: 'What You\'re Looking For',
-                    subtitle: _humanSub(d.relationshipCount(), 6, 'Share your intentions honestly'),
+                    subtitle: _sub(d.relationshipCount(), 6, 'Share your intentions honestly'),
                     progress: d.sectionProgress(d.relationshipCount(), 6),
                     isEmpty: d.relationshipCount() == 0,
-                    preview: d.relationshipPreview(),
+                    previewChips: _chips(d.relationshipPreview()),
                     onTap: () => _push(context, const RelationshipSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.local_fire_department_outlined,
                     title: 'Things You Love',
-                    subtitle: d.interests.isEmpty
-                        ? 'What makes you, you?'
-                        : '${d.interests.length} interests',
+                    subtitle: d.interests.isEmpty ? 'What makes you, you?' : '${d.interests.length} interests',
                     progress: d.interests.isEmpty ? 0 : (d.interests.length / 20).clamp(0.0, 1.0),
                     isEmpty: d.interests.isEmpty,
-                    preview: d.interestsPreview(),
+                    previewChips: d.interests.take(5).toList(),
                     onTap: () => _push(context, const InterestsSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.fingerprint_rounded,
                     title: 'Who You Are',
-                    subtitle: _humanSub(d.identityCount(), 8, 'Values, beliefs, and personality'),
+                    subtitle: _sub(d.identityCount(), 8, 'Values, beliefs, and personality'),
                     progress: d.sectionProgress(d.identityCount(), 8),
                     isEmpty: d.identityCount() == 0,
-                    preview: d.identityPreview(),
+                    previewChips: _chips(d.identityPreview()),
                     onTap: () => _push(context, const IdentityLifeSection()),
                   ),
                   ProfileSectionCard(
@@ -133,16 +129,16 @@ class EditProfileMainScreen extends ConsumerWidget {
                         : '${d.musicGenres.length + d.movieGenres.length} tastes',
                     progress: (d.musicGenres.length + d.movieGenres.length) == 0 ? 0 : 0.5,
                     isEmpty: d.musicGenres.isEmpty && d.movieGenres.isEmpty,
-                    preview: d.culturePreview(),
+                    previewChips: [...d.musicGenres.take(3), ...d.movieGenres.take(2)],
                     onTap: () => _push(context, const CultureSocialSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.coffee_outlined,
                     title: 'Daily Rhythm',
-                    subtitle: _humanSub(d.lifestyleCount, 5, 'How you move through life'),
+                    subtitle: _sub(d.lifestyleCount, 5, 'How you move through life'),
                     progress: d.sectionProgress(d.lifestyleCount, 5),
                     isEmpty: d.lifestyleCount == 0,
-                    preview: d.lifestylePreview(),
+                    previewChips: _chips(d.lifestylePreview()),
                     onTap: () => _push(context, const LifestyleSection()),
                   ),
                   ProfileSectionCard(
@@ -153,27 +149,25 @@ class EditProfileMainScreen extends ConsumerWidget {
                         : '${d.visitedCountries.length} countries explored',
                     progress: d.visitedCountries.isEmpty ? 0 : 0.5,
                     isEmpty: d.visitedCountries.isEmpty,
-                    preview: d.travelPreview(),
+                    previewChips: d.visitedCountries.take(4).toList(),
                     onTap: () => _push(context, const TravelSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.rocket_launch_outlined,
                     title: 'What You\'re Building',
-                    subtitle: _humanSub(d.careerCount(), 4, 'Your work and ambitions'),
+                    subtitle: _sub(d.careerCount(), 4, 'Your work and ambitions'),
                     progress: d.sectionProgress(d.careerCount(), 4),
                     isEmpty: d.careerCount() == 0,
-                    preview: d.careerPreview(),
+                    previewChips: _chips(d.careerPreview()),
                     onTap: () => _push(context, const CareerSection()),
                   ),
                   ProfileSectionCard(
                     icon: Icons.smart_toy_outlined,
                     title: 'Digital World',
-                    subtitle: d.aiTools.isEmpty
-                        ? 'Your tech and digital life'
-                        : '${d.aiTools.length} tools',
+                    subtitle: d.aiTools.isEmpty ? 'Your tech and digital life' : '${d.aiTools.length} tools',
                     progress: d.aiTools.isEmpty ? 0 : 0.5,
                     isEmpty: d.aiTools.isEmpty,
-                    preview: d.digitalPreview(),
+                    previewChips: d.aiTools.take(4).toList(),
                     onTap: () => _push(context, const DigitalLifeSection()),
                   ),
                   ProfileSectionCard(
@@ -184,7 +178,7 @@ class EditProfileMainScreen extends ConsumerWidget {
                         : '${d.prompts.where((p) => p.answer.isNotEmpty).length}/3 answered',
                     progress: d.prompts.where((p) => p.answer.isNotEmpty).length / 3,
                     isEmpty: d.prompts.where((p) => p.answer.isNotEmpty).isEmpty,
-                    preview: d.promptsPreview(),
+                    previewChips: d.promptsPreview() != null ? [d.promptsPreview()!] : [],
                     onTap: () => _push(context, const PromptsSection()),
                   ),
                   ProfileSectionCard(
@@ -206,10 +200,15 @@ class EditProfileMainScreen extends ConsumerWidget {
     );
   }
 
-  String _humanSub(int filled, int total, String emptyMsg) {
+  String _sub(int filled, int total, String emptyMsg) {
     if (filled == 0) return emptyMsg;
-    if (filled >= total) return 'Complete';
-    return '$filled of $total filled';
+    if (filled >= total) return 'All set';
+    return '$filled of $total';
+  }
+
+  List<String> _chips(String? preview) {
+    if (preview == null || preview.isEmpty) return [];
+    return preview.split(' · ');
   }
 
   void _push(BuildContext context, Widget screen) {
@@ -218,164 +217,298 @@ class EditProfileMainScreen extends ConsumerWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Photo Hero Section
+// Photo Hero — animated, tappable, alive
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _PhotoHero extends StatelessWidget {
+class _PhotoHero extends StatefulWidget {
   final List<String> photoUrls;
-  final VoidCallback onTap;
+  final VoidCallback onEdit;
 
-  const _PhotoHero({required this.photoUrls, required this.onTap});
+  const _PhotoHero({required this.photoUrls, required this.onEdit});
+
+  @override
+  State<_PhotoHero> createState() => _PhotoHeroState();
+}
+
+class _PhotoHeroState extends State<_PhotoHero>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _breathe;
+  late Animation<double> _breatheScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _breathe = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true);
+    _breatheScale = Tween<double>(begin: 1.0, end: 1.02).animate(
+      CurvedAnimation(parent: _breathe, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _breathe.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hasPhotos = photoUrls.isNotEmpty;
-    final mainUrl = hasPhotos ? photoUrls.first : null;
-    final extras = hasPhotos ? photoUrls.skip(1).take(3).toList() : <String>[];
+    final hasPhotos = widget.photoUrls.isNotEmpty;
+    final mainUrl = hasPhotos ? widget.photoUrls.first : null;
+    final extras = hasPhotos ? widget.photoUrls.skip(1).take(3).toList() : <String>[];
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          // Main photo — large hero
-          Container(
+    return Column(
+      children: [
+        // Main photo — hero with breathing animation
+        GestureDetector(
+          onTap: mainUrl != null
+              ? () => _showFullScreen(context, mainUrl)
+              : widget.onEdit,
+          child: Container(
             width: double.infinity,
-            height: 280,
+            height: 300,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               color: context.surfaceColor,
-              border: Border.all(
-                color: hasPhotos
-                    ? AppColors.gold.withValues(alpha: 0.15)
-                    : context.borderColor.withValues(alpha: 0.5),
-                width: 0.5,
-              ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               child: mainUrl != null
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(mainUrl, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _emptyPhoto(context)),
-                        // Subtle gradient at bottom
+                        // Photo with subtle breathing scale
+                        AnimatedBuilder(
+                          animation: _breatheScale,
+                          builder: (_, child) => Transform.scale(
+                            scale: _breatheScale.value,
+                            child: child,
+                          ),
+                          child: Image.network(mainUrl, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _emptyHero(context)),
+                        ),
+                        // Cinematic gradient
                         Positioned.fill(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
-                                stops: const [0.6, 1.0],
-                                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.4)],
+                                stops: const [0.0, 0.4, 0.85, 1.0],
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.1),
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.25),
+                                  Colors.black.withValues(alpha: 0.55),
+                                ],
                               ),
                             ),
                           ),
                         ),
+                        // Edit badge
                         Positioned(
                           bottom: 14, right: 14,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(20),
+                          child: GestureDetector(
+                            onTap: widget.onEdit,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.gold.withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 14),
+                                const SizedBox(width: 5),
+                                Text('${widget.photoUrls.length}/6',
+                                  style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
+                              ]),
                             ),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.edit_rounded, color: Colors.white, size: 13),
-                              const SizedBox(width: 4),
-                              Text('${photoUrls.length}/6', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                            ]),
                           ),
+                        ),
+                        // Tap to view hint
+                        Positioned(
+                          bottom: 16, left: 16,
+                          child: Row(children: [
+                            Icon(Icons.zoom_out_map_rounded, color: Colors.white.withValues(alpha: 0.6), size: 14),
+                            const SizedBox(width: 4),
+                            Text('Tap to view', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+                          ]),
                         ),
                       ],
                     )
-                  : _emptyPhoto(context),
+                  : _emptyHero(context),
             ),
           ),
-          // Extra photo previews
-          if (extras.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 72,
-              child: Row(
-                children: [
-                  ...extras.map((url) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(url, fit: BoxFit.cover, height: 72,
-                          errorBuilder: (_, __, ___) => Container(color: context.surfaceColor)),
-                      ),
-                    ),
-                  )),
-                  // Fill remaining slots
-                  for (int i = extras.length; i < 3; i++)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: Container(
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: context.surfaceColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
-                          ),
-                          child: Icon(Icons.add_rounded, color: context.textDisabled, size: 20),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 72,
-              child: Row(
-                children: List.generate(3, (i) => Expanded(
+        ),
+        // Extra photo row
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              for (int i = 0; i < 3; i++)
+                Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Container(
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: context.surfaceColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
-                      ),
-                      child: Icon(Icons.add_photo_alternate_outlined, color: context.textDisabled, size: 20),
+                    padding: EdgeInsets.only(
+                      left: i == 0 ? 0 : 3,
+                      right: i == 2 ? 0 : 3,
+                    ),
+                    child: GestureDetector(
+                      onTap: i < extras.length
+                          ? () => _showFullScreen(context, extras[i])
+                          : widget.onEdit,
+                      child: i < extras.length
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(extras[i], fit: BoxFit.cover, height: 72,
+                                errorBuilder: (_, __, ___) => _emptySlot(context)),
+                            )
+                          : _emptySlot(context),
                     ),
                   ),
-                )),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyHero(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onEdit,
+      child: Container(
+        color: context.surfaceColor,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.gold.withValues(alpha: 0.15),
+                    AppColors.gold.withValues(alpha: 0.05),
+                  ],
+                ),
               ),
+              child: Icon(Icons.camera_alt_outlined, color: AppColors.gold.withValues(alpha: 0.6), size: 30),
             ),
+            const SizedBox(height: 14),
+            const Text('Add your first photo',
+              style: TextStyle(color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Profiles with photos get 10x more attention',
+              style: TextStyle(color: context.textMuted, fontSize: 12)),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _emptyPhoto(BuildContext context) {
+  Widget _emptySlot(BuildContext context) {
     return Container(
-      color: context.surfaceColor,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.gold.withValues(alpha: 0.08),
+      height: 72,
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.borderColor.withValues(alpha: 0.3)),
+      ),
+      child: Center(
+        child: Icon(Icons.add_rounded, color: AppColors.gold.withValues(alpha: 0.35), size: 22),
+      ),
+    );
+  }
+
+  void _showFullScreen(BuildContext context, String url) {
+    Navigator.push(context, PageRouteBuilder(
+      opaque: false,
+      barrierColor: Colors.black87,
+      pageBuilder: (_, __, ___) => _FullScreenPhoto(url: url),
+      transitionsBuilder: (_, a, __, child) =>
+          FadeTransition(opacity: a, child: child),
+    ));
+  }
+}
+
+class _FullScreenPhoto extends StatelessWidget {
+  final String url;
+  const _FullScreenPhoto({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Scaffold(
+        backgroundColor: Colors.black87,
+        body: Center(
+          child: Hero(
+            tag: url,
+            child: InteractiveViewer(
+              child: Image.network(url, fit: BoxFit.contain),
             ),
-            child: Icon(Icons.camera_alt_outlined, color: AppColors.gold.withValues(alpha: 0.5), size: 28),
           ),
-          const SizedBox(height: 12),
-          const Text('Add your first photo',
-            style: TextStyle(color: AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('People with photos get 10x more matches',
-            style: TextStyle(color: context.textMuted, fontSize: 12)),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Hook Banner — motivational, warm
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _HookBanner extends StatelessWidget {
+  final int score;
+  const _HookBanner({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final pointsLeft = 80 - score;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.gold.withValues(alpha: 0.10),
+            AppColors.gold.withValues(alpha: 0.04),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: AppColors.gold.withValues(alpha: 0.7), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                  text: '+$pointsLeft points ',
+                  style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                TextSpan(
+                  text: 'to make your profile stand out',
+                  style: TextStyle(color: context.textMuted, fontSize: 13),
+                ),
+              ]),
+            ),
+          ),
         ],
       ),
     );
@@ -383,7 +516,7 @@ class _PhotoHero extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Completion Strip — compact, warm
+// Completion Strip
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class _CompletionStrip extends StatelessWidget {
@@ -394,20 +527,19 @@ class _CompletionStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Circular progress
         SizedBox(
-          width: 40,
-          height: 40,
+          width: 42,
+          height: 42,
           child: Stack(
             alignment: Alignment.center,
             children: [
               CircularProgressIndicator(
                 value: score / 100,
                 strokeWidth: 3,
-                backgroundColor: context.borderColor.withValues(alpha: 0.3),
+                backgroundColor: context.borderColor.withValues(alpha: 0.2),
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
               ),
-              Text('$score', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w800)),
+              Text('$score', style: const TextStyle(color: AppColors.gold, fontSize: 13, fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -417,14 +549,16 @@ class _CompletionStrip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                score >= 80 ? 'Looking great!'
-                : score >= 50 ? 'Getting there'
-                : 'Just getting started',
+                score >= 80 ? 'You stand out'
+                : score >= 50 ? 'Almost there — make it shine'
+                : 'Let\'s make your profile irresistible',
                 style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
               ),
+              const SizedBox(height: 1),
               Text(
-                score >= 80 ? 'Your profile stands out.'
-                : 'Add more to make your profile shine.',
+                score >= 80 ? 'People notice profiles like yours.'
+                : score >= 50 ? 'A few more details and you\'ll shine.'
+                : 'The best connections start with a great profile.',
                 style: TextStyle(color: context.textMuted, fontSize: 12),
               ),
             ],
