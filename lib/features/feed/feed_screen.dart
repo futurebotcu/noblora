@@ -7,7 +7,6 @@ import '../../core/theme/app_tokens.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
-import '../../providers/status_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/mode_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
@@ -114,26 +113,20 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
       child: Row(
         children: [
-          Text(
+          const Text(
             'N',
             style: TextStyle(
-              fontSize: 26,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: mode.accentColor,
+              color: AppColors.gold,
               fontFamily: 'serif',
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: 12),
           const Expanded(child: ModeSwitcher()),
-          const SizedBox(width: AppSpacing.sm),
           // Filter button with active badge
           Stack(
             clipBehavior: Clip.none,
@@ -395,74 +388,69 @@ class _ActionRowState extends ConsumerState<_ActionRow>
     final topCard = widget.feed.cards.first;
     final mode = widget.mode;
 
-    IconData centerIcon;
-    switch (mode) {
-      case NobleMode.date:
-        centerIcon = Icons.favorite_rounded;
-      case NobleMode.bff:
-        centerIcon = Icons.handshake_rounded;
-      case NobleMode.social:
-        centerIcon = Icons.explore_rounded;
-      case NobleMode.noblara:
-        centerIcon = Icons.article_rounded;
-    }
-
-    final rewindsLeft =
-        ref.watch(statusProvider).valueOrNull?.rewindsRemaining ?? 0;
-    final canRewind =
-        widget.feed.lastRemovedCard != null && rewindsLeft > 0;
-
     return Stack(
       alignment: Alignment.center,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Rewind
-              Tooltip(
-                message: rewindsLeft <= 0 ? 'No rewinds left' : '',
-                child: _CircleButton(
-                  icon: Icons.undo_rounded,
-                  color: AppColors.warning,
-                  size: 46,
-                  onTap: canRewind
-                      ? () => ref.read(feedProvider.notifier).rewind()
-                      : null,
-                ),
-              ),
               // Pass
-              _CircleButton(
-                icon: Icons.close_rounded,
-                color: AppColors.error,
+              GestureDetector(
                 onTap: () =>
                     ref.read(feedProvider.notifier).swipeLeft(topCard.id),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: context.surfaceColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      color: AppColors.error, size: 26),
+                ),
               ),
-              // Like / Connect (GATED)
-              _CircleButton(
-                icon: centerIcon,
-                color: mode.accentColor,
-                size: 64,
+              // Signal / Note (GATED)
+              GestureDetector(
+                onTap: () {
+                  if (_checkGate(context, mode.name)) {
+                    if (mode == NobleMode.date) {
+                      _showNoteDialog(context, topCard.id);
+                    } else {
+                      ref.read(feedProvider.notifier).sendSignal(topCard.id);
+                    }
+                  }
+                },
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: context.surfaceColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: const Icon(Icons.bolt_rounded,
+                      color: AppColors.gold, size: 22),
+                ),
+              ),
+              // Connect / Like (GATED)
+              GestureDetector(
                 onTap: mode == NobleMode.bff
                     ? () { if (_checkGate(context, 'bff')) _onConnect(topCard.id); }
                     : () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
-              ),
-              // Signal (GATED)
-              _CircleButton(
-                icon: Icons.bolt_rounded,
-                color: const Color(0xFF42A5F5),
-                size: 46,
-                onTap: () { if (_checkGate(context, mode.name)) ref.read(feedProvider.notifier).sendSignal(topCard.id); },
-              ),
-              // Note
-              if (mode == NobleMode.date)
-                _CircleButton(
-                  icon: Icons.mail_outline_rounded,
-                  color: AppColors.gold,
-                  size: 46,
-                  onTap: () { if (_checkGate(context, 'date')) _showNoteDialog(context, topCard.id); },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.gold,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.favorite_rounded,
+                      color: context.bgColor, size: 26),
                 ),
+              ),
             ],
           ),
         ),
@@ -485,55 +473,6 @@ class _ActionRowState extends ConsumerState<_ActionRow>
             ),
           ),
       ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared circle button
-// ---------------------------------------------------------------------------
-
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final double size;
-  final VoidCallback? onTap;
-
-  const _CircleButton({
-    required this.icon,
-    required this.color,
-    this.size = 52,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final disabled = onTap == null;
-    return GestureDetector(
-      onTap: disabled ? null : onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: disabled ? context.surfaceColor : context.elevatedColor,
-          shape: BoxShape.circle,
-          border: Border.all(
-              color: disabled ? context.borderSubtleColor : color.withValues(alpha: 0.35), width: 1.5),
-          boxShadow: disabled
-              ? null
-              : [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    spreadRadius: 0,
-                  ),
-                ],
-        ),
-        child: Icon(icon,
-            color: disabled ? context.textDisabled : color,
-            size: size * 0.42),
-      ),
     );
   }
 }

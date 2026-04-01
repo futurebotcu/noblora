@@ -66,41 +66,42 @@ class NoblaraFeedScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Text(
-                                  'Community',
-                                  style: TextStyle(
-                                    color: context.textPrimary,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.5,
-                                    height: 1.1,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                _TierBadge(tier: tier),
-                              ],
+                            Text(
+                              'Community',
+                              style: TextStyle(
+                                color: context.textPrimary,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                                height: 1.1,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          _HeaderIcon(
-                            icon: Icons.mail_outline_rounded,
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const NoteInboxScreen())),
-                          ),
-                          if (canCompose)
-                            _HeaderIcon(
-                              icon: Icons.drafts_outlined,
-                              onTap: () => Navigator.push(context,
-                                  MaterialPageRoute(builder: (_) => const NobDraftsScreen())),
-                            ),
-                          _HeaderIcon(
-                            icon: Icons.refresh_rounded,
-                            onTap: () => ref.read(postsProvider.notifier).refresh(),
+                          _TierBadge(tier: tier),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _HeaderIcon(
+                                icon: Icons.mail_outline_rounded,
+                                onTap: () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => const NoteInboxScreen())),
+                              ),
+                              if (canCompose)
+                                _HeaderIcon(
+                                  icon: Icons.drafts_outlined,
+                                  onTap: () => Navigator.push(context,
+                                      MaterialPageRoute(builder: (_) => const NobDraftsScreen())),
+                                ),
+                              _HeaderIcon(
+                                icon: Icons.refresh_rounded,
+                                onTap: () => ref.read(postsProvider.notifier).refresh(),
+                              ),
+                            ],
                           ),
                         ],
                       ),

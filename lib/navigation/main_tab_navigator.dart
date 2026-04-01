@@ -29,11 +29,11 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   final Set<int> _visitedTabs = {0};
 
   static const _baseTabs = [
-    _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore),
-    _TabItem(label: 'Noblara', icon: Icons.article_outlined, activeIcon: Icons.article),
-    _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble),
-    _TabItem(label: 'Status', icon: Icons.bar_chart_rounded, activeIcon: Icons.bar_chart),
-    _TabItem(label: 'Profile', icon: Icons.person_outline, activeIcon: Icons.person),
+    _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_outlined),
+    _TabItem(label: 'Noblara', icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome_outlined),
+    _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_outline_rounded),
+    _TabItem(label: 'Status', icon: Icons.bar_chart_rounded, activeIcon: Icons.bar_chart_rounded),
+    _TabItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_outline_rounded),
   ];
 
   static const _adminTab = _TabItem(
@@ -197,35 +197,44 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           );
         }).toList(),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: safeIndex,
-        onTap: (i) => setState(() {
-          _currentIndex = i;
-          _visitedTabs.add(i);
-        }),
-        items: tabs.asMap().entries.map((entry) {
-          final i = entry.key;
-          final t = entry.value;
-          // Show badge only on "Chats" tab (index 2)
-          final showBadge = i == 2 && unreadCount > 0;
-          return BottomNavigationBarItem(
-            icon: showBadge
-                ? Badge(
-                    label: Text('$unreadCount'),
-                    backgroundColor: AppColors.error,
-                    child: Icon(t.icon),
-                  )
-                : Icon(t.icon),
-            activeIcon: showBadge
-                ? Badge(
-                    label: Text('$unreadCount'),
-                    backgroundColor: AppColors.error,
-                    child: Icon(t.activeIcon),
-                  )
-                : Icon(t.activeIcon),
-            label: t.label,
-          );
-        }).toList(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          border: Border(
+            top: BorderSide(color: context.borderColor, width: 0.5),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: safeIndex,
+          elevation: 0,
+          onTap: (i) => setState(() {
+            _currentIndex = i;
+            _visitedTabs.add(i);
+          }),
+          items: tabs.asMap().entries.map((entry) {
+            final i = entry.key;
+            final t = entry.value;
+            // Show badge only on "Chats" tab (index 2)
+            final showBadge = i == 2 && unreadCount > 0;
+            return BottomNavigationBarItem(
+              icon: showBadge
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      backgroundColor: AppColors.error,
+                      child: Icon(t.icon),
+                    )
+                  : Icon(t.icon),
+              activeIcon: showBadge
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      backgroundColor: AppColors.error,
+                      child: Icon(t.activeIcon),
+                    )
+                  : Icon(t.activeIcon),
+              label: t.label,
+            );
+          }).toList(),
+        ),
       ),
     );
   }

@@ -499,8 +499,25 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           _ChatInputBar(
             controller: _msgCtrl,
             accentColor: accent,
-            hint: isClosed ? 'Bu sohbet sona erdi' : (_isBff ? 'Connect...' : 'Say something...'),
+            hint: isClosed ? 'Bu sohbet sona erdi' : 'Speak your mind...',
             onSend: isClosed ? null : _send,
+          ),
+          // Encrypted connection footer
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 4, top: 4),
+            color: context.elevatedColor,
+            child: Center(
+              child: Text(
+                'ENCRYPTED CONNECTION',
+                style: TextStyle(
+                  color: context.textDisabled,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -670,14 +687,8 @@ class _MsgBubble extends StatelessWidget {
                   horizontal: AppSpacing.lg, vertical: AppSpacing.md),
               decoration: BoxDecoration(
                 color: msg.isSelf
-                    ? accentColor.withValues(alpha: 0.15)
-                    : context.elevatedColor,
-                border: Border.all(
-                  color: msg.isSelf
-                      ? accentColor.withValues(alpha: 0.2)
-                      : context.borderSubtleColor,
-                  width: 0.5,
-                ),
+                    ? AppColors.gold
+                    : context.surfaceColor,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(AppSpacing.radiusLg),
                   topRight: const Radius.circular(AppSpacing.radiusLg),
@@ -806,14 +817,14 @@ class _ChatInputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         AppSpacing.md,
         AppSpacing.sm,
-        MediaQuery.of(context).padding.bottom + AppSpacing.md,
+        AppSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
+        color: context.elevatedColor,
         border: Border(top: BorderSide(color: context.borderSubtleColor, width: 0.5)),
       ),
       child: Row(

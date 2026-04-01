@@ -442,12 +442,8 @@ class _H extends StatelessWidget {
   const _H(this.t);
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xxxl, AppSpacing.lg, AppSpacing.sm),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(width: 24, height: 1.5, decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
-      const SizedBox(height: AppSpacing.sm),
-      Text(t.toUpperCase(), style: TextStyle(color: context.textDisabled, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.8)),
-    ]),
+    padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
+    child: Text(t.toUpperCase(), style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 3.0)),
   );
 }
 
@@ -457,10 +453,10 @@ class _Tile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? context.textPrimary;
-    return ListTile(tileColor: Colors.transparent, leading: Icon(icon, color: c, size: 20),
+    return ListTile(tileColor: Colors.transparent, leading: Icon(icon, color: context.textMuted, size: 20),
       title: Text(title, style: TextStyle(color: c, fontSize: 14)),
       subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 12)) : null,
-      trailing: onTap != null ? Icon(Icons.chevron_right_rounded, color: context.textDisabled, size: 18) : null,
+      trailing: Icon(Icons.chevron_right_rounded, color: context.textMuted, size: 20),
       onTap: onTap);
   }
 }
@@ -470,10 +466,10 @@ class _T extends StatelessWidget {
   const _T(this.icon, this.title, this.value, this.onChanged, {this.sub});
   @override
   Widget build(BuildContext context) => ListTile(tileColor: Colors.transparent,
-    leading: Icon(icon, color: context.textPrimary, size: 20),
+    leading: Icon(icon, color: context.textMuted, size: 20),
     title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
     subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 11)) : null,
-    trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.gold.withValues(alpha: 0.4)));
+    trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.gold.withValues(alpha: 0.5)));
 }
 
 class _PermSelector extends StatelessWidget {
