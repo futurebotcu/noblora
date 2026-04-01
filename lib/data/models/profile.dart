@@ -27,6 +27,22 @@ class Profile {
   final String? socialBio;
   final String? socialAvatarUrl;
   final String? bio;
+  final int? age;
+  final String? city;
+  final String? occupation;
+  final int? height;
+  final String? philosophy;
+  final String? drinks;
+  final String? smokes;
+  final String? faithSensitivity;
+  final List<String> languages;
+  final String? fromCountry;
+  final List<String> countriesVisited;
+  final List<String> interests;
+  final String? vibe;
+  final String? lookingFor;
+  final String? zodiac;
+  final List<String> photoUrls;
 
   const Profile({
     required this.id,
@@ -51,6 +67,22 @@ class Profile {
     this.socialBio,
     this.socialAvatarUrl,
     this.bio,
+    this.age,
+    this.city,
+    this.occupation,
+    this.height,
+    this.philosophy,
+    this.drinks,
+    this.smokes,
+    this.faithSensitivity,
+    this.languages = const [],
+    this.fromCountry,
+    this.countriesVisited = const [],
+    this.interests = const [],
+    this.vibe,
+    this.lookingFor,
+    this.zodiac,
+    this.photoUrls = const [],
   });
 
   String get fullName => displayName;
@@ -103,6 +135,22 @@ class Profile {
       socialBio: json['social_bio'] as String?,
       socialAvatarUrl: json['social_avatar_url'] as String?,
       bio: json['bio'] as String?,
+      age: json['age'] as int?,
+      city: json['city'] as String?,
+      occupation: json['occupation'] as String?,
+      height: json['height'] as int?,
+      philosophy: json['philosophy'] as String?,
+      drinks: json['drinks'] as String?,
+      smokes: json['smokes'] as String?,
+      faithSensitivity: json['faith_sensitivity'] as String?,
+      languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? const [],
+      fromCountry: json['from_country'] as String?,
+      countriesVisited: (json['countries_visited'] as List<dynamic>?)?.cast<String>() ?? const [],
+      interests: (json['interests'] as List<dynamic>?)?.cast<String>() ?? const [],
+      vibe: json['vibe'] as String?,
+      lookingFor: json['looking_for'] as String?,
+      zodiac: json['zodiac'] as String?,
+      photoUrls: (json['photo_urls'] as List<dynamic>?)?.cast<String>() ?? const [],
     );
   }
 
@@ -136,6 +184,22 @@ class Profile {
     String? socialBio,
     String? socialAvatarUrl,
     String? bio,
+    int? age,
+    String? city,
+    String? occupation,
+    int? height,
+    String? philosophy,
+    String? drinks,
+    String? smokes,
+    String? faithSensitivity,
+    List<String>? languages,
+    String? fromCountry,
+    List<String>? countriesVisited,
+    List<String>? interests,
+    String? vibe,
+    String? lookingFor,
+    String? zodiac,
+    List<String>? photoUrls,
   }) {
     return Profile(
       id: id,
@@ -159,6 +223,22 @@ class Profile {
       socialBio: socialBio ?? this.socialBio,
       socialAvatarUrl: socialAvatarUrl ?? this.socialAvatarUrl,
       bio: bio ?? this.bio,
+      age: age ?? this.age,
+      city: city ?? this.city,
+      occupation: occupation ?? this.occupation,
+      height: height ?? this.height,
+      philosophy: philosophy ?? this.philosophy,
+      drinks: drinks ?? this.drinks,
+      smokes: smokes ?? this.smokes,
+      faithSensitivity: faithSensitivity ?? this.faithSensitivity,
+      languages: languages ?? this.languages,
+      fromCountry: fromCountry ?? this.fromCountry,
+      countriesVisited: countriesVisited ?? this.countriesVisited,
+      interests: interests ?? this.interests,
+      vibe: vibe ?? this.vibe,
+      lookingFor: lookingFor ?? this.lookingFor,
+      zodiac: zodiac ?? this.zodiac,
+      photoUrls: photoUrls ?? this.photoUrls,
     );
   }
 }

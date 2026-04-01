@@ -15,6 +15,7 @@ import '../../providers/posts_provider.dart';
 import '../noblara_feed/nob_drafts_screen.dart';
 import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
+import 'edit_profile_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Profile Screen
@@ -74,6 +75,25 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: AppSpacing.xxl),
+                // Edit Profile button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit Profile'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gold,
+                      side: const BorderSide(color: AppColors.gold, width: 0.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      minimumSize: const Size.fromHeight(44),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xxl),
                 const _ActiveModesSection(),
                 const SizedBox(height: AppSpacing.xxxl),
