@@ -15,6 +15,7 @@ import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
 import '../bff/bff_screen.dart';
+import '../noblara_feed/noblara_feed_screen.dart';
 import '../social/social_events_screen.dart';
 import 'swipe_card_widget.dart';
 
@@ -245,12 +246,6 @@ class _EmptyDeck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (String title, String sub) = switch (mode) {
-      NobleMode.date => ('All caught up', 'New profiles will appear as people join.'),
-      NobleMode.bff => ('Quiet for now', 'Check back soon or expand your filters.'),
-      NobleMode.social => ('Nothing here yet', 'Events will appear as people create them.'),
-      NobleMode.noblara => ('Nothing to show', 'Check back later.'),
-    };
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxxl),
@@ -258,19 +253,35 @@ class _EmptyDeck extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72, height: 72,
+              width: 80, height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: mode.accentColor.withValues(alpha: 0.04),
-                border: Border.all(color: mode.accentColor.withValues(alpha: 0.1)),
+                color: AppColors.gold.withValues(alpha: 0.04),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.25), width: 0.5),
               ),
-              child: Icon(mode.icon, color: mode.accentColor.withValues(alpha: 0.4), size: 28),
+              child: Icon(Icons.favorite_outline_rounded, color: AppColors.gold.withValues(alpha: 0.4), size: 30),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text(title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+            Text('All caught up', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: AppSpacing.sm),
-            Text(sub, textAlign: TextAlign.center,
+            Text('Check back soon — new people join every day', textAlign: TextAlign.center,
                 style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
+            const SizedBox(height: AppSpacing.xxl),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.auto_awesome_outlined, size: 16),
+              label: const Text('Explore Nob Feed'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.gold,
+                side: const BorderSide(color: AppColors.gold, width: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusCircle)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const NoblaraFeedScreen(),
+                ));
+              },
+            ),
           ],
         ),
       ),

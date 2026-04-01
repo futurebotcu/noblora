@@ -233,12 +233,20 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
-            const SizedBox(height: AppSpacing.lg),
-            Text('No profiles to discover', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _teal.withValues(alpha: 0.04),
+                border: Border.all(color: _teal.withValues(alpha: 0.25), width: 0.5),
+              ),
+              child: Icon(Icons.explore_outlined, color: _teal.withValues(alpha: 0.4), size: 30),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text('Discover people', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
-            Text('Try adjusting your filters or check back later.',
-                style: TextStyle(color: context.textMuted, fontSize: 13), textAlign: TextAlign.center),
+            Text('Browse and connect with like-minded people nearby.',
+                style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5), textAlign: TextAlign.center),
           ],
         ),
       );
@@ -478,11 +486,19 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.people_outline_rounded, color: _teal.withValues(alpha: 0.3), size: 72),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _teal.withValues(alpha: 0.04),
+                border: Border.all(color: _teal.withValues(alpha: 0.25), width: 0.5),
+              ),
+              child: Icon(Icons.people_outlined, color: _teal.withValues(alpha: 0.4), size: 30),
+            ),
             const SizedBox(height: AppSpacing.xxl),
             Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
-            Text('Our AI is finding people you might get along with.\nCheck back soon!',
+            Text('AI is finding your best matches. Check back soon.',
                 textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
           ],
         ),

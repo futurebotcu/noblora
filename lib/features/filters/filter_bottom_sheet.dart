@@ -83,7 +83,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                 const SizedBox(width: AppSpacing.sm),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(mode == NobleMode.date ? 'Dating' : 'BFF', style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600))),
+                    child: Text(mode == NobleMode.date ? 'Dating' : mode == NobleMode.bff ? 'BFF' : 'Social', style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600))),
                 const Spacer(),
                 if (count > 0) TextButton(onPressed: _reset, child: Text('Reset ($count)', style: TextStyle(color: accent))),
               ]),

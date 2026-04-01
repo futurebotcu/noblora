@@ -61,7 +61,7 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     if (_bootstrappedUserId == userId) return;
 
     _bootstrapping = true;
-    debugPrint('[Router] bootstrap start — user $userId');
+    // bootstrap start
 
     // Load all three data sources in parallel before making any route decision.
     await Future.wait([
@@ -85,7 +85,7 @@ class _AppRouterState extends ConsumerState<AppRouter> {
 
     if (looksLikeAuthError &&
         ref.read(profileProvider).profile == null) {
-      debugPrint('[Router] zombie session detected — signing out');
+      // zombie session — sign out
       _bootstrapping = false;
       await ref.read(authProvider.notifier).signOut();
       return;
@@ -96,7 +96,6 @@ class _AppRouterState extends ConsumerState<AppRouter> {
       _bootstrapping = false;
     });
 
-    _logRoute();
   }
 
   static bool _isAuthError(String msg) {
@@ -109,24 +108,6 @@ class _AppRouterState extends ConsumerState<AppRouter> {
         m.contains('invalid token');
   }
 
-  void _logRoute() {
-    final auth = ref.read(authProvider);
-    final profile = ref.read(profileProvider);
-    final verif = ref.read(verificationProvider);
-    final gating = ref.read(gatingProvider);
-    debugPrint(
-      '[Router] — '
-      'userId=${auth.userId} '
-      'profileFound=${profile.profile != null} '
-      'displayName="${profile.profile?.displayName}" '
-      'hasProfile=${profile.hasProfile} '
-      'gender="${profile.profile?.gender}" '
-      'hasGender=${profile.hasGender} '
-      'verifStatus=${verif.verificationStatus.name} '
-      'isEntryApproved=${gating.isEntryApproved}',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     // ── User-change listener ─────────────────────────────────────────────────
@@ -134,7 +115,7 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     // changes (sign-out, sign-in as a different account, session expiry).
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (prev?.userId == next.userId) return;
-      debugPrint('[Router] user changed ${prev?.userId} → ${next.userId}');
+      // user changed
       setState(() {
         _bootstrappedUserId = null;
         _bootstrapping = false;

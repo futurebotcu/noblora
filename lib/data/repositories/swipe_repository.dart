@@ -78,9 +78,7 @@ class SwipeRepository {
           .eq('swiper_id', userId)
           .eq('mode', mode);
       return {for (final row in data) row['swiped_id'] as String};
-    } catch (e) {
-      // ignore: avoid_print
-      print('[SwipeRepo] fetchSwipedIds failed (schema mismatch?): $e');
+    } catch (_) {
       return {};
     }
   }
