@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
@@ -44,9 +44,9 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090610),
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF090610),
+        backgroundColor: context.bgColor,
         surfaceTintColor: Colors.transparent,
         titleSpacing: AppSpacing.lg,
         title: const ModeSwitcher(),
@@ -87,9 +87,9 @@ class _PillTabBar extends StatelessWidget {
           height: 36,
           margin: const EdgeInsets.only(bottom: AppSpacing.sm),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-            border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+            border: Border.all(color: context.borderSubtleColor, width: 0.5),
           ),
           child: Row(
             children: [
@@ -139,7 +139,7 @@ class _PillTab extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? Colors.white : AppColors.textMuted,
+              color: isActive ? Colors.white : context.textMuted,
               fontSize: 13,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -211,7 +211,7 @@ class _EventsTab extends StatelessWidget {
                                   : result),
                               backgroundColor: result == 'joined'
                                   ? _violet
-                                  : AppColors.surface,
+                                  : context.surfaceColor,
                             ),
                           );
                         },
@@ -281,14 +281,14 @@ class _EmptyEvents extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(color: AppColors.textPrimary),
+                  ?.copyWith(color: context.textPrimary),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'Be the first to create one!\nTap + to get started.',
               textAlign: TextAlign.center,
               style:
-                  TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5),
+                  TextStyle(color: context.textMuted, fontSize: 13, height: 1.5),
             ),
           ],
         ),
@@ -310,7 +310,7 @@ class _SocialFilterButton extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.tune_rounded),
-          color: count > 0 ? _violet : AppColors.textMuted,
+          color: count > 0 ? _violet : context.textMuted,
           onPressed: () => FilterBottomSheet.show(context),
         ),
         if (count > 0)
@@ -325,8 +325,8 @@ class _SocialFilterButton extends StatelessWidget {
               child: Center(
                 child: Text(
                   '$count',
-                  style: const TextStyle(
-                    color: AppColors.bg,
+                  style: TextStyle(
+                    color: context.bgColor,
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                   ),

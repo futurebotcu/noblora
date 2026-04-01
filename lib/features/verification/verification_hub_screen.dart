@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/gating_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -23,15 +24,15 @@ class VerificationHubScreen extends ConsumerWidget {
         status == VerificationStatus.error;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         elevation: 0,
         actions: [
           TextButton.icon(
-            icon: const Icon(Icons.logout, size: 16, color: AppColors.textMuted),
-            label: const Text('Sign Out',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            icon: Icon(Icons.logout, size: 16, color: context.textMuted),
+            label: Text('Sign Out',
+                style: TextStyle(color: context.textMuted, fontSize: 12)),
             onPressed: () => ref.read(authProvider.notifier).signOut(),
           ),
         ],
@@ -54,7 +55,7 @@ class VerificationHubScreen extends ConsumerWidget {
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
-                    ?.copyWith(color: AppColors.textMuted),
+                    ?.copyWith(color: context.textMuted),
               ),
               const SizedBox(height: AppSpacing.lg),
 
@@ -109,7 +110,7 @@ class VerificationHubScreen extends ConsumerWidget {
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.gold,
-                      foregroundColor: AppColors.bg,
+                      foregroundColor: context.bgColor,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius:
@@ -128,14 +129,14 @@ class VerificationHubScreen extends ConsumerWidget {
 
               // ── Loading indicator (standalone, shown above banner) ─────────
               if (status == VerificationStatus.loading) ...[
-                const Center(
+                Center(
                   child: Column(
                     children: [
-                      CircularProgressIndicator(color: AppColors.gold),
-                      SizedBox(height: AppSpacing.md),
+                      const CircularProgressIndicator(color: AppColors.gold),
+                      const SizedBox(height: AppSpacing.md),
                       Text('Analysing photos…',
                           style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 13)),
+                              color: context.textMuted, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -177,7 +178,7 @@ class VerificationHubScreen extends ConsumerWidget {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.gold,
-                      foregroundColor: AppColors.bg,
+                      foregroundColor: context.bgColor,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius:
@@ -265,7 +266,7 @@ class _VerifStep extends StatelessWidget {
       iconColor = AppColors.gold;
       displayIcon = Icons.check_rounded;
     } else {
-      borderColor = AppColors.border;
+      borderColor = context.borderColor;
       iconBg = AppColors.gold.withValues(alpha: 0.1);
       iconColor = AppColors.gold;
       displayIcon = icon;
@@ -276,7 +277,7 @@ class _VerifStep extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: borderColor),
         ),
@@ -298,11 +299,11 @@ class _VerifStep extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: isCompleted
                               ? AppColors.success
-                              : AppColors.textPrimary)),
+                              : context.textPrimary)),
                   const SizedBox(height: 2),
                   Text(subtitle,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 13)),
+                      style: TextStyle(
+                          color: context.textMuted, fontSize: 13)),
                 ],
               ),
             ),
@@ -317,7 +318,7 @@ class _VerifStep extends StatelessWidget {
                 isStaged
                     ? Icons.refresh_rounded
                     : Icons.chevron_right_rounded,
-                color: AppColors.textMuted,
+                color: context.textMuted,
               ),
           ],
         ),
@@ -397,8 +398,8 @@ class _StatusBanner extends StatelessWidget {
                     if (body != null) ...[
                       const SizedBox(height: 2),
                       Text(body,
-                          style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 12)),
+                          style: TextStyle(
+                              color: context.textMuted, fontSize: 12)),
                     ],
                   ],
                 ),
@@ -461,8 +462,8 @@ class _GenderReminderBanner extends StatelessWidget {
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 13),
+                style: TextStyle(
+                    color: context.textMuted, fontSize: 13),
                 children: [
                   const TextSpan(text: 'You declared as '),
                   TextSpan(

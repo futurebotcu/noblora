@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../shared/widgets/app_button.dart';
@@ -56,15 +57,15 @@ class _GenderSelectionScreenState
     final profile = ref.watch(profileProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         elevation: 0,
         actions: [
           TextButton.icon(
-            icon: const Icon(Icons.logout, size: 16, color: AppColors.textMuted),
-            label: const Text('Sign Out',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            icon: Icon(Icons.logout, size: 16, color: context.textMuted),
+            label: Text('Sign Out',
+                style: TextStyle(color: context.textMuted, fontSize: 12)),
             onPressed: () => ref.read(authProvider.notifier).signOut(),
           ),
         ],
@@ -87,7 +88,7 @@ class _GenderSelectionScreenState
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
-                    ?.copyWith(color: AppColors.textMuted),
+                    ?.copyWith(color: context.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxxxl),
@@ -164,10 +165,10 @@ class _GenderTile extends StatelessWidget {
           vertical: AppSpacing.lg,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.borderGold : AppColors.surface,
+          color: isSelected ? AppColors.borderGold : context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(
-            color: isSelected ? AppColors.gold : AppColors.border,
+            color: isSelected ? AppColors.gold : context.borderColor,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -179,7 +180,7 @@ class _GenderTile extends StatelessWidget {
             Text(
               option.label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isSelected ? AppColors.gold : AppColors.textPrimary,
+                    color: isSelected ? AppColors.gold : context.textPrimary,
                   ),
             ),
             if (isSelected) ...[

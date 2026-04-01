@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/posts_provider.dart';
@@ -185,7 +186,7 @@ class _CardBody extends StatelessWidget {
       height: cardH,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+        border: Border.all(color: context.borderSubtleColor, width: 0.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.5),
@@ -204,15 +205,15 @@ class _CardBody extends StatelessWidget {
               imageUrl: card.photoUrl,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
-                color: AppColors.surface,
+                color: context.surfaceColor,
                 child: Center(child: CircularProgressIndicator(color: mode.accentColor, strokeWidth: 1.5)),
               ),
               errorWidget: (_, __, ___) => Container(
-                color: AppColors.surface,
+                color: context.surfaceColor,
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.person_rounded, color: AppColors.textDisabled, size: 48),
+                  Icon(Icons.person_rounded, color: context.textDisabled, size: 48),
                   const SizedBox(height: 8),
-                  Text('No photo', style: TextStyle(color: AppColors.textDisabled, fontSize: 12)),
+                  Text('No photo', style: TextStyle(color: context.textDisabled, fontSize: 12)),
                 ]),
               ),
             ),
@@ -251,13 +252,13 @@ class _CardBody extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.verified_rounded,
-                          color: AppColors.bg, size: 12),
+                      Icon(Icons.verified_rounded,
+                          color: context.bgColor, size: 12),
                       const SizedBox(width: 3),
                       Text(
                         'Verified',
                         style: TextStyle(
-                          color: AppColors.bg,
+                          color: context.bgColor,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
@@ -412,7 +413,7 @@ class _CardInfo extends ConsumerWidget {
 void _showNobDetail(BuildContext context, Post nob) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.surfaceColor,
     builder: (_) => Padding(
       padding: const EdgeInsets.all(AppSpacing.xxl),
       child: Column(
@@ -421,7 +422,7 @@ void _showNobDetail(BuildContext context, Post nob) {
         children: [
           Center(
             child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
+                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999))),
           ),
           const SizedBox(height: AppSpacing.xxl),
           Row(
@@ -437,7 +438,7 @@ void _showNobDetail(BuildContext context, Post nob) {
               ),
               const Spacer(),
               Text(nob.authorName ?? '',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  style: TextStyle(color: context.textMuted, fontSize: 12)),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -450,7 +451,7 @@ void _showNobDetail(BuildContext context, Post nob) {
           ],
           Text(
             nob.content.isNotEmpty ? nob.content : (nob.caption ?? ''),
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, height: 1.5),
+            style: TextStyle(color: context.textPrimary, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: AppSpacing.xxl),
         ],
@@ -508,7 +509,7 @@ class _BffCardBody extends StatelessWidget {
       width: size.width - AppSpacing.xxxl * 2,
       height: cardH,
       decoration: BoxDecoration(
-        color: const Color(0xFF060E0E),
+        color: context.bgColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
         boxShadow: [
           BoxShadow(
@@ -538,9 +539,9 @@ class _BffCardBody extends StatelessWidget {
                     imageUrl: card.photoUrl,
                     fit: BoxFit.cover,
                     placeholder: (_, __) =>
-                        Container(color: const Color(0xFF060E0E)),
+                        Container(color: context.bgColor),
                     errorWidget: (_, __, ___) =>
-                        Container(color: const Color(0xFF060E0E)),
+                        Container(color: context.bgColor),
                   ),
                   // Gradient fading into dark panel below
                   Positioned.fill(
@@ -553,7 +554,7 @@ class _BffCardBody extends StatelessWidget {
                           colors: [
                             Colors.transparent,
                             Colors.transparent,
-                            const Color(0xFF060E0E),
+                            context.bgColor,
                           ],
                         ),
                       ),
@@ -573,16 +574,16 @@ class _BffCardBody extends StatelessWidget {
                           borderRadius:
                               BorderRadius.circular(AppSpacing.radiusCircle),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.verified_rounded,
-                                color: AppColors.bg, size: 12),
-                            SizedBox(width: 3),
+                                color: context.bgColor, size: 12),
+                            const SizedBox(width: 3),
                             Text(
                               'Verified',
                               style: TextStyle(
-                                color: AppColors.bg,
+                                color: context.bgColor,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -597,7 +598,7 @@ class _BffCardBody extends StatelessWidget {
             // Networking Profile panel (42%)
             Expanded(
               child: Container(
-                color: const Color(0xFF081010),
+                color: context.surfaceColor,
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.lg),
                 child: _NetworkingPanel(card: card),

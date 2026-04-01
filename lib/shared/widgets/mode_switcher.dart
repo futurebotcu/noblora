@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/mode_provider.dart';
 
 class ModeSwitcher extends ConsumerWidget {
@@ -16,9 +16,9 @@ class ModeSwitcher extends ConsumerWidget {
       height: 38,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-        border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+        border: Border.all(color: context.borderSubtleColor, width: 0.5),
       ),
       child: Row(
         children: const [NobleMode.date, NobleMode.bff, NobleMode.social]
@@ -56,7 +56,7 @@ class _ModeTab extends ConsumerWidget {
             Icon(
               mode.icon,
               size: 14,
-              color: isSelected ? AppColors.bg : AppColors.textMuted,
+              color: isSelected ? context.bgColor : context.textMuted,
             ),
             const SizedBox(width: 4),
             AnimatedDefaultTextStyle(
@@ -65,7 +65,7 @@ class _ModeTab extends ConsumerWidget {
                 fontSize: 12,
                 fontWeight:
                     isSelected ? FontWeight.w700 : FontWeight.w400,
-                color: isSelected ? AppColors.bg : AppColors.textMuted,
+                color: isSelected ? context.bgColor : context.textMuted,
               ),
               child: Text(mode.shortLabel),
             ),
@@ -94,8 +94,8 @@ class ModeSelectionDialog extends ConsumerWidget {
     final current = ref.watch(modeProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSpacing.radiusXl),
         ),
@@ -113,7 +113,7 @@ class ModeSelectionDialog extends ConsumerWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: context.borderColor,
               borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
             ),
           ),
@@ -128,7 +128,7 @@ class ModeSelectionDialog extends ConsumerWidget {
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
-                ?.copyWith(color: AppColors.textMuted),
+                ?.copyWith(color: context.textMuted),
           ),
           const SizedBox(height: AppSpacing.xxxl),
           ...[NobleMode.social, NobleMode.bff, NobleMode.date]
@@ -161,10 +161,10 @@ class _ModeCard extends ConsumerWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.xxl),
         decoration: BoxDecoration(
-          color: isSelected ? mode.accentLight : AppColors.surfaceAlt,
+          color: isSelected ? mode.accentLight : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(
-            color: isSelected ? mode.accentColor : AppColors.border,
+            color: isSelected ? mode.accentColor : context.borderColor,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -189,7 +189,7 @@ class _ModeCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: isSelected
                               ? mode.accentColor
-                              : AppColors.textPrimary,
+                              : context.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -199,7 +199,7 @@ class _ModeCard extends ConsumerWidget {
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
-                        ?.copyWith(color: AppColors.textMuted),
+                        ?.copyWith(color: context.textMuted),
                   ),
                 ],
               ),

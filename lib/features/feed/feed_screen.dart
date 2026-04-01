@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
@@ -75,7 +76,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
 
     return Scaffold(
-      backgroundColor: mode.bgTint,
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -139,7 +140,7 @@ class _Header extends ConsumerWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.tune_rounded),
-                color: filterCount > 0 ? mode.accentColor : AppColors.textMuted,
+                color: filterCount > 0 ? mode.accentColor : context.textMuted,
                 onPressed: () => FilterBottomSheet.show(context),
                 style: IconButton.styleFrom(
                   backgroundColor:
@@ -160,8 +161,8 @@ class _Header extends ConsumerWidget {
                     child: Center(
                       child: Text(
                         '$filterCount',
-                        style: const TextStyle(
-                          color: AppColors.bg,
+                        style: TextStyle(
+                          color: context.bgColor,
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
                         ),
@@ -273,10 +274,10 @@ class _EmptyDeck extends StatelessWidget {
               child: Icon(mode.icon, color: mode.accentColor.withValues(alpha: 0.4), size: 28),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: AppSpacing.sm),
             Text(sub, textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5)),
+                style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
           ],
         ),
       ),
@@ -334,23 +335,23 @@ class _ActionRowState extends ConsumerState<_ActionRow>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Send a Note', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        backgroundColor: context.surfaceColor,
+        title: Text('Send a Note', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: TextField(
           controller: ctrl,
           maxLength: 280,
           maxLines: 3,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: 'Write something thoughtful...',
-            hintStyle: const TextStyle(color: AppColors.textMuted),
-            filled: true, fillColor: AppColors.bg,
+            hintStyle: TextStyle(color: context.textMuted),
+            filled: true, fillColor: context.bgColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+              child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: () {
               final text = ctrl.text.trim();
@@ -515,10 +516,10 @@ class _CircleButton extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: disabled ? AppColors.surface : AppColors.elevated,
+          color: disabled ? context.surfaceColor : context.elevatedColor,
           shape: BoxShape.circle,
           border: Border.all(
-              color: disabled ? AppColors.borderSubtle : color.withValues(alpha: 0.35), width: 1.5),
+              color: disabled ? context.borderSubtleColor : color.withValues(alpha: 0.35), width: 1.5),
           boxShadow: disabled
               ? null
               : [
@@ -530,7 +531,7 @@ class _CircleButton extends StatelessWidget {
                 ],
         ),
         child: Icon(icon,
-            color: disabled ? AppColors.textDisabled : color,
+            color: disabled ? context.textDisabled : color,
             size: size * 0.42),
       ),
     );

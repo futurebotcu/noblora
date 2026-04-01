@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/room.dart';
 
 const _violet = Color(0xFF9B6DFF);
@@ -27,9 +28,9 @@ class RoomCardWidget extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -87,8 +88,8 @@ class RoomCardWidget extends StatelessWidget {
                           children: [
                             Text(
                               room.hostName ?? 'Host',
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
+                              style: TextStyle(
+                                color: context.textMuted,
                                 fontSize: 12,
                               ),
                             ),
@@ -115,7 +116,7 @@ class RoomCardWidget extends StatelessWidget {
                         Text(
                           room.title,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                           maxLines: 1,
@@ -153,8 +154,8 @@ class RoomCardWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: Text(
                   room.description!,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: context.textMuted,
                     fontSize: 13,
                     height: 1.3,
                   ),
@@ -239,7 +240,7 @@ class RoomCardWidget extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: room.fillPercent,
                   minHeight: 3,
-                  backgroundColor: AppColors.border,
+                  backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     room.fillPercent > 0.8 ? AppColors.warning : _violet,
                   ),
@@ -255,9 +256,9 @@ class RoomCardWidget extends StatelessWidget {
               child: Row(
                 children: [
                   if (room.isFull)
-                    const Text(
+                    Text(
                       'Full',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      style: TextStyle(color: context.textMuted, fontSize: 12),
                     )
                   else if (onJoin != null)
                     TextButton.icon(
@@ -276,7 +277,7 @@ class RoomCardWidget extends StatelessWidget {
                   TextButton(
                     onPressed: onTap,
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textMuted,
+                      foregroundColor: context.textMuted,
                       visualDensity: VisualDensity.compact,
                     ),
                     child: const Text('Open', style: TextStyle(fontSize: 12)),

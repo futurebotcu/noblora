@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/inbox_item.dart';
@@ -110,16 +111,16 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         appBar: AppBar(
-          backgroundColor: AppColors.bg,
+          backgroundColor: context.bgColor,
           titleSpacing: AppSpacing.lg,
           title: Row(
             children: [
-              const Text(
+              Text(
                 'Inbox',
                 style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w700),
               ),
@@ -149,12 +150,12 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(44),
             child: Container(
-              color: AppColors.surface,
+              color: context.surfaceColor,
               child: TabBar(
                 indicatorColor: AppColors.gold,
                 indicatorWeight: 2,
-                labelColor: Colors.white,
-                unselectedLabelColor: AppColors.textMuted,
+                labelColor: context.textPrimary,
+                unselectedLabelColor: context.textMuted,
                 labelStyle: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600),
                 unselectedLabelStyle:
@@ -355,19 +356,19 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
           onBff: () => setState(
               () => _filter = _filter == NobleMode.bff ? null : NobleMode.bff),
         ),
-        const Divider(height: 0, color: AppColors.border),
+        Divider(height: 0, color: context.borderColor),
         // Conversation list
         Expanded(
           child: _filtered.isEmpty
-              ? const _EmptyInbox(
+              ? _EmptyInbox(
                   icon: Icons.favorite_outline_rounded,
                   message:
                       'No alliances yet.\nStart swiping to make connections.',
                 )
               : ListView.separated(
                   itemCount: _filtered.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(height: 0, color: AppColors.border),
+                  separatorBuilder: (context, __) =>
+                      Divider(height: 0, color: context.borderColor),
                   itemBuilder: (context, i) {
                     final item = _filtered[i];
                     return _InboxTile(
@@ -400,8 +401,8 @@ class _CirclesTab extends StatelessWidget {
     }
     return ListView.separated(
       itemCount: circles.length,
-      separatorBuilder: (_, __) =>
-          const Divider(height: 0, color: AppColors.border),
+      separatorBuilder: (context, __) =>
+          Divider(height: 0, color: context.borderColor),
       itemBuilder: (context, i) {
         final circle = circles[i];
         return _CircleTile(
@@ -436,8 +437,8 @@ class _RequestsTab extends StatelessWidget {
     }
     return ListView.separated(
       itemCount: requests.length,
-      separatorBuilder: (_, __) =>
-          const Divider(height: 0, color: AppColors.border),
+      separatorBuilder: (context, __) =>
+          Divider(height: 0, color: context.borderColor),
       itemBuilder: (context, i) => _RequestTile(item: requests[i]),
     );
   }
@@ -471,7 +472,7 @@ class _FilterRow extends StatelessWidget {
           _FilterPill(
               label: 'All',
               isActive: selected == null,
-              color: Colors.white,
+              color: context.textPrimary,
               onTap: onAll),
           const SizedBox(width: AppSpacing.sm),
           _FilterPill(
@@ -519,12 +520,12 @@ class _FilterPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive
               ? color.withValues(alpha: 0.18)
-              : AppColors.surfaceAlt,
+              : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
           border: Border.all(
               color: isActive
                   ? color.withValues(alpha: 0.55)
-                  : AppColors.border),
+                  : context.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -541,7 +542,7 @@ class _FilterPill extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isActive ? color : AppColors.textMuted,
+                color: isActive ? color : context.textMuted,
                 fontSize: 12,
                 fontWeight:
                     isActive ? FontWeight.w600 : FontWeight.w400,
@@ -608,7 +609,7 @@ class _InboxTile extends StatelessWidget {
                       color: accent,
                       shape: BoxShape.circle,
                       border:
-                          Border.all(color: AppColors.bg, width: 2),
+                          Border.all(color: context.bgColor, width: 2),
                     ),
                   ),
                 ),
@@ -626,7 +627,7 @@ class _InboxTile extends StatelessWidget {
                         child: Text(
                           item.name,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimary,
                             fontSize: 15,
                             fontWeight: item.isUnread
                                 ? FontWeight.w700
@@ -639,7 +640,7 @@ class _InboxTile extends StatelessWidget {
                         style: TextStyle(
                           color: item.isUnread
                               ? accent
-                              : AppColors.textMuted,
+                              : context.textMuted,
                           fontSize: 11,
                           fontWeight: item.isUnread
                               ? FontWeight.w600
@@ -651,21 +652,21 @@ class _InboxTile extends StatelessWidget {
                   if (item.profession != null)
                     Text(
                       item.profession!,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 11),
+                      style: TextStyle(
+                          color: context.textMuted, fontSize: 11),
                     ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
                       Expanded(
-                        child: Consumer(builder: (_, cRef, __) {
+                        child: Consumer(builder: (context, cRef, __) {
                           final preview = cRef.watch(_messagePreviewProvider).valueOrNull ?? true;
                           return Text(
                             preview ? item.lastMessage : 'New activity',
                             style: TextStyle(
                               color: item.isUnread
-                                  ? AppColors.textSecondary
-                                  : AppColors.textMuted,
+                                  ? context.textSecondary
+                                  : context.textMuted,
                               fontSize: 13,
                             ),
                             maxLines: 1,
@@ -728,7 +729,7 @@ class _CircleTile extends StatelessWidget {
                     errorBuilder: (_, __, ___) => Container(
                       width: 52,
                       height: 52,
-                      color: AppColors.surfaceAlt,
+                      color: context.surfaceAltColor,
                       child:
                           Icon(Icons.table_bar_rounded, color: accent),
                     ),
@@ -744,7 +745,7 @@ class _CircleTile extends StatelessWidget {
                       color: accent,
                       shape: BoxShape.circle,
                       border:
-                          Border.all(color: AppColors.bg, width: 2),
+                          Border.all(color: context.bgColor, width: 2),
                     ),
                   ),
                 ),
@@ -761,7 +762,7 @@ class _CircleTile extends StatelessWidget {
                         child: Text(
                           circle.name,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimary,
                             fontSize: 15,
                             fontWeight: circle.isUnread
                                 ? FontWeight.w700
@@ -774,7 +775,7 @@ class _CircleTile extends StatelessWidget {
                         style: TextStyle(
                           color: circle.isUnread
                               ? accent
-                              : AppColors.textMuted,
+                              : context.textMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -796,8 +797,8 @@ class _CircleTile extends StatelessWidget {
                           circle.lastMessage,
                           style: TextStyle(
                             color: circle.isUnread
-                                ? AppColors.textSecondary
-                                : AppColors.textMuted,
+                                ? context.textSecondary
+                                : context.textMuted,
                             fontSize: 13,
                           ),
                           maxLines: 1,
@@ -873,7 +874,7 @@ class _RequestTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.bg, width: 2),
+                    border: Border.all(color: context.bgColor, width: 2),
                   ),
                 ),
               ),
@@ -887,16 +888,16 @@ class _RequestTile extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: context.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600),
                 ),
                 if (item.profession != null)
                   Text(
                     item.profession!,
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 11),
+                    style: TextStyle(
+                        color: context.textMuted, fontSize: 11),
                   ),
                 const SizedBox(height: 2),
                 Text(
@@ -926,10 +927,10 @@ class _RequestTile extends StatelessWidget {
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusCircle),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Accept',
                     style: TextStyle(
-                        color: AppColors.bg,
+                        color: context.bgColor,
                         fontSize: 11,
                         fontWeight: FontWeight.w700),
                   ),
@@ -942,14 +943,14 @@ class _RequestTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.borderColor),
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusCircle),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Decline',
                     style: TextStyle(
-                        color: AppColors.textMuted, fontSize: 11),
+                        color: context.textMuted, fontSize: 11),
                   ),
                 ),
               ),
@@ -977,12 +978,12 @@ class _EmptyInbox extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textDisabled, size: 48),
+          Icon(icon, color: context.textDisabled, size: 48),
           const SizedBox(height: AppSpacing.lg),
           Text(
             message,
-            style: const TextStyle(
-                color: AppColors.textMuted, fontSize: 14),
+            style: TextStyle(
+                color: context.textMuted, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],

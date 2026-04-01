@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -140,7 +141,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -148,13 +149,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
               child: Row(children: [
-                if (_step > 0) IconButton(icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textMuted, size: 20),
+                if (_step > 0) IconButton(icon: Icon(Icons.arrow_back_rounded, color: context.textMuted, size: 20),
                     onPressed: _back, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
                 if (_step > 0) const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: ClipRRect(borderRadius: BorderRadius.circular(1),
                     child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 2,
-                        backgroundColor: AppColors.borderSubtle, valueColor: const AlwaysStoppedAnimation(AppColors.gold))),
+                        backgroundColor: context.borderSubtleColor, valueColor: const AlwaysStoppedAnimation(AppColors.gold))),
                 ),
               ]),
             ),
@@ -218,13 +219,13 @@ class _WelcomePage extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxxl),
         Text('Noblara', style: Theme.of(context).textTheme.displayMedium?.copyWith(
-            color: AppColors.textPrimary, fontWeight: FontWeight.w300, letterSpacing: 2)),
+            color: context.textPrimary, fontWeight: FontWeight.w300, letterSpacing: 2)),
         const SizedBox(height: AppSpacing.lg),
         Text('A private space for\nmeaningful connections.',
-            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 16, height: 1.6, letterSpacing: 0.2)),
+            textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 16, height: 1.6, letterSpacing: 0.2)),
         const Spacer(flex: 3),
         SizedBox(width: double.infinity, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
             onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.5)))),
         const SizedBox(height: AppSpacing.xxxxl),
@@ -241,16 +242,16 @@ class _BasicsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: ListView(children: [
       const SizedBox(height: AppSpacing.xxxl),
-      const Text('About you', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+      Text('About you', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
       const SizedBox(height: AppSpacing.xxl),
-      TextField(controller: nameCtrl, style: const TextStyle(color: AppColors.textPrimary),
-          decoration: _deco('Your name')),
+      TextField(controller: nameCtrl, style: TextStyle(color: context.textPrimary),
+          decoration: _deco(context, 'Your name')),
       const SizedBox(height: AppSpacing.xxl),
-      Text('Age: $age', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+      Text('Age: $age', style: TextStyle(color: context.textPrimary, fontSize: 14)),
       Slider(value: age.toDouble(), min: 18, max: 65, divisions: 47, activeColor: AppColors.gold,
           onChanged: (v) => onAgeChanged(v.round())),
       const SizedBox(height: AppSpacing.xxl),
-      const Text('Gender', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      Text('Gender', style: TextStyle(color: context.textMuted, fontSize: 12)),
       const SizedBox(height: AppSpacing.sm),
       Wrap(spacing: 8, children: [
         _GChip('Woman', 'female', gender, onGenderChanged),
@@ -259,7 +260,7 @@ class _BasicsPage extends StatelessWidget {
       ]),
       const SizedBox(height: AppSpacing.xxxl),
       ElevatedButton(onPressed: nameCtrl.text.trim().isNotEmpty ? onNext : null,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
               minimumSize: const Size.fromHeight(50)),
           child: const Text('Continue')),
     ]));
@@ -271,8 +272,8 @@ class _GChip extends StatelessWidget {
   const _GChip(this.label, this.value, this.current, this.onChanged);
   @override
   Widget build(BuildContext context) => ChoiceChip(label: Text(label), selected: current == value,
-      selectedColor: AppColors.gold, backgroundColor: AppColors.surface,
-      labelStyle: TextStyle(color: current == value ? AppColors.bg : AppColors.textSecondary),
+      selectedColor: AppColors.gold, backgroundColor: context.surfaceColor,
+      labelStyle: TextStyle(color: current == value ? context.bgColor : context.textSecondary),
       onSelected: (_) => onChanged(value));
 }
 
@@ -286,16 +287,16 @@ class _ModesPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('How would you like to use Noblara?', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('How would you like to use Noblara?', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        const Text('You can change these anytime in Settings.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('You can change these anytime in Settings.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
         _ModeToggle(Icons.favorite_rounded, 'Dating', 'Find meaningful connections', AppColors.gold, dating, onDating),
         _ModeToggle(Icons.people_rounded, 'BFF', 'Build your social circle', const Color(0xFF26C6DA), bff, onBff),
         _ModeToggle(Icons.explore_rounded, 'Social', 'Join real-life events', const Color(0xFFAB47BC), social, onSocial),
         const Spacer(),
         ElevatedButton(onPressed: (dating || bff || social) ? onNext : null,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
@@ -309,12 +310,12 @@ class _ModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: AppSpacing.md),
-    decoration: BoxDecoration(color: value ? color.withValues(alpha: 0.08) : AppColors.surface,
+    decoration: BoxDecoration(color: value ? color.withValues(alpha: 0.08) : context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: value ? color.withValues(alpha: 0.4) : AppColors.border)),
-    child: ListTile(leading: Icon(icon, color: value ? color : AppColors.textMuted),
-        title: Text(title, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-        subtitle: Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        border: Border.all(color: value ? color.withValues(alpha: 0.4) : context.borderColor)),
+    child: ListTile(leading: Icon(icon, color: value ? color : context.textMuted),
+        title: Text(title, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
+        subtitle: Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12)),
         trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: color.withValues(alpha: 0.4))));
 }
 
@@ -327,15 +328,15 @@ class _CityPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('Where are you based?', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Where are you based?', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        const Text('This helps us show people near you.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('This helps us show people near you.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
-        TextField(controller: ctrl, onChanged: onChanged, style: const TextStyle(color: AppColors.textPrimary),
-            decoration: _deco('Your city (e.g. Istanbul)')),
+        TextField(controller: ctrl, onChanged: onChanged, style: TextStyle(color: context.textPrimary),
+            decoration: _deco(context, 'Your city (e.g. Istanbul)')),
         const Spacer(),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
@@ -351,9 +352,9 @@ class _PhotoPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('Add a photo', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Add a photo', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        const Text('Your first impression matters. Pick a clear, recent photo.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('Your first impression matters. Pick a clear, recent photo.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
         Center(child: GestureDetector(
           onTap: () async {
@@ -365,21 +366,21 @@ class _PhotoPage extends StatelessWidget {
             }
           },
           child: Container(width: 160, height: 200,
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: photoUrl != null ? AppColors.gold : AppColors.border, width: photoUrl != null ? 2 : 1)),
+            decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                border: Border.all(color: photoUrl != null ? AppColors.gold : context.borderColor, width: photoUrl != null ? 2 : 1)),
             child: photoUrl != null
                 ? ClipRRect(borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     child: Image.asset(photoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) =>
                         const Center(child: Icon(Icons.check_rounded, color: AppColors.gold, size: 48))))
-                : const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.add_a_photo_rounded, color: AppColors.textMuted, size: 32),
-                    SizedBox(height: 8),
-                    Text('Tap to add', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add_a_photo_rounded, color: context.textMuted, size: 32),
+                    const SizedBox(height: 8),
+                    Text('Tap to add', style: TextStyle(color: context.textMuted, fontSize: 12)),
                   ]))),
         )),
         const Spacer(),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: Text(photoUrl != null ? 'Continue' : 'Skip for now')),
         const SizedBox(height: AppSpacing.xxl),
@@ -395,15 +396,15 @@ class _BioPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('Tell us about yourself', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Tell us about yourself', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        const Text('A short bio helps others understand who you are.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('A short bio helps others understand who you are.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
-        TextField(controller: bioCtrl, maxLines: 4, maxLength: 300, style: const TextStyle(color: AppColors.textPrimary),
-            decoration: _deco('Write something about yourself...')),
+        TextField(controller: bioCtrl, maxLines: 4, maxLength: 300, style: TextStyle(color: context.textPrimary),
+            decoration: _deco(context, 'Write something about yourself...')),
         const Spacer(),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: Text(bioCtrl.text.trim().isNotEmpty ? 'Continue' : 'Skip for now')),
         const SizedBox(height: AppSpacing.xxl),
@@ -419,7 +420,7 @@ class _PrivacyPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('Your privacy', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Your privacy', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.lg),
         _InfoCard(Icons.visibility_off_rounded, 'Incognito available', 'You can browse invisibly anytime from Settings.'),
         _InfoCard(Icons.shield_rounded, 'Calm Mode available', 'Only quality profiles can reach you when enabled.'),
@@ -427,7 +428,7 @@ class _PrivacyPage extends StatelessWidget {
         _InfoCard(Icons.tune_rounded, 'Full control', 'Adjust who can signal, note, or reach you in Settings.'),
         const Spacer(),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
@@ -442,14 +443,14 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: AppSpacing.md),
     padding: const EdgeInsets.all(AppSpacing.lg),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        border: Border.all(color: context.borderColor)),
     child: Row(children: [
       Icon(icon, color: AppColors.gold, size: 20),
       const SizedBox(width: AppSpacing.md),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-        Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12)),
       ])),
     ]));
 }
@@ -465,24 +466,24 @@ class _PrefsPage extends StatelessWidget {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        const Text('Your preferences', style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Your preferences', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        const Text('Just enough to make your first experience meaningful.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text('Just enough to make your first experience meaningful.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
-        const Text('Looking for', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Text('Looking for', style: TextStyle(color: context.textMuted, fontSize: 12)),
         const SizedBox(height: AppSpacing.sm),
         Wrap(spacing: 6, runSpacing: 6, children: ['Serious relationship', 'Long-term', 'Intentional', 'Open'].map((o) =>
             ChoiceChip(label: Text(o), selected: lookingFor == o,
-                selectedColor: AppColors.gold, backgroundColor: AppColors.surface,
-                labelStyle: TextStyle(color: lookingFor == o ? AppColors.bg : AppColors.textSecondary, fontSize: 12),
+                selectedColor: AppColors.gold, backgroundColor: context.surfaceColor,
+                labelStyle: TextStyle(color: lookingFor == o ? context.bgColor : context.textSecondary, fontSize: 12),
                 onSelected: (_) => onLookingForChanged(o))).toList()),
         const SizedBox(height: AppSpacing.xxl),
-        Text('Preferred age: $ageMin – $ageMax', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+        Text('Preferred age: $ageMin – $ageMax', style: TextStyle(color: context.textPrimary, fontSize: 14)),
         RangeSlider(values: RangeValues(ageMin.toDouble(), ageMax.toDouble()), min: 18, max: 65, divisions: 47,
             activeColor: AppColors.gold, onChanged: (v) => onAgeRangeChanged(v.start.round(), v.end.round())),
         const Spacer(),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.bg,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
             child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
@@ -506,10 +507,10 @@ class _CompletePageState extends State<_CompletePage> {
         const Icon(Icons.check_circle_outline_rounded, color: AppColors.gold, size: 64),
         const SizedBox(height: AppSpacing.xxl),
         Text('You\'re all set${widget.name.isNotEmpty ? ', ${widget.name}' : ''}',
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
+            style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.md),
         Text(widget.validationError != null ? '' : 'Your private world is ready.',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+            style: TextStyle(color: context.textMuted, fontSize: 14)),
         if (widget.validationError != null) ...[
           const SizedBox(height: AppSpacing.lg),
           Container(padding: const EdgeInsets.all(AppSpacing.md),
@@ -523,24 +524,24 @@ class _CompletePageState extends State<_CompletePage> {
         ],
         const SizedBox(height: AppSpacing.xxxxl),
         SizedBox(width: double.infinity, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: widget.validationError != null ? AppColors.textMuted : AppColors.gold,
-                foregroundColor: AppColors.bg, minimumSize: const Size.fromHeight(52)),
+            style: ElevatedButton.styleFrom(backgroundColor: widget.validationError != null ? context.textMuted : AppColors.gold,
+                foregroundColor: context.bgColor, minimumSize: const Size.fromHeight(52)),
             onPressed: (_loading || widget.validationError != null) ? null : () async {
               setState(() => _loading = true);
               await widget.onComplete();
             },
             child: _loading
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bg))
+                ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: context.bgColor))
                 : const Text('Enter Noblara', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)))),
     ]));
   }
 }
 
 // Shared decoration
-InputDecoration _deco(String hint) => InputDecoration(
-  hintText: hint, hintStyle: const TextStyle(color: AppColors.textDisabled),
-  filled: true, fillColor: AppColors.surface,
-  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.border)),
-  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.border)),
+InputDecoration _deco(BuildContext context, String hint) => InputDecoration(
+  hintText: hint, hintStyle: TextStyle(color: context.textDisabled),
+  filled: true, fillColor: context.surfaceColor,
+  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
+  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.gold)),
 );

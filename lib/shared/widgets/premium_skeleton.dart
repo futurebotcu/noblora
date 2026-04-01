@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 
 /// Premium skeleton loading card — obsidian shimmer effect
 class PremiumSkeleton extends StatefulWidget {
@@ -44,9 +44,9 @@ class _PremiumSkeletonState extends State<PremiumSkeleton> with SingleTickerProv
             begin: Alignment(-1 + 2 * _ctrl.value, 0),
             end: Alignment(-1 + 2 * _ctrl.value + 1, 0),
             colors: [
-              AppColors.surface,
-              AppColors.elevated,
-              AppColors.surface,
+              context.shimmerBase,
+              context.shimmerHighlight,
+              context.shimmerBase,
             ],
           ),
         ),

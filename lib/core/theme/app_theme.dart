@@ -49,27 +49,35 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: AppColors.gold, onPrimary: Colors.white,
         secondary: AppColors.goldDark,
-        surface: Color(0xFFF5F5F5), onSurface: Color(0xFF1A1A1A),
+        surface: AppColors.lightSurface, onSurface: AppColors.lightTextPrimary,
         error: AppColors.error,
       ),
-      scaffoldBackgroundColor: Colors.white,
-      cardColor: const Color(0xFFF5F5F5),
-      dividerColor: const Color(0xFFE0E0E0),
+      scaffoldBackgroundColor: AppColors.lightBg,
+      cardColor: AppColors.lightCard,
+      dividerColor: AppColors.lightBorder,
       textTheme: _lightText(),
       inputDecorationTheme: _input().copyWith(
-        fillColor: const Color(0xFFF5F5F5),
-        hintStyle: GoogleFonts.inter(color: const Color(0xFF9E9E9E), fontSize: 14)),
+        fillColor: AppColors.lightSurfaceAlt,
+        hintStyle: GoogleFonts.inter(color: AppColors.lightTextMuted, fontSize: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.lightBorder)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.lightBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.gold, width: 1.5)),
+      ),
       elevatedButtonTheme: _elevBtn(),
       outlinedButtonTheme: _outBtn(),
       textButtonTheme: _txtBtn(),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Colors.white, selectedItemColor: AppColors.gold,
-        unselectedItemColor: Color(0xFF9E9E9E),
-        showSelectedLabels: true, showUnselectedLabels: true, type: BottomNavigationBarType.fixed),
+        backgroundColor: AppColors.lightSurface,
+        selectedItemColor: AppColors.gold,
+        unselectedItemColor: AppColors.lightTextMuted,
+        showSelectedLabels: true, showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.white, elevation: 0, centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(color: const Color(0xFF1A1A1A), fontSize: 18, fontWeight: FontWeight.w600),
-        iconTheme: const IconThemeData(color: Color(0xFF1A1A1A))),
+        backgroundColor: AppColors.lightBg, elevation: 0, centerTitle: false,
+        titleTextStyle: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary)),
       pageTransitionsTheme: _transitions,
     );
   }
@@ -130,23 +138,21 @@ class AppTheme {
   }
 
   static TextTheme _lightText() {
-    const dark = Color(0xFF1A1A1A);
-    const muted = Color(0xFF757575);
     return TextTheme(
-      displayLarge: GoogleFonts.inter(color: dark, fontSize: 48, fontWeight: FontWeight.w300),
-      displayMedium: GoogleFonts.inter(color: dark, fontSize: 36, fontWeight: FontWeight.w300),
-      headlineLarge: GoogleFonts.inter(color: dark, fontSize: 28, fontWeight: FontWeight.w700),
-      headlineMedium: GoogleFonts.inter(color: dark, fontSize: 24, fontWeight: FontWeight.w700),
-      headlineSmall: GoogleFonts.inter(color: dark, fontSize: 20, fontWeight: FontWeight.w600),
-      titleLarge: GoogleFonts.inter(color: dark, fontSize: 18, fontWeight: FontWeight.w600),
-      titleMedium: GoogleFonts.inter(color: dark, fontSize: 15, fontWeight: FontWeight.w500),
-      titleSmall: GoogleFonts.inter(color: muted, fontSize: 13, fontWeight: FontWeight.w500),
-      bodyLarge: GoogleFonts.inter(color: muted, fontSize: 15),
-      bodyMedium: GoogleFonts.inter(color: muted, fontSize: 14),
-      bodySmall: GoogleFonts.inter(color: muted, fontSize: 12),
-      labelLarge: GoogleFonts.inter(color: dark, fontSize: 13, fontWeight: FontWeight.w600),
-      labelMedium: GoogleFonts.inter(color: muted, fontSize: 12, fontWeight: FontWeight.w500),
-      labelSmall: GoogleFonts.inter(color: muted, fontSize: 11, fontWeight: FontWeight.w500),
+      displayLarge: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 48, fontWeight: FontWeight.w300, letterSpacing: -1),
+      displayMedium: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 36, fontWeight: FontWeight.w300, letterSpacing: -0.5),
+      headlineLarge: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+      headlineMedium: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+      headlineSmall: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 20, fontWeight: FontWeight.w600),
+      titleLarge: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+      titleMedium: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 15, fontWeight: FontWeight.w500),
+      titleSmall: GoogleFonts.inter(color: AppColors.lightTextSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+      bodyLarge: GoogleFonts.inter(color: AppColors.lightTextSecondary, fontSize: 15, height: 1.5),
+      bodyMedium: GoogleFonts.inter(color: AppColors.lightTextSecondary, fontSize: 14, height: 1.5),
+      bodySmall: GoogleFonts.inter(color: AppColors.lightTextMuted, fontSize: 12, height: 1.4),
+      labelLarge: GoogleFonts.inter(color: AppColors.lightTextPrimary, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+      labelMedium: GoogleFonts.inter(color: AppColors.lightTextSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+      labelSmall: GoogleFonts.inter(color: AppColors.lightTextMuted, fontSize: 11, fontWeight: FontWeight.w500),
     );
   }
 

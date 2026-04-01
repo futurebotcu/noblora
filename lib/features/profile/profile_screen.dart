@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../providers/auth_provider.dart';
@@ -35,22 +36,22 @@ class ProfileScreen extends ConsumerWidget {
     const city = '';
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
-            backgroundColor: AppColors.bg,
+            backgroundColor: context.bgColor,
             elevation: 0,
-            title: const Text(
+            title: Text(
               'Profile',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+              style: TextStyle(color: context.textPrimary, fontSize: 16),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: AppColors.textPrimary),
+                icon: Icon(Icons.settings_outlined,
+                    color: context.textPrimary),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -85,7 +86,7 @@ class ProfileScreen extends ConsumerWidget {
                         TierBadge(tier: profile.profile!.nobTier, showLabel: true),
                         const Spacer(),
                         Text('${profile.profile!.strengthLabel} profile',
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            style: TextStyle(color: context.textMuted, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -156,7 +157,7 @@ class _ProfileHeader extends StatelessWidget {
               colors: [
                 activeMode.accentColor.withValues(alpha: 0.08),
                 activeMode.accentColor.withValues(alpha: 0.03),
-                AppColors.bg,
+                context.bgColor,
               ],
             ),
           ),
@@ -202,8 +203,8 @@ class _ProfileHeader extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               Text(
                 displayName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: context.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.2,
@@ -213,13 +214,13 @@ class _ProfileHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.location_on,
-                      size: 13, color: AppColors.textMuted),
+                  Icon(Icons.location_on,
+                      size: 13, color: context.textMuted),
                   const SizedBox(width: 3),
                   Text(
                     city,
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 13),
+                    style: TextStyle(
+                        color: context.textMuted, fontSize: 13),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   // Active mode badge
@@ -283,19 +284,19 @@ class _ActiveModesSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'MOD SEÇİMİ',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: context.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          const Text(
+          Text(
             'Hangi modlarda görünmek istediğini seç.',
-            style: TextStyle(color: AppColors.textDisabled, fontSize: 12),
+            style: TextStyle(color: context.textDisabled, fontSize: 12),
           ),
           const SizedBox(height: AppSpacing.lg),
           ...(_modeInfo.map((info) {
@@ -311,12 +312,12 @@ class _ActiveModesSection extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: isActive
                       ? accent.withValues(alpha: 0.12)
-                      : AppColors.surface,
+                      : context.surfaceColor,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   border: Border.all(
                     color: isActive
                         ? accent.withValues(alpha: 0.5)
-                        : AppColors.border,
+                        : context.borderColor,
                   ),
                 ),
                 child: Row(
@@ -329,7 +330,7 @@ class _ActiveModesSection extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(info.icon,
-                          color: isActive ? accent : AppColors.textMuted,
+                          color: isActive ? accent : context.textMuted,
                           size: 18),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -338,8 +339,8 @@ class _ActiveModesSection extends ConsumerWidget {
                         info.label,
                         style: TextStyle(
                           color: isActive
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
+                              ? context.textPrimary
+                              : context.textMuted,
                           fontWeight: isActive
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -353,7 +354,7 @@ class _ActiveModesSection extends ConsumerWidget {
                       width: 44,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: isActive ? accent : AppColors.surfaceAlt,
+                        color: isActive ? accent : context.surfaceAltColor,
                         borderRadius:
                             BorderRadius.circular(AppSpacing.radiusCircle),
                       ),
@@ -462,10 +463,10 @@ class _PersonaSectionState extends State<_PersonaSection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Row(
             children: [
-              const Text(
+              Text(
                 'YOUR PERSONAS',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: context.textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -478,20 +479,20 @@ class _PersonaSectionState extends State<_PersonaSection> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.surfaceColor,
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusCircle),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.borderColor),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.edit_outlined,
-                          size: 12, color: AppColors.textMuted),
-                      SizedBox(width: 4),
+                          size: 12, color: context.textMuted),
+                      const SizedBox(width: 4),
                       Text('Edit',
                           style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 11)),
+                              color: context.textMuted, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -518,11 +519,11 @@ class _PersonaSectionState extends State<_PersonaSection> {
                   decoration: BoxDecoration(
                     color: isActive
                         ? mode.accentColor.withValues(alpha: 0.15)
-                        : AppColors.surface,
+                        : context.surfaceColor,
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusCircle),
                     border: Border.all(
-                      color: isActive ? mode.accentColor : AppColors.border,
+                      color: isActive ? mode.accentColor : context.borderColor,
                     ),
                   ),
                   child: Row(
@@ -532,14 +533,14 @@ class _PersonaSectionState extends State<_PersonaSection> {
                           size: 11,
                           color: isActive
                               ? mode.accentColor
-                              : AppColors.textMuted),
+                              : context.textMuted),
                       const SizedBox(width: 4),
                       Text(
                         mode.label,
                         style: TextStyle(
                           color: isActive
                               ? mode.accentColor
-                              : AppColors.textMuted,
+                              : context.textMuted,
                           fontSize: 11,
                           fontWeight: isActive
                               ? FontWeight.w700
@@ -582,7 +583,7 @@ class _PersonaCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border:
             Border.all(color: mode.accentColor.withValues(alpha: 0.25)),
@@ -631,8 +632,8 @@ class _PersonaCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   persona.bio,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -695,7 +696,7 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
             MediaQuery.of(context).viewInsets.bottom + AppSpacing.xxl,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.96),
+            color: context.surfaceColor.withValues(alpha: 0.96),
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
@@ -712,7 +713,7 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.borderColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -733,10 +734,10 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
-              const Text(
+              Text(
                 'BIO',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: context.textMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -747,22 +748,22 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
                 controller: _bioCtrl,
                 maxLines: 4,
                 maxLength: 300,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 14),
+                style: TextStyle(
+                    color: context.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   hintText:
                       'Write your ${mode.label.toLowerCase()} persona bio...',
                   hintStyle:
-                      const TextStyle(color: AppColors.textDisabled),
+                      TextStyle(color: context.textDisabled),
                   filled: true,
-                  fillColor: AppColors.surfaceAlt,
+                  fillColor: context.surfaceAltColor,
                   border: OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusMd),
                     borderSide: BorderSide.none,
                   ),
-                  counterStyle: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 11),
+                  counterStyle: TextStyle(
+                      color: context.textMuted, fontSize: 11),
                 ),
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -775,7 +776,7 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: mode.accentColor,
-                    foregroundColor: AppColors.bg,
+                    foregroundColor: context.bgColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius:
@@ -841,23 +842,23 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'MATURITY SCORE',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: context.textMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
                     'Based on your real activity',
                     style: TextStyle(
-                        color: AppColors.textDisabled, fontSize: 11),
+                        color: context.textDisabled, fontSize: 11),
                   ),
                 ],
               ),
@@ -897,7 +898,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.xxl),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               border:
                   Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
@@ -918,10 +919,10 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                         height: 1,
                       ),
                     ),
-                    const Text(
+                    Text(
                       '/100',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: context.textMuted,
                         fontSize: 18,
                         fontWeight: FontWeight.w400,
                       ),
@@ -930,15 +931,15 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
+                        Text(
                           'maturity',
                           style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 12),
+                              color: context.textMuted, fontSize: 12),
                         ),
                         Text(
                           p.strengthLabel,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: context.textSecondary,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -961,7 +962,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                     builder: (_, value, __) => LinearProgressIndicator(
                       value: value,
                       minHeight: 6,
-                      backgroundColor: AppColors.surfaceAlt,
+                      backgroundColor: context.surfaceAltColor,
                       valueColor:
                           const AlwaysStoppedAnimation(AppColors.gold),
                     ),
@@ -1003,8 +1004,8 @@ class _ScoreBarRow extends StatelessWidget {
             children: [
               Text(
                 bar.label,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(
+                    color: context.textSecondary, fontSize: 12),
               ),
               const Spacer(),
               Text(
@@ -1028,7 +1029,7 @@ class _ScoreBarRow extends StatelessWidget {
               builder: (_, value, __) => LinearProgressIndicator(
                 value: value,
                 minHeight: 4,
-                backgroundColor: AppColors.surfaceAlt,
+                backgroundColor: context.surfaceAltColor,
                 valueColor: AlwaysStoppedAnimation(
                     AppColors.gold.withValues(alpha: 0.6)),
               ),
@@ -1063,10 +1064,10 @@ class _GallerySectionState extends State<_GallerySection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Row(
             children: [
-              const Text(
+              Text(
                 'THE GALLERY',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: context.textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -1089,19 +1090,19 @@ class _GallerySectionState extends State<_GallerySection> {
                         shape: BoxShape.circle,
                         color: isActive
                             ? mode.accentColor
-                            : AppColors.surface,
+                            : context.surfaceColor,
                         border: Border.all(
                           color: isActive
                               ? mode.accentColor
-                              : AppColors.border,
+                              : context.borderColor,
                         ),
                       ),
                       child: Icon(
                         mode.icon,
                         size: 13,
                         color: isActive
-                            ? AppColors.bg
-                            : AppColors.textMuted,
+                            ? context.bgColor
+                            : context.textMuted,
                       ),
                     ),
                   );
@@ -1217,9 +1218,9 @@ class _GalleryFrame extends StatelessWidget {
               'https://picsum.photos/seed/$seed/400/${height.toInt()}',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: AppColors.surfaceAlt,
-                child: const Icon(Icons.image_outlined,
-                    color: AppColors.textDisabled),
+                color: context.surfaceAltColor,
+                child: Icon(Icons.image_outlined,
+                    color: context.textDisabled),
               ),
             ),
           ),
@@ -1258,8 +1259,8 @@ class _GalleryFrame extends StatelessWidget {
                       ),
                     Text(
                       caption,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 10),
+                      style: TextStyle(
+                          color: context.textMuted, fontSize: 10),
                     ),
                   ],
                 ),
@@ -1317,7 +1318,7 @@ class _BffGallery extends StatelessWidget {
                 'https://picsum.photos/seed/${_seeds[i]}/300/300',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) =>
-                    Container(color: AppColors.surfaceAlt),
+                    Container(color: context.surfaceAltColor),
               ),
             ),
             Positioned(
@@ -1343,8 +1344,8 @@ class _BffGallery extends StatelessWidget {
                   ),
                   child: Text(
                     _labels[i],
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1394,7 +1395,7 @@ class _SocialGallery extends StatelessWidget {
                   'https://picsum.photos/seed/noble_social_cover/800/400',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
-                      Container(color: AppColors.surfaceAlt),
+                      Container(color: context.surfaceAltColor),
                 ),
               ),
               Positioned(
@@ -1439,10 +1440,10 @@ class _SocialGallery extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           'Rooftop Sessions · Nişantaşı',
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: context.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1482,7 +1483,7 @@ class _SocialGallery extends StatelessWidget {
                       'https://picsum.photos/seed/${_thumbSeeds[i]}/200/200',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          Container(color: AppColors.surfaceAlt),
+                          Container(color: context.surfaceAltColor),
                     ),
                   ),
                   Positioned(
@@ -1491,8 +1492,8 @@ class _SocialGallery extends StatelessWidget {
                     right: 4,
                     child: Text(
                       _thumbLabels[i],
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.textSecondary,
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
                         shadows: [
@@ -1534,12 +1535,12 @@ class _BadgesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Text(
             'ELITE CREDENTIALS',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: context.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
@@ -1629,10 +1630,10 @@ class _LastNobsSection extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'N O B S',
                     style: TextStyle(
-                      color: AppColors.nobObserver,
+                      color: context.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 3,
@@ -1681,13 +1682,13 @@ class _LastNobsSection extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.md, vertical: AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.nobSurface,
+                      color: context.surfaceColor,
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusSm),
                       border: Border.all(
                         color: nob.isPinned
                             ? AppColors.noblaraGold.withValues(alpha: 0.25)
-                            : AppColors.nobBorder,
+                            : context.borderColor,
                       ),
                     ),
                     child: Row(
@@ -1701,8 +1702,8 @@ class _LastNobsSection extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             text.isEmpty ? '(Moment Nob)' : text,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
+                            style: TextStyle(
+                              color: context.textMuted,
                               fontSize: 12,
                               height: 1.45,
                               fontStyle: FontStyle.italic,

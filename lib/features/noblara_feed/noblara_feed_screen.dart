@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
@@ -28,9 +29,9 @@ class NoblaraFeedScreen extends ConsumerWidget {
     final canCompose = tier == NobTier.noble || tier == NobTier.explorer;
 
     return Scaffold(
-      backgroundColor: AppColors.nobBackground,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.nobBackground,
+        backgroundColor: context.bgColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleSpacing: AppSpacing.xxl,
@@ -53,23 +54,23 @@ class NoblaraFeedScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.mail_outline_rounded,
-                color: AppColors.nobObserver, size: 20),
+            icon: Icon(Icons.mail_outline_rounded,
+                color: context.textMuted, size: 20),
             tooltip: 'Notes',
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const NoteInboxScreen())),
           ),
           if (canCompose)
             IconButton(
-              icon: const Icon(Icons.drafts_outlined,
-                  color: AppColors.nobObserver, size: 20),
+              icon: Icon(Icons.drafts_outlined,
+                  color: context.textMuted, size: 20),
               tooltip: 'Drafts',
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const NobDraftsScreen())),
             ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColors.nobObserver, size: 20),
+            icon: Icon(Icons.refresh_rounded,
+                color: context.textMuted, size: 20),
             onPressed: () => ref.read(postsProvider.notifier).refresh(),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -78,7 +79,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
           preferredSize: const Size.fromHeight(1),
           child: Container(
             height: 1,
-            color: AppColors.nobBorder,
+            color: context.borderColor,
           ),
         ),
       ),
@@ -92,7 +93,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
           : null,
       body: RefreshIndicator(
         color: AppColors.noblaraGold,
-        backgroundColor: AppColors.nobSurface,
+        backgroundColor: context.surfaceColor,
         onRefresh: () => ref.read(postsProvider.notifier).refresh(),
         child: CustomScrollView(
           slivers: [
@@ -214,15 +215,15 @@ class _ComposeFab extends StatelessWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_outlined, size: 16, color: AppColors.nobBackground),
-            SizedBox(width: AppSpacing.sm),
+            Icon(Icons.edit_outlined, size: 16, color: context.bgColor),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               'Write a Nob',
               style: TextStyle(
-                color: AppColors.nobBackground,
+                color: context.bgColor,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
                 letterSpacing: 0.3,
@@ -250,9 +251,9 @@ class _ObserverBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.nobSurfaceAlt,
+        color: context.surfaceAltColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.nobBorder),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -261,15 +262,15 @@ class _ObserverBanner extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: AppColors.nobObserver,
+              color: context.textMuted,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          const Text(
+          Text(
             'Observer — read and react only',
             style: TextStyle(
-              color: AppColors.nobObserver,
+              color: context.textMuted,
               fontSize: 11,
               letterSpacing: 0.3,
             ),
@@ -297,26 +298,26 @@ class _EmptyState extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.nobSurface,
+              color: context.surfaceColor,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.nobBorder),
+              border: Border.all(color: context.borderColor),
             ),
-            child: const Icon(Icons.article_outlined,
-                color: AppColors.nobObserver, size: 24),
+            child: Icon(Icons.article_outlined,
+                color: context.textMuted, size: 24),
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Text(
+          Text(
             'No Nobs yet.',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: context.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          const Text(
+          Text(
             'Be the first to share a thought.',
-            style: TextStyle(color: AppColors.nobObserver, fontSize: 13),
+            style: TextStyle(color: context.textMuted, fontSize: 13),
           ),
         ],
       ),
@@ -364,9 +365,9 @@ class _ShimmerCardState extends State<_ShimmerCard>
             AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
         padding: const EdgeInsets.all(AppSpacing.xxl),
         decoration: BoxDecoration(
-          color: AppColors.nobSurface,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: AppColors.nobBorder),
+          border: Border.all(color: context.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +396,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
       width: w,
       height: h,
       decoration: BoxDecoration(
-        color: AppColors.nobSurfaceAlt.withValues(alpha: _anim.value),
+        color: context.surfaceAltColor.withValues(alpha: _anim.value),
         borderRadius: circle
             ? BorderRadius.circular(AppSpacing.radiusCircle)
             : BorderRadius.circular(4),
@@ -493,12 +494,12 @@ class _NobCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(
           AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
       decoration: BoxDecoration(
-        color: AppColors.nobSurface,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
           color: post.isPinned
               ? AppColors.noblaraGold.withValues(alpha: 0.2)
-              : AppColors.borderSubtle,
+              : context.borderSubtleColor,
           width: 0.5,
         ),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 2))],
@@ -570,8 +571,8 @@ class _NobCard extends StatelessWidget {
                         onTap: isOwn ? null : () => _openAuthorProfile(context),
                         child: Text(
                           post.authorName ?? 'Noblara',
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: context.textPrimary,
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                             letterSpacing: 0.1,
@@ -582,15 +583,15 @@ class _NobCard extends StatelessWidget {
                         children: [
                           Text(
                             _ago(post.publishedAt ?? post.createdAt),
-                            style: const TextStyle(
-                                color: AppColors.nobObserver, fontSize: 10),
+                            style: TextStyle(
+                                color: context.textMuted, fontSize: 10),
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Container(
                             width: 2,
                             height: 2,
-                            decoration: const BoxDecoration(
-                              color: AppColors.nobBorder,
+                            decoration: BoxDecoration(
+                              color: context.borderColor,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -634,8 +635,8 @@ class _NobCard extends StatelessWidget {
                   AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
               child: Text(
                 post.content,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: context.textPrimary,
                   fontSize: 15,
                   height: 1.65,
                   letterSpacing: 0.15,
@@ -655,10 +656,10 @@ class _NobCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       height: 160,
-                      color: AppColors.nobSurfaceAlt,
-                      child: const Center(
+                      color: context.surfaceAltColor,
+                      child: Center(
                         child: Icon(Icons.image_not_supported_outlined,
-                            color: AppColors.nobObserver, size: 28),
+                            color: context.textMuted, size: 28),
                       ),
                     ),
                   ),
@@ -670,8 +671,8 @@ class _NobCard extends StatelessWidget {
                     AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
                 child: Text(
                   post.caption!,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 14,
                     height: 1.55,
                     letterSpacing: 0.1,
@@ -715,16 +716,16 @@ class _NobCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.nobSurfaceAlt,
+                        color: context.surfaceAltColor,
                         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                        border: Border.all(color: AppColors.nobBorder),
+                        border: Border.all(color: context.borderColor),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.mail_outline_rounded, color: AppColors.nobObserver, size: 14),
-                          SizedBox(width: 4),
-                          Text('Note', style: TextStyle(color: AppColors.nobObserver, fontSize: 11)),
+                          Icon(Icons.mail_outline_rounded, color: context.textMuted, size: 14),
+                          const SizedBox(width: 4),
+                          Text('Note', style: TextStyle(color: context.textMuted, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -739,7 +740,7 @@ class _NobCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
               child: Text(
                 '${post.ownCounts['appreciate'] ?? 0} appreciate \u00B7 ${post.ownCounts['support'] ?? 0} support \u00B7 ${post.ownCounts['pass'] ?? 0} pass',
-                style: TextStyle(color: AppColors.nobObserver.withValues(alpha: 0.6), fontSize: 10),
+                style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 10),
               ),
             ),
         ],
@@ -750,7 +751,7 @@ class _NobCard extends StatelessWidget {
   void _openAuthorProfile(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.nobSurface,
+      backgroundColor: context.surfaceColor,
       isScrollControlled: true,
       builder: (_) => _AuthorProfileSheet(
         post: post,
@@ -766,23 +767,23 @@ class _NobCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.nobSurface,
-        title: const Text('Send a Note', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        backgroundColor: context.surfaceColor,
+        title: Text('Send a Note', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Private note to ${post.authorName ?? 'author'}', style: const TextStyle(color: AppColors.nobObserver, fontSize: 12)),
+            Text('Private note to ${post.authorName ?? 'author'}', style: TextStyle(color: context.textMuted, fontSize: 12)),
             const SizedBox(height: AppSpacing.md),
             TextField(
               controller: ctrl,
               maxLength: 280,
               maxLines: 3,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Write something thoughtful...',
-                hintStyle: const TextStyle(color: AppColors.nobObserver),
+                hintStyle: TextStyle(color: context.textMuted),
                 filled: true,
-                fillColor: AppColors.nobBackground,
+                fillColor: context.bgColor,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
               ),
             ),
@@ -791,7 +792,7 @@ class _NobCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.nobObserver)),
+            child: Text('Cancel', style: TextStyle(color: context.textMuted)),
           ),
           TextButton(
             onPressed: () {
@@ -846,12 +847,12 @@ class _OwnerMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz_rounded,
-          color: AppColors.nobObserver, size: 18),
-      color: AppColors.nobSurfaceAlt,
+      icon: Icon(Icons.more_horiz_rounded,
+          color: context.textMuted, size: 18),
+      color: context.surfaceAltColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        side: const BorderSide(color: AppColors.nobBorder),
+        side: BorderSide(color: context.borderColor),
       ),
       onSelected: (val) {
         if (val == 'pin' && onPin != null) onPin!();
@@ -873,22 +874,22 @@ class _OwnerMenu extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Text(
                 post.isPinned ? 'Unpin' : 'Pin to top',
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 13),
+                style: TextStyle(
+                    color: context.textPrimary, fontSize: 13),
               ),
             ],
           ),
         ),
         PopupMenuItem(
           value: 'archive',
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.archive_outlined,
-                  color: AppColors.nobObserver, size: 15),
-              SizedBox(width: AppSpacing.sm),
+                  color: context.textMuted, size: 15),
+              const SizedBox(width: AppSpacing.sm),
               Text('Archive',
                   style: TextStyle(
-                      color: AppColors.textPrimary, fontSize: 13)),
+                      color: context.textPrimary, fontSize: 13)),
             ],
           ),
         ),
@@ -931,7 +932,7 @@ class _ReactionBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor =
-        isSubtle ? AppColors.nobObserver : AppColors.noblaraGold;
+        isSubtle ? context.textMuted : AppColors.noblaraGold;
 
     return GestureDetector(
       onTap: onTap,
@@ -947,7 +948,7 @@ class _ReactionBtn extends StatelessWidget {
           border: Border.all(
             color: isActive
                 ? activeColor.withValues(alpha: 0.35)
-                : AppColors.nobBorder,
+                : context.borderColor,
           ),
         ),
         child: Text(
@@ -1001,18 +1002,18 @@ class _NobFilterBar extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.nobSurfaceAlt,
+                    color: context.surfaceAltColor,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    border: Border.all(color: AppColors.nobBorder),
+                    border: Border.all(color: context.borderColor),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.sort_rounded, color: AppColors.nobObserver, size: 14),
+                      Icon(Icons.sort_rounded, color: context.textMuted, size: 14),
                       const SizedBox(width: 4),
                       Text(
                         state.sortMode == 'ai_pick' ? 'AI Pick' : state.sortMode[0].toUpperCase() + state.sortMode.substring(1),
-                        style: const TextStyle(color: AppColors.nobObserver, fontSize: 11),
+                        style: TextStyle(color: context.textMuted, fontSize: 11),
                       ),
                     ],
                   ),
@@ -1043,12 +1044,12 @@ class _NobFilterBar extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+                      color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.15) : context.surfaceAltColor,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                      border: Border.all(color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+                      border: Border.all(color: state.hidePassed ? AppColors.noblaraGold.withValues(alpha: 0.4) : context.borderColor),
                     ),
                     child: Text('Hide passed', style: TextStyle(
-                      color: state.hidePassed ? AppColors.noblaraGold : AppColors.nobObserver, fontSize: 11)),
+                      color: state.hidePassed ? AppColors.noblaraGold : context.textMuted, fontSize: 11)),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -1057,12 +1058,12 @@ class _NobFilterBar extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+                      color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.15) : context.surfaceAltColor,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                      border: Border.all(color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+                      border: Border.all(color: state.prioritizeConnected ? AppColors.noblaraGold.withValues(alpha: 0.4) : context.borderColor),
                     ),
                     child: Text('Connected first', style: TextStyle(
-                      color: state.prioritizeConnected ? AppColors.noblaraGold : AppColors.nobObserver, fontSize: 11)),
+                      color: state.prioritizeConnected ? AppColors.noblaraGold : context.textMuted, fontSize: 11)),
                   ),
                 ),
               ],
@@ -1087,12 +1088,12 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: active ? AppColors.noblaraGold.withValues(alpha: 0.15) : AppColors.nobSurfaceAlt,
+          color: active ? AppColors.noblaraGold.withValues(alpha: 0.15) : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          border: Border.all(color: active ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder),
+          border: Border.all(color: active ? AppColors.noblaraGold.withValues(alpha: 0.4) : context.borderColor),
         ),
         child: Text(label, style: TextStyle(
-          color: active ? AppColors.noblaraGold : AppColors.nobObserver,
+          color: active ? AppColors.noblaraGold : context.textMuted,
           fontSize: 11, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
         )),
       ),
@@ -1125,9 +1126,9 @@ class _AuthorProfileSheet extends StatelessWidget {
       maxChildSize: 0.85,
       expand: false,
       builder: (context, scroll) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.nobSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
         ),
         child: ListView(
           controller: scroll,
@@ -1136,7 +1137,7 @@ class _AuthorProfileSheet extends StatelessWidget {
             // Handle
             Center(
               child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(999))),
+                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999))),
             ),
             const SizedBox(height: AppSpacing.xxl),
 
@@ -1157,7 +1158,7 @@ class _AuthorProfileSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(post.authorName ?? 'User',
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+                        style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

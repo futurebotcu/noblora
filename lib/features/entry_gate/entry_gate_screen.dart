@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 
@@ -58,15 +59,15 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         elevation: 0,
         actions: [
           TextButton.icon(
-            icon: const Icon(Icons.logout, size: 16, color: AppColors.textMuted),
-            label: const Text('Sign Out',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            icon: Icon(Icons.logout, size: 16, color: context.textMuted),
+            label: Text('Sign Out',
+                style: TextStyle(color: context.textMuted, fontSize: 12)),
             onPressed: () => ref.read(authProvider.notifier).signOut(),
           ),
         ],
@@ -96,7 +97,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
-                      ?.copyWith(color: AppColors.textMuted),
+                      ?.copyWith(color: context.textMuted),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
@@ -109,7 +110,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.textMuted),
+                      ?.copyWith(color: context.textMuted),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
@@ -117,13 +118,13 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                     Expanded(
                       child: TextField(
                         controller: _codeCtrl,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: context.textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Enter referral code',
-                          hintStyle: const TextStyle(
-                              color: AppColors.textDisabled),
+                          hintStyle: TextStyle(
+                              color: context.textDisabled),
                           filled: true,
-                          fillColor: AppColors.surface,
+                          fillColor: context.surfaceColor,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.md,
                               vertical: AppSpacing.sm),
@@ -131,13 +132,13 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppSpacing.radiusSm),
                             borderSide:
-                                const BorderSide(color: AppColors.border),
+                                BorderSide(color: context.borderColor),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.circular(AppSpacing.radiusSm),
                             borderSide:
-                                const BorderSide(color: AppColors.border),
+                                BorderSide(color: context.borderColor),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius:
@@ -162,7 +163,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.gold,
-                              foregroundColor: AppColors.bg,
+                              foregroundColor: context.bgColor,
                               minimumSize: const Size(60, 44),
                             ),
                             onPressed: _submitCode,
@@ -187,7 +188,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.textMuted),
+                      ?.copyWith(color: context.textMuted),
                   textAlign: TextAlign.center,
                 ),
               ],

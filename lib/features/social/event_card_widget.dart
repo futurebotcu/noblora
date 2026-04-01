@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/event.dart';
 
 const _violet = Color(0xFFAB47BC);
@@ -28,9 +29,9 @@ class EventCardWidget extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.borderSubtle, width: 0.5),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 3))],
         ),
         child: Column(
@@ -78,7 +79,7 @@ class EventCardWidget extends StatelessWidget {
                           children: [
                             Text(
                               event.hostName ?? 'Host',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                              style: TextStyle(color: context.textMuted, fontSize: 12),
                             ),
                             const SizedBox(width: 4),
                             Container(
@@ -94,7 +95,7 @@ class EventCardWidget extends StatelessWidget {
                         Text(
                           event.title,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                           maxLines: 1,
@@ -128,7 +129,7 @@ class EventCardWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: Text(
                   event.description!,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.3),
+                  style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.3),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -142,9 +143,9 @@ class EventCardWidget extends StatelessWidget {
               child: Row(
                 children: [
                   if (event.locationText != null) ...[
-                    Icon(Icons.location_on_outlined, color: AppColors.textMuted, size: 14),
+                    Icon(Icons.location_on_outlined, color: context.textMuted, size: 14),
                     const SizedBox(width: 4),
-                    Text(event.locationText!, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    Text(event.locationText!, style: TextStyle(color: context.textMuted, fontSize: 12)),
                     const Spacer(),
                   ],
                   // Attendee count
@@ -168,7 +169,7 @@ class EventCardWidget extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: event.fillPercent,
                   minHeight: 3,
-                  backgroundColor: AppColors.border,
+                  backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     event.fillPercent > 0.8 ? AppColors.warning : _violet,
                   ),
@@ -184,7 +185,7 @@ class EventCardWidget extends StatelessWidget {
               child: Row(
                 children: [
                   if (event.isFull)
-                    Text('Full', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+                    Text('Full', style: TextStyle(color: context.textMuted, fontSize: 12))
                   else if (onJoin != null)
                     TextButton.icon(
                       onPressed: onJoin,
@@ -200,7 +201,7 @@ class EventCardWidget extends StatelessWidget {
                   TextButton(
                     onPressed: onTap,
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textMuted,
+                      foregroundColor: context.textMuted,
                       visualDensity: VisualDensity.compact,
                     ),
                     child: const Text('Open', style: TextStyle(fontSize: 12)),

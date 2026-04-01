@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/filter_state.dart';
 import '../../providers/auth_provider.dart';
@@ -68,7 +68,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
       initialChildSize: 0.85, minChildSize: 0.4, maxChildSize: 0.95,
       builder: (_, scroll) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(top: BorderSide(color: accent.withValues(alpha: 0.08))),
         ),
@@ -76,7 +76,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
           // Header
           Padding(padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
             child: Column(children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999))),
               const SizedBox(height: AppSpacing.lg),
               Row(children: [
                 Text('Filter', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
@@ -93,13 +93,13 @@ class _State extends ConsumerState<FilterBottomSheet> {
           Expanded(child: ListView(controller: scroll, padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl), children: [
             const SizedBox(height: AppSpacing.xxl),
             // ═══ QUICK FILTERS ═══
-            Text('Quick filters', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+            Text('Quick filters', style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
             const SizedBox(height: AppSpacing.md),
 
             // Age
             _Label('Age range'),
             _AgeLabel(range: _f.ageRange, accent: accent),
-            SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: accent, thumbColor: accent, inactiveTrackColor: AppColors.border),
+            SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: accent, thumbColor: accent, inactiveTrackColor: context.borderColor),
               child: RangeSlider(values: _f.ageRange, min: 18, max: 65, divisions: 47,
                   onChanged: (v) => _set(_f.copyWith(ageRange: v)))),
             const SizedBox(height: AppSpacing.lg),
@@ -107,7 +107,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
             // City/distance
             _Label('Distance'),
             Text('Within ${_f.maxDistance.round()} km', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
-            SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: accent, thumbColor: accent, inactiveTrackColor: AppColors.border),
+            SliderTheme(data: SliderTheme.of(context).copyWith(activeTrackColor: accent, thumbColor: accent, inactiveTrackColor: context.borderColor),
               child: Slider(value: _f.maxDistance, min: 1, max: 100, divisions: 99,
                   onChanged: (v) => _set(_f.copyWith(maxDistance: v)))),
             const SizedBox(height: AppSpacing.lg),
@@ -163,7 +163,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
             // ═══ ADVANCED FILTERS ═══
             if (_showAdvanced) ...[
               const SizedBox(height: AppSpacing.xxl),
-              Text('Advanced', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+              Text('Advanced', style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
               const SizedBox(height: AppSpacing.md),
 
               _Label('Social energy'),
@@ -232,7 +232,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
           // Bottom: count + apply
           Container(
             padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, AppSpacing.xxxl),
-            decoration: BoxDecoration(color: AppColors.surface, border: Border(top: BorderSide(color: AppColors.border))),
+            decoration: BoxDecoration(color: context.surfaceColor, border: Border(top: BorderSide(color: context.borderColor))),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (_count >= 0) Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -241,7 +241,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                   Text('$_count profiles match', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
                 ])),
               SizedBox(width: double.infinity, child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: AppColors.bg,
+                style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: context.bgColor,
                     minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
                 onPressed: _apply,
                 child: Text(count > 0 ? 'Apply ($count active)' : 'Apply', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
@@ -262,7 +262,7 @@ class _Label extends StatelessWidget {
   final String t; const _Label(this.t);
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 4),
-    child: Text(t, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppColors.textMuted, fontSize: 12)));
+    child: Text(t, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: context.textMuted, fontSize: 12)));
 }
 
 class _AgeLabel extends StatelessWidget {
@@ -281,10 +281,10 @@ class _Chip extends StatelessWidget {
     duration: const Duration(milliseconds: 180),
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
     decoration: BoxDecoration(
-      color: active ? accent.withValues(alpha: 0.08) : AppColors.elevated,
+      color: active ? accent.withValues(alpha: 0.08) : context.elevatedColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-      border: Border.all(color: active ? accent.withValues(alpha: 0.3) : AppColors.borderSubtle, width: 0.5)),
-    child: Text(label, style: TextStyle(color: active ? accent : AppColors.textMuted, fontSize: 12,
+      border: Border.all(color: active ? accent.withValues(alpha: 0.3) : context.borderSubtleColor, width: 0.5)),
+    child: Text(label, style: TextStyle(color: active ? accent : context.textMuted, fontSize: 12,
         fontWeight: active ? FontWeight.w600 : FontWeight.w400, letterSpacing: 0.1))));
 }
 
@@ -294,6 +294,6 @@ class _Toggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 4),
     child: Row(children: [
-      Expanded(child: Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13))),
+      Expanded(child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 13))),
       Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: accent.withValues(alpha: 0.4))]));
 }

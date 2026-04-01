@@ -40,6 +40,21 @@ class AppColors {
   static const Color teal = Color(0xFF26C6DA);
   static const Color violet = Color(0xFF9B6DFF);
 
+  // ── Light Mode Surfaces ──
+  static const Color lightBg = Color(0xFFFAF9F6);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceAlt = Color(0xFFF5F3EE);
+  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color lightElevated = Color(0xFFF0EDE6);
+  static const Color lightBorder = Color(0xFFE8E4DC);
+  static const Color lightBorderSubtle = Color(0xFFF0EDE8);
+
+  // ── Light Mode Text ──
+  static const Color lightTextPrimary = Color(0xFF1A1814);
+  static const Color lightTextSecondary = Color(0xFF4A4640);
+  static const Color lightTextMuted = Color(0xFF8C8680);
+  static const Color lightTextDisabled = Color(0xFFBEB8AE);
+
   // ── Noblara Brand ──
   static const Color noblaraGold = Color(0xFFCBA135);
   static const Color nobBackground = Color(0xFF080808);

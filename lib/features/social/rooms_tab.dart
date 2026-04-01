@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/room_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import 'room_card_widget.dart';
@@ -88,7 +88,7 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result),
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.surfaceColor,
         ),
       );
     }
@@ -149,15 +149,15 @@ class _EmptyRooms extends StatelessWidget {
             Text(
               'No rooms yet',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.textPrimary,
                   ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'Start a topic room and chat with\npeople nearby.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: context.textMuted,
                 fontSize: 13,
                 height: 1.5,
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/profile_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
@@ -41,7 +42,7 @@ class _ProfileBasicsScreenState extends ConsumerState<ProfileBasicsScreen> {
     final profile = ref.watch(profileProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -60,7 +61,7 @@ class _ProfileBasicsScreenState extends ConsumerState<ProfileBasicsScreen> {
                 Text(
                   'What should we call you?',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textMuted,
+                        color: context.textMuted,
                       ),
                   textAlign: TextAlign.center,
                 ),

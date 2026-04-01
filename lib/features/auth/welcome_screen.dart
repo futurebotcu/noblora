@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../shared/widgets/app_button.dart';
 import 'sign_in_screen.dart';
 import 'sign_up_screen.dart';
@@ -31,7 +32,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Where elegance meets connection.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.textMuted,
                       letterSpacing: 0.5,
                     ),
                 textAlign: TextAlign.center,

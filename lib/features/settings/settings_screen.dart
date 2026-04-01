@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/appearance_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -106,11 +107,11 @@ class SettingsScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent,
-        title: const Text('Settings', style: TextStyle(color: AppColors.textPrimary)),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        backgroundColor: context.bgColor, surfaceTintColor: Colors.transparent,
+        title: Text('Settings', style: TextStyle(color: context.textPrimary)),
+        iconTheme: IconThemeData(color: context.textPrimary),
       ),
       body: ListView(
         children: [
@@ -188,7 +189,7 @@ class SettingsScreen extends ConsumerWidget {
               sub: (s['photos_verified'] as bool? ?? false) ? 'Verified' : (s['verification_status'] as String? ?? 'Not started')),
           _Tile(Icons.face_rounded, 'Selfie Verification',
               sub: (s['selfie_verified'] as bool? ?? false) ? 'Verified' : 'Not verified'),
-          _Tile(Icons.badge_outlined, 'ID Verification', sub: 'Coming soon', color: AppColors.textDisabled),
+          _Tile(Icons.badge_outlined, 'ID Verification', sub: 'Coming soon', color: context.textDisabled),
           _Tile(Icons.block_rounded, 'Blocked Users',
               sub: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0} blocked',
               onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?)),
@@ -208,8 +209,8 @@ class SettingsScreen extends ConsumerWidget {
           _H('Chats & Calls'),
           _T(Icons.preview_rounded, 'Message Previews', s['message_preview'] as bool? ?? true, (_) => n.toggleBool('message_preview'),
               sub: 'Show message content in inbox list'),
-          const _Tile(Icons.save_alt_rounded, 'Auto-save Media', sub: 'Available in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.alarm_rounded, 'Call Reminders', sub: 'Available in a future update', color: AppColors.textDisabled),
+          _Tile(Icons.save_alt_rounded, 'Auto-save Media', sub: 'Available in a future update', color: context.textDisabled),
+          _Tile(Icons.alarm_rounded, 'Call Reminders', sub: 'Available in a future update', color: context.textDisabled),
           _T(Icons.exit_to_app_rounded, 'Leave Event Chat After End', s['leave_event_chat_auto'] as bool? ?? true, (_) => n.toggleBool('leave_event_chat_auto')),
 
           // ════════════════════════════════════════════════════════════
@@ -217,33 +218,33 @@ class SettingsScreen extends ConsumerWidget {
           // ════════════════════════════════════════════════════════════
           _H('AI Writing Help'),
           _T(Icons.auto_fix_high_rounded, 'Nob Text Cleanup', n.aiVal('ai_writing_help', 'nob_cleanup'), (_) => n.toggleAi('ai_writing_help', 'nob_cleanup')),
-          const _Tile(Icons.person_outline, 'Bio Cleanup', sub: 'Available in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.event_note_rounded, 'Event Description Cleanup', sub: 'Available in a future update', color: AppColors.textDisabled),
+          _Tile(Icons.person_outline, 'Bio Cleanup', sub: 'Available in a future update', color: context.textDisabled),
+          _Tile(Icons.event_note_rounded, 'Event Description Cleanup', sub: 'Available in a future update', color: context.textDisabled),
           _T(Icons.chat_outlined, 'First Message Softening', n.aiVal('ai_writing_help', 'message_softening'), (_) => n.toggleAi('ai_writing_help', 'message_softening')),
           _H('AI Suggestions'),
           _T(Icons.people_outline, 'BFF Suggestion Explanations', n.aiVal('ai_suggestions', 'bff_explanations'), (_) => n.toggleAi('ai_suggestions', 'bff_explanations')),
-          const _Tile(Icons.event_outlined, 'Event Recommendations', sub: 'Available in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.insights_rounded, 'Profile Resonance', sub: 'Available in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.tune_rounded, 'Filter Suggestions', sub: 'Available in a future update', color: AppColors.textDisabled),
+          _Tile(Icons.event_outlined, 'Event Recommendations', sub: 'Available in a future update', color: context.textDisabled),
+          _Tile(Icons.insights_rounded, 'Profile Resonance', sub: 'Available in a future update', color: context.textDisabled),
+          _Tile(Icons.tune_rounded, 'Filter Suggestions', sub: 'Available in a future update', color: context.textDisabled),
           _H('AI Insights'),
-          const _Tile(Icons.visibility_rounded, 'Show Resonance', sub: 'Coming in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.star_outline_rounded, 'Show Highlights', sub: 'Coming in a future update', color: AppColors.textDisabled),
-          const _Tile(Icons.bar_chart_rounded, 'Show Performance', sub: 'Coming in a future update', color: AppColors.textDisabled),
+          _Tile(Icons.visibility_rounded, 'Show Resonance', sub: 'Coming in a future update', color: context.textDisabled),
+          _Tile(Icons.star_outline_rounded, 'Show Highlights', sub: 'Coming in a future update', color: context.textDisabled),
+          _Tile(Icons.bar_chart_rounded, 'Show Performance', sub: 'Coming in a future update', color: context.textDisabled),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusSm), border: Border.all(color: AppColors.border)),
-              child: const Column(
+              decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm), border: Border.all(color: context.borderColor)),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AI Privacy', style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  SizedBox(height: AppSpacing.sm),
+                  Text('AI Privacy', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: AppSpacing.sm),
                   Text('AI uses: profile text, behavior patterns, interaction quality.\n'
                       'AI never uses: private messages, call audio/video.\n'
                       'Text cleanup: sent for processing, not stored.\n'
                       'Resonance: anonymous pattern matching only.',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.5)),
+                      style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.5)),
                 ],
               ),
             ),
@@ -306,11 +307,11 @@ class SettingsScreen extends ConsumerWidget {
 
   void _pickLanguage(BuildContext context, WidgetRef ref, _SettingsNotifier n) {
     showModalBottomSheet(
-      context: context, backgroundColor: AppColors.surface,
+      context: context, backgroundColor: context.surfaceColor,
       builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(title: const Text('English', style: TextStyle(color: AppColors.textPrimary)),
+        ListTile(title: Text('English', style: TextStyle(color: context.textPrimary)),
             onTap: () { Navigator.pop(ctx); n.setString('language', 'en'); }),
-        ListTile(title: const Text('Türkçe', style: TextStyle(color: AppColors.textPrimary)),
+        ListTile(title: Text('Türkçe', style: TextStyle(color: context.textPrimary)),
             onTap: () { Navigator.pop(ctx); n.setString('language', 'tr'); }),
         const SizedBox(height: AppSpacing.xxl),
       ]),
@@ -319,15 +320,15 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showStaticContent(BuildContext context, String title, String body) {
     showModalBottomSheet(
-      context: context, backgroundColor: AppColors.surface, isScrollControlled: true,
+      context: context, backgroundColor: context.surfaceColor, isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.6, expand: false,
         builder: (ctx, scroll) => ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)))),
           const SizedBox(height: AppSpacing.xxl),
-          Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: AppSpacing.lg),
-          Text(body, style: const TextStyle(color: AppColors.textMuted, fontSize: 14, height: 1.6)),
+          Text(body, style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
         ]),
       ),
     );
@@ -335,18 +336,18 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showListSheet(BuildContext context, String title, List<dynamic>? items) {
     showModalBottomSheet(
-      context: context, backgroundColor: AppColors.surface,
+      context: context, backgroundColor: context.surfaceColor,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: AppSpacing.lg),
           if (items == null || items.isEmpty)
-            const Text('None', style: TextStyle(color: AppColors.textMuted))
+            Text('None', style: TextStyle(color: context.textMuted))
           else
             ...items.take(20).map((id) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text('$id', style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontFamily: 'monospace')),
+              child: Text('$id', style: TextStyle(color: context.textMuted, fontSize: 12, fontFamily: 'monospace')),
             )),
           const SizedBox(height: AppSpacing.xxl),
         ]),
@@ -359,13 +360,13 @@ class SettingsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Report a Bug', style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
-        content: TextField(controller: ctrl, maxLines: 4, style: const TextStyle(color: AppColors.textPrimary),
-            decoration: InputDecoration(hintText: 'Describe the issue...', hintStyle: const TextStyle(color: AppColors.textDisabled),
-                filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
+        backgroundColor: context.surfaceColor,
+        title: Text('Report a Bug', style: TextStyle(color: context.textPrimary, fontSize: 16)),
+        content: TextField(controller: ctrl, maxLines: 4, style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(hintText: 'Describe the issue...', hintStyle: TextStyle(color: context.textDisabled),
+                filled: true, fillColor: context.bgColor, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(onPressed: () {
             Navigator.pop(ctx);
             Clipboard.setData(ClipboardData(text: 'Bug report: ${ctrl.text.trim()}'));
@@ -378,11 +379,11 @@ class SettingsScreen extends ConsumerWidget {
 
   void _confirmPause(BuildContext context, WidgetRef ref) {
     showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.surfaceColor,
       title: const Text('Pause Account', style: TextStyle(color: AppColors.warning)),
-      content: const Text('Your profile will be hidden. Your data stays safe. You can return anytime.', style: TextStyle(color: AppColors.textMuted)),
+      content: Text('Your profile will be hidden. Your data stays safe. You can return anytime.', style: TextStyle(color: context.textMuted)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
         TextButton(onPressed: () async {
           Navigator.pop(context);
           final uid = ref.read(authProvider).userId;
@@ -399,19 +400,19 @@ class SettingsScreen extends ConsumerWidget {
     final ctrl = TextEditingController();
     showDialog(context: context, builder: (_) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.surfaceColor,
         title: const Text('Delete Account', style: TextStyle(color: AppColors.error)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('This will permanently delete your account and all data. This cannot be undone.', style: TextStyle(color: AppColors.textMuted)),
+          Text('This will permanently delete your account and all data. This cannot be undone.', style: TextStyle(color: context.textMuted)),
           const SizedBox(height: AppSpacing.lg),
-          const Text('Type DELETE to confirm:', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('Type DELETE to confirm:', style: TextStyle(color: context.textMuted, fontSize: 12)),
           const SizedBox(height: AppSpacing.sm),
-          TextField(controller: ctrl, style: const TextStyle(color: AppColors.textPrimary), onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(hintText: 'DELETE', hintStyle: const TextStyle(color: AppColors.textDisabled),
-                  filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
+          TextField(controller: ctrl, style: TextStyle(color: context.textPrimary), onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(hintText: 'DELETE', hintStyle: TextStyle(color: context.textDisabled),
+                  filled: true, fillColor: context.bgColor, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: ctrl.text == 'DELETE' ? () async {
               Navigator.pop(ctx);
@@ -424,7 +425,7 @@ class SettingsScreen extends ConsumerWidget {
               }
               await ref.read(authProvider.notifier).signOut();
             } : null,
-            child: Text('Delete', style: TextStyle(color: ctrl.text == 'DELETE' ? AppColors.error : AppColors.textDisabled)),
+            child: Text('Delete', style: TextStyle(color: ctrl.text == 'DELETE' ? AppColors.error : context.textDisabled)),
           ),
         ],
       ),
@@ -445,7 +446,7 @@ class _H extends StatelessWidget {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(width: 24, height: 1.5, decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
       const SizedBox(height: AppSpacing.sm),
-      Text(t.toUpperCase(), style: TextStyle(color: AppColors.textDisabled, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.8)),
+      Text(t.toUpperCase(), style: TextStyle(color: context.textDisabled, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.8)),
     ]),
   );
 }
@@ -455,11 +456,11 @@ class _Tile extends StatelessWidget {
   const _Tile(this.icon, this.title, {this.sub, this.color, this.onTap});
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textPrimary;
+    final c = color ?? context.textPrimary;
     return ListTile(tileColor: Colors.transparent, leading: Icon(icon, color: c, size: 20),
       title: Text(title, style: TextStyle(color: c, fontSize: 14)),
-      subtitle: sub != null ? Text(sub!, style: const TextStyle(color: AppColors.textDisabled, fontSize: 12)) : null,
-      trailing: onTap != null ? const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled, size: 18) : null,
+      subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 12)) : null,
+      trailing: onTap != null ? Icon(Icons.chevron_right_rounded, color: context.textDisabled, size: 18) : null,
       onTap: onTap);
   }
 }
@@ -469,9 +470,9 @@ class _T extends StatelessWidget {
   const _T(this.icon, this.title, this.value, this.onChanged, {this.sub});
   @override
   Widget build(BuildContext context) => ListTile(tileColor: Colors.transparent,
-    leading: Icon(icon, color: AppColors.textPrimary, size: 20),
-    title: Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-    subtitle: sub != null ? Text(sub!, style: const TextStyle(color: AppColors.textDisabled, fontSize: 11)) : null,
+    leading: Icon(icon, color: context.textPrimary, size: 20),
+    title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
+    subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 11)) : null,
     trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.gold.withValues(alpha: 0.4)));
 }
 
@@ -484,11 +485,11 @@ class _PermSelector extends StatelessWidget {
     final options = ['everyone', 'verified', 'explorer_plus', 'noble_only', 'nobody'];
     final labels = {'everyone': 'Everyone', 'verified': 'Verified only', 'explorer_plus': 'Explorer+ only', 'noble_only': 'Noble only', 'nobody': 'Nobody'};
     return ListTile(tileColor: Colors.transparent,
-      leading: Icon(icon, color: AppColors.textPrimary, size: 20),
-      title: Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+      leading: Icon(icon, color: context.textPrimary, size: 20),
+      title: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 14)),
       trailing: DropdownButton<String>(
         value: options.contains(value) ? value : 'everyone',
-        dropdownColor: AppColors.surface,
+        dropdownColor: context.surfaceColor,
         style: const TextStyle(color: AppColors.gold, fontSize: 12),
         underline: const SizedBox.shrink(),
         items: options.map((o) => DropdownMenuItem(value: o, child: Text(labels[o] ?? o))).toList(),
@@ -511,14 +512,14 @@ class _EditCityState extends State<_EditCity> {
   @override void dispose() { _c.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => ListTile(tileColor: Colors.transparent,
-    leading: const Icon(Icons.location_on_rounded, color: AppColors.textPrimary, size: 20),
-    title: Text(widget.label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+    leading: Icon(Icons.location_on_rounded, color: context.textPrimary, size: 20),
+    title: Text(widget.label, style: TextStyle(color: context.textPrimary, fontSize: 14)),
     subtitle: SizedBox(height: 34, child: TextField(controller: _c,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-      decoration: InputDecoration(hintText: 'e.g. Istanbul', hintStyle: const TextStyle(color: AppColors.textDisabled, fontSize: 13),
+      style: TextStyle(color: context.textPrimary, fontSize: 13),
+      decoration: InputDecoration(hintText: 'e.g. Istanbul', hintStyle: TextStyle(color: context.textDisabled, fontSize: 13),
         isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.gold))),
       onSubmitted: widget.onChanged, onEditingComplete: () => widget.onChanged(_c.text.trim()))));
 }
@@ -534,9 +535,9 @@ class _AppearanceThemeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = ref.watch(appearanceProvider).themeMode;
     return Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg), child: Row(children: [
-      const Icon(Icons.brightness_6_rounded, color: AppColors.textPrimary, size: 20),
+      Icon(Icons.brightness_6_rounded, color: context.textPrimary, size: 20),
       const SizedBox(width: AppSpacing.md),
-      const Expanded(child: Text('Theme', style: TextStyle(color: AppColors.textPrimary, fontSize: 14))),
+      Expanded(child: Text('Theme', style: TextStyle(color: context.textPrimary, fontSize: 14))),
       SegmentedButton<ThemeMode>(
         segments: const [
           ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 16)),
@@ -545,8 +546,8 @@ class _AppearanceThemeSelector extends StatelessWidget {
         ],
         selected: {current},
         onSelectionChanged: (s) => ref.read(appearanceProvider.notifier).setThemeMode(s.first),
-        style: SegmentedButton.styleFrom(backgroundColor: AppColors.surface,
-            selectedBackgroundColor: AppColors.gold.withValues(alpha: 0.2), selectedForegroundColor: AppColors.gold, foregroundColor: AppColors.textMuted),
+        style: SegmentedButton.styleFrom(backgroundColor: context.surfaceColor,
+            selectedBackgroundColor: AppColors.gold.withValues(alpha: 0.2), selectedForegroundColor: AppColors.gold, foregroundColor: context.textMuted),
       ),
     ]));
   }
@@ -559,9 +560,9 @@ class _AppearanceAccentSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = ref.watch(appearanceProvider).accent;
     return Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg), child: Row(children: [
-      const Icon(Icons.palette_rounded, color: AppColors.textPrimary, size: 20),
+      Icon(Icons.palette_rounded, color: context.textPrimary, size: 20),
       const SizedBox(width: AppSpacing.md),
-      const Expanded(child: Text('Accent', style: TextStyle(color: AppColors.textPrimary, fontSize: 14))),
+      Expanded(child: Text('Accent', style: TextStyle(color: context.textPrimary, fontSize: 14))),
       Row(children: AppAccent.values.map((a) {
         final sel = a == current;
         return GestureDetector(onTap: () => ref.read(appearanceProvider.notifier).setAccent(a),

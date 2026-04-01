@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/room.dart';
 import '../../data/models/room_message.dart';
 import '../../providers/auth_provider.dart';
@@ -65,9 +66,9 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         surfaceTintColor: Colors.transparent,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,8 +79,8 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
             ),
             Text(
               '${chatState.participants.length} participants',
-              style: const TextStyle(
-                color: AppColors.textMuted,
+              style: TextStyle(
+                color: context.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
@@ -120,7 +121,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
           // Leave button
           IconButton(
             icon: const Icon(Icons.exit_to_app_rounded),
-            color: AppColors.textMuted,
+            color: context.textMuted,
             onPressed: () => _leaveRoom(context, args),
           ),
         ],
@@ -136,10 +137,10 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                 vertical: AppSpacing.sm,
               ),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: context.surfaceColor,
                 border: Border(
                   bottom: BorderSide(
-                    color: AppColors.borderSubtle,
+                    color: context.borderSubtleColor,
                     width: 0.5,
                   ),
                 ),
@@ -147,10 +148,10 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'PINNED',
                     style: TextStyle(
-                      color: AppColors.textDisabled,
+                      color: context.textDisabled,
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.5,
@@ -171,8 +172,8 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                             Expanded(
                               child: Text(
                                 '${m.senderName ?? 'User'}: ${m.content}',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: context.textSecondary,
                                   fontSize: 12,
                                 ),
                                 maxLines: 1,
@@ -198,7 +199,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                           'No messages yet.\nBe the first to say something!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: context.textMuted,
                             fontSize: 13,
                             height: 1.5,
                           ),
@@ -234,10 +235,10 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
               AppSpacing.sm,
               MediaQuery.of(context).padding.bottom + AppSpacing.md,
             ),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
               border: Border(
-                top: BorderSide(color: AppColors.borderSubtle, width: 0.5),
+                top: BorderSide(color: context.borderSubtleColor, width: 0.5),
               ),
             ),
             child: Row(
@@ -245,15 +246,15 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _inputCtrl,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: context.textPrimary,
                       fontSize: 14,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Say something...',
-                      hintStyle: const TextStyle(color: AppColors.textDisabled),
+                      hintStyle: TextStyle(color: context.textDisabled),
                       filled: true,
-                      fillColor: AppColors.surfaceAlt,
+                      fillColor: context.surfaceAltColor,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
                         vertical: AppSpacing.md,
@@ -306,7 +307,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
     if (!mounted) return;
     if (result != 'flagged') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result), backgroundColor: AppColors.surface),
+        SnackBar(content: Text(result), backgroundColor: context.surfaceColor),
       );
     }
   }
@@ -321,11 +322,11 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Leave room?',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('You can rejoin anytime while the room is active.',
-            style: TextStyle(color: AppColors.textMuted)),
+        backgroundColor: context.surfaceColor,
+        title: Text('Leave room?',
+            style: TextStyle(color: context.textPrimary)),
+        content: Text('You can rejoin anytime while the room is active.',
+            style: TextStyle(color: context.textMuted)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -347,7 +348,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
   void _showParticipants(BuildContext context, RoomChatState chatState) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -362,7 +363,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.borderColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -370,8 +371,8 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
             const SizedBox(height: AppSpacing.xxl),
             Text(
               'Participants (${chatState.participants.length})',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: context.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -398,8 +399,8 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                       const SizedBox(width: AppSpacing.md),
                       Text(
                         p.displayName ?? 'User',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: context.textPrimary,
                           fontSize: 14,
                         ),
                       ),
@@ -487,7 +488,7 @@ class _MessageBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelf
                       ? _violet.withValues(alpha: 0.15)
-                      : AppColors.elevated,
+                      : context.elevatedColor,
                   border: Border.all(
                     color: message.goldFlagged
                         ? AppColors.gold.withValues(alpha: 0.5)
@@ -495,7 +496,7 @@ class _MessageBubble extends StatelessWidget {
                             ? Colors.blue.withValues(alpha: 0.3)
                             : isSelf
                                 ? _violet.withValues(alpha: 0.2)
-                                : AppColors.borderSubtle,
+                                : context.borderSubtleColor,
                     width: message.goldFlagged || message.blueFlagged ? 1 : 0.5,
                   ),
                   borderRadius: BorderRadius.only(
@@ -517,7 +518,7 @@ class _MessageBubble extends StatelessWidget {
                           Text(
                             message.senderName ?? 'User',
                             style: TextStyle(
-                              color: message.isHost ? _violet : AppColors.textMuted,
+                              color: message.isHost ? _violet : context.textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -559,8 +560,8 @@ class _MessageBubble extends StatelessWidget {
                       message.content,
                       style: TextStyle(
                         color: isSelf
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                            ? context.textPrimary
+                            : context.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -578,7 +579,7 @@ class _MessageBubble extends StatelessWidget {
     if (onGoldFlag == null && onBlueFlag == null) return;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -591,10 +592,10 @@ class _MessageBubble extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.push_pin_rounded,
                     color: AppColors.gold),
-                title: const Text('Gold Pin',
-                    style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Pin this message (max 3)',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                title: Text('Gold Pin',
+                    style: TextStyle(color: context.textPrimary)),
+                subtitle: Text('Pin this message (max 3)',
+                    style: TextStyle(color: context.textMuted, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
                   onGoldFlag!();
@@ -603,10 +604,10 @@ class _MessageBubble extends StatelessWidget {
             if (onBlueFlag != null)
               ListTile(
                 leading: Icon(Icons.flag_rounded, color: Colors.blue.shade300),
-                title: const Text('Blue Flag',
-                    style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('Flag this message',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                title: Text('Blue Flag',
+                    style: TextStyle(color: context.textPrimary)),
+                subtitle: Text('Flag this message',
+                    style: TextStyle(color: context.textMuted, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
                   onBlueFlag!();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/app_tokens.dart';
 import '../core/utils/mock_mode.dart';
 import '../providers/auth_provider.dart';
 import '../features/admin/admin_screen.dart';
@@ -114,13 +115,13 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          backgroundColor: AppColors.surface,
+          backgroundColor: context.surfaceColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: isVideoProposed
                   ? AppColors.gold.withValues(alpha: 0.5)
-                  : AppColors.border,
+                  : context.borderColor,
             ),
           ),
           duration: const Duration(seconds: 5),
@@ -149,8 +150,8 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                     ),
                     Text(
                       latest.body,
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: context.textMuted,
                         fontSize: 12,
                       ),
                       maxLines: 2,

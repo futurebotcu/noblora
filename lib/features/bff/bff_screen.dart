@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/bff_suggestion.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/auth_provider.dart';
@@ -50,16 +50,16 @@ class _BffScreenState extends ConsumerState<BffScreen>
     final state = ref.watch(bffProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF060E0E),
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF060E0E),
+        backgroundColor: context.bgColor,
         surfaceTintColor: Colors.transparent,
         titleSpacing: AppSpacing.lg,
         title: const ModeSwitcher(),
         actions: [
           _FilterButton(ref: ref),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textMuted),
+            icon: Icon(Icons.refresh_rounded, color: context.textMuted),
             onPressed: () => ref.read(bffProvider.notifier).load(),
           ),
         ],
@@ -67,7 +67,7 @@ class _BffScreenState extends ConsumerState<BffScreen>
           controller: _tabCtrl,
           indicatorColor: _teal,
           labelColor: _teal,
-          unselectedLabelColor: AppColors.textMuted,
+          unselectedLabelColor: context.textMuted,
           dividerColor: Colors.transparent,
           tabs: [
             Tab(text: 'Suggestions${state.suggestions.isNotEmpty ? ' (${state.suggestions.length})' : ''}'),
@@ -122,7 +122,7 @@ class _SuggestionsTab extends ConsumerWidget {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(sent ? 'Reached out!' : 'Limit reached'),
-                backgroundColor: sent ? _teal : AppColors.surface,
+                backgroundColor: sent ? _teal : context.surfaceColor,
               ));
             },
             onNote: () {
@@ -142,20 +142,20 @@ class _SuggestionsTab extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Note to ${sug.otherUserName ?? 'user'}', style: const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+        backgroundColor: context.surfaceColor,
+        title: Text('Note to ${sug.otherUserName ?? 'user'}', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: TextField(
           controller: ctrl, maxLength: 280, maxLines: 3,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.textPrimary),
           decoration: InputDecoration(
             hintText: 'Write something thoughtful...',
-            hintStyle: const TextStyle(color: AppColors.textMuted),
-            filled: true, fillColor: AppColors.bg,
+            hintStyle: TextStyle(color: context.textMuted),
+            filled: true, fillColor: context.bgColor,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: () {
               final text = ctrl.text.trim();
@@ -196,7 +196,7 @@ class _SuggestionsTab extends ConsumerWidget {
       _ => 'Done.',
     };
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: result == 'connected' ? _teal : AppColors.surface),
+      SnackBar(content: Text(message), backgroundColor: result == 'connected' ? _teal : context.surfaceColor),
     );
   }
 }
@@ -235,10 +235,10 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
           children: [
             Icon(Icons.search_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
             const SizedBox(height: AppSpacing.lg),
-            Text('No profiles to discover', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            Text('No profiles to discover', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
-            const Text('Try adjusting your filters or check back later.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13), textAlign: TextAlign.center),
+            Text('Try adjusting your filters or check back later.',
+                style: TextStyle(color: context.textMuted, fontSize: 13), textAlign: TextAlign.center),
           ],
         ),
       );
@@ -270,7 +270,7 @@ class _BffDiscoveryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: _teal.withValues(alpha: 0.15)),
       ),
@@ -295,9 +295,9 @@ class _BffDiscoveryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${card.name}, ${card.age}',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary, fontWeight: FontWeight.w600)),
                       if (card.city.isNotEmpty)
-                        Text(card.city, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        Text(card.city, style: TextStyle(color: context.textMuted, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -309,7 +309,7 @@ class _BffDiscoveryCard extends StatelessWidget {
           if (card.bio != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Text(card.bio!, style: const TextStyle(color: AppColors.textMuted, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+              child: Text(card.bio!, style: TextStyle(color: context.textMuted, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
             ),
           const SizedBox(height: AppSpacing.md),
           Padding(
@@ -319,8 +319,8 @@ class _BffDiscoveryCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.3)),
-                      foregroundColor: AppColors.textMuted,
+                      side: BorderSide(color: context.textMuted.withValues(alpha: 0.3)),
+                      foregroundColor: context.textMuted,
                       minimumSize: const Size.fromHeight(40),
                     ),
                     onPressed: onPass,
@@ -335,7 +335,7 @@ class _BffDiscoveryCard extends StatelessWidget {
                     label: const Text('Connect'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _teal,
-                      foregroundColor: AppColors.bg,
+                      foregroundColor: context.bgColor,
                       minimumSize: const Size.fromHeight(40),
                     ),
                     onPressed: onConnect,
@@ -365,10 +365,10 @@ class _ReachOutsTab extends ConsumerWidget {
           children: [
             Icon(Icons.waving_hand_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
             const SizedBox(height: AppSpacing.lg),
-            Text('No reach outs yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            Text('No reach outs yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
             Text('When someone reaches out, you\'ll see them here.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13), textAlign: TextAlign.center),
+                style: TextStyle(color: context.textMuted, fontSize: 13), textAlign: TextAlign.center),
           ],
         ),
       );
@@ -386,7 +386,7 @@ class _ReachOutsTab extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: AppSpacing.md),
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.surfaceColor,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(color: _teal.withValues(alpha: 0.15)),
           ),
@@ -402,16 +402,16 @@ class _ReachOutsTab extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                    Text(name, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text('reached out to you', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    Text('reached out to you', style: TextStyle(color: context.textMuted, fontSize: 12)),
                   ],
                 ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _teal,
-                  foregroundColor: AppColors.bg,
+                  foregroundColor: context.bgColor,
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
                 ),
@@ -424,7 +424,7 @@ class _ReachOutsTab extends ConsumerWidget {
                       ? 'Connected! Check your chats.'
                       : (result['error'] as String? ?? 'Error');
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg), backgroundColor: result['result'] == 'connected' ? _teal : AppColors.surface),
+                    SnackBar(content: Text(msg), backgroundColor: result['result'] == 'connected' ? _teal : context.surfaceColor),
                   );
                   ref.read(bffProvider.notifier).load();
                 },
@@ -459,7 +459,7 @@ class _HeaderBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 'AI finds people you might vibe with. Both of you see this at the same time.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4),
+                style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4),
               ),
             ),
           ],
@@ -480,10 +480,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.people_outline_rounded, color: _teal.withValues(alpha: 0.3), size: 72),
             const SizedBox(height: AppSpacing.xxl),
-            Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
+            Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
             Text('Our AI is finding people you might get along with.\nCheck back soon!',
-                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5)),
+                textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
           ],
         ),
       ),
@@ -503,7 +503,7 @@ class _FilterButton extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.tune_rounded),
-          color: count > 0 ? _teal : AppColors.textMuted,
+          color: count > 0 ? _teal : context.textMuted,
           onPressed: () => FilterBottomSheet.show(context),
         ),
         if (count > 0)
@@ -512,7 +512,7 @@ class _FilterButton extends StatelessWidget {
             child: Container(
               width: 16, height: 16,
               decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
-              child: Center(child: Text('$count', style: const TextStyle(color: AppColors.bg, fontSize: 9, fontWeight: FontWeight.w800))),
+              child: Center(child: Text('$count', style: TextStyle(color: context.bgColor, fontSize: 9, fontWeight: FontWeight.w800))),
             ),
           ),
       ],

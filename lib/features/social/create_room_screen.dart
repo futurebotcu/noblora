@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../providers/room_provider.dart';
 import '../../services/gemini_service.dart';
 
@@ -94,9 +95,9 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: context.bgColor,
         surfaceTintColor: Colors.transparent,
         title: const Text('Create Room'),
       ),
@@ -109,7 +110,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             TextField(
               controller: _titleCtrl,
               maxLength: 60,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: const InputDecoration(
                 labelText: 'Room topic',
                 hintText: 'What do you want to talk about?',
@@ -121,7 +122,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             TextField(
               controller: _descCtrl,
               maxLength: 100,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: const InputDecoration(
                 labelText: 'Description (optional)',
                 hintText: 'Brief context for your room',
@@ -130,10 +131,10 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             const SizedBox(height: AppSpacing.xxl),
 
             // Topic tags
-            const Text(
+            Text(
               'TOPIC TAGS',
               style: TextStyle(
-                color: AppColors.textDisabled,
+                color: context.textDisabled,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.8,
@@ -142,7 +143,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Select up to 3',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              style: TextStyle(color: context.textMuted, fontSize: 12),
             ),
             const SizedBox(height: AppSpacing.md),
             Wrap(
@@ -169,20 +170,20 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                     decoration: BoxDecoration(
                       color: selected
                           ? _violet.withValues(alpha: 0.12)
-                          : AppColors.elevated,
+                          : context.elevatedColor,
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusCircle),
                       border: Border.all(
                         color: selected
                             ? _violet.withValues(alpha: 0.4)
-                            : AppColors.borderSubtle,
+                            : context.borderSubtleColor,
                         width: 0.5,
                       ),
                     ),
                     child: Text(
                       tag,
                       style: TextStyle(
-                        color: selected ? _violet : AppColors.textMuted,
+                        color: selected ? _violet : context.textMuted,
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                       ),
@@ -196,9 +197,9 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             // Max participants slider
             Row(
               children: [
-                const Text(
+                Text(
                   'Max participants',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style: TextStyle(color: context.textSecondary, fontSize: 14),
                 ),
                 const Spacer(),
                 Text(
@@ -214,7 +215,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             SliderTheme(
               data: SliderThemeData(
                 activeTrackColor: _violet,
-                inactiveTrackColor: AppColors.border,
+                inactiveTrackColor: context.borderColor,
                 thumbColor: _violet,
                 overlayColor: _violet.withValues(alpha: 0.1),
               ),

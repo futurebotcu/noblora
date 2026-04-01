@@ -6,6 +6,7 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/inbox_item.dart';
 import '../../data/models/match.dart';
 import '../../data/models/message.dart';
@@ -174,7 +175,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         : null;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
@@ -189,23 +190,23 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
               width: 36,
               height: 3,
               decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
+                color: context.surfaceAltColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            const Text(
+            Text(
               'Quick Intro',
               style: TextStyle(
-                  color: Colors.white,
+                  color: context.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Start a short intro with $name',
-              style: const TextStyle(
-                  color: AppColors.textMuted, fontSize: 13),
+              style: TextStyle(
+                  color: context.textMuted, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -216,7 +217,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                     icon: Icons.videocam_rounded,
                     label: 'Video',
                     subtitle: match != null ? 'Schedule call' : 'Coming soon',
-                    color: match != null ? _accent : AppColors.textDisabled,
+                    color: match != null ? _accent : context.textDisabled,
                     onTap: match != null
                         ? () {
                             Navigator.pop(context);
@@ -237,7 +238,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                     icon: Icons.mic_rounded,
                     label: 'Voice',
                     subtitle: 'Coming soon',
-                    color: AppColors.textDisabled,
+                    color: context.textDisabled,
                     onTap: null,
                   ),
                 ),
@@ -315,8 +316,8 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 children: [
                   Text(
                     _item.name,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: context.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w700),
                   ),
@@ -427,8 +428,8 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   ),
                   GestureDetector(
                     onTap: () => setState(() => _nudgeDismissed = true),
-                    child: const Icon(Icons.close,
-                        color: AppColors.textMuted, size: 16),
+                    child: Icon(Icons.close,
+                        color: context.textMuted, size: 16),
                   ),
                 ],
               ),
@@ -445,12 +446,12 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.chat_bubble_outline_rounded,
-                                color: AppColors.textDisabled, size: 40),
+                                color: context.textDisabled, size: 40),
                             const SizedBox(height: AppSpacing.md),
-                            const Text(
+                            Text(
                               'No messages yet.\nSay hello!',
                               style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 14),
+                                  color: context.textMuted, fontSize: 14),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -522,7 +523,7 @@ class _ExpertiseBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      color: const Color(0xFF081010),
+      color: context.surfaceColor,
       child: Row(
         children: [
           Icon(Icons.business_center_rounded, color: accentColor, size: 12),
@@ -600,8 +601,8 @@ class _IntroOption extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                    color: AppColors.textDisabled, fontSize: 10),
+                style: TextStyle(
+                    color: context.textDisabled, fontSize: 10),
               ),
             ],
           ],
@@ -629,7 +630,7 @@ class _MsgBubble extends StatelessWidget {
         child: Center(
           child: Text(
             msg.text,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.textMuted, fontSize: 12),
             textAlign: TextAlign.center,
           ),
         ),
@@ -670,11 +671,11 @@ class _MsgBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 color: msg.isSelf
                     ? accentColor.withValues(alpha: 0.15)
-                    : AppColors.elevated,
+                    : context.elevatedColor,
                 border: Border.all(
                   color: msg.isSelf
                       ? accentColor.withValues(alpha: 0.2)
-                      : AppColors.borderSubtle,
+                      : context.borderSubtleColor,
                   width: 0.5,
                 ),
                 borderRadius: BorderRadius.only(
@@ -689,7 +690,7 @@ class _MsgBubble extends StatelessWidget {
               child: Text(
                 msg.text,
                 style: TextStyle(
-                  color: msg.isSelf ? AppColors.bg : AppColors.textPrimary,
+                  color: msg.isSelf ? context.bgColor : context.textPrimary,
                   fontSize: 14,
                 ),
               ),
@@ -719,7 +720,7 @@ class _TypingIndicator extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
+              color: context.surfaceAltColor,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
             child: const Row(
@@ -777,8 +778,8 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
         child: Container(
           width: 8,
           height: 8,
-          decoration: const BoxDecoration(
-              shape: BoxShape.circle, color: AppColors.textMuted),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, color: context.textMuted),
         ),
       ),
     );
@@ -812,23 +813,23 @@ class _ChatInputBar extends StatelessWidget {
         MediaQuery.of(context).padding.bottom + AppSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderSubtle, width: 0.5)),
+        color: context.surfaceColor,
+        border: Border(top: BorderSide(color: context.borderSubtleColor, width: 0.5)),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: context.textPrimary),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(color: AppColors.textMuted),
+                hintStyle: TextStyle(color: context.textMuted),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                 filled: true,
-                fillColor: AppColors.surfaceAlt,
+                fillColor: context.surfaceAltColor,
                 border: OutlineInputBorder(
                   borderRadius:
                       BorderRadius.circular(AppSpacing.radiusCircle),
@@ -846,11 +847,11 @@ class _ChatInputBar extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: onSend != null ? accentColor : AppColors.surfaceAlt,
+                color: onSend != null ? accentColor : context.surfaceAltColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.send_rounded,
-                  color: onSend != null ? AppColors.bg : AppColors.textDisabled,
+                  color: onSend != null ? context.bgColor : context.textDisabled,
                   size: 20),
             ),
           ),

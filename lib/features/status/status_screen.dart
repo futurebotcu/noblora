@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile.dart';
@@ -100,27 +101,27 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
   Widget build(BuildContext context) {
     final p = ref.watch(profileProvider).profile;
     if (p == null) {
-      return Scaffold(backgroundColor: AppColors.bg,
+      return Scaffold(backgroundColor: context.bgColor,
           body: const Center(child: CircularProgressIndicator(color: AppColors.gold)));
     }
     if (!_loaded) WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     if (_ai == null && !_aiLoading) WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi(p));
 
-    final tc = switch (p.nobTier) { NobTier.noble => AppColors.gold, NobTier.explorer => const Color(0xFF26C6DA), NobTier.observer => AppColors.textMuted };
+    final tc = switch (p.nobTier) { NobTier.noble => AppColors.gold, NobTier.explorer => const Color(0xFF26C6DA), NobTier.observer => context.textMuted };
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: context.bgColor,
       body: NestedScrollView(
         headerSliverBuilder: (ctx, inner) => [
           SliverAppBar(
-            backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent, pinned: true, floating: false,
+            backgroundColor: context.bgColor, surfaceTintColor: Colors.transparent, pinned: true, floating: false,
             expandedHeight: 120, collapsedHeight: 60,
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [tc.withValues(alpha: 0.04), AppColors.bg]),
+                    colors: [tc.withValues(alpha: 0.04), context.bgColor]),
                 ),
                 padding: EdgeInsets.fromLTRB(AppSpacing.xxl, MediaQuery.of(ctx).padding.top + 12, AppSpacing.xxl, 0),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -137,9 +138,9 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
                   const SizedBox(width: AppSpacing.lg),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     Text(p.displayName.isNotEmpty ? p.displayName : 'You',
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+                        style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
                     const SizedBox(height: 2),
-                    Text(_statusLine(p), style: TextStyle(color: AppColors.textMuted, fontSize: 12, letterSpacing: 0.1)),
+                    Text(_statusLine(p), style: TextStyle(color: context.textMuted, fontSize: 12, letterSpacing: 0.1)),
                   ])),
                   TierBadge(tier: p.nobTier, size: 28, showLabel: true),
                 ]),
@@ -147,8 +148,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
             ),
             bottom: TabBar(controller: _tabs, isScrollable: true,
               indicatorColor: tc, indicatorWeight: 2,
-              labelColor: tc, unselectedLabelColor: AppColors.textDisabled,
-              dividerColor: AppColors.borderSubtle, tabAlignment: TabAlignment.start,
+              labelColor: tc, unselectedLabelColor: context.textDisabled,
+              dividerColor: context.borderSubtleColor, tabAlignment: TabAlignment.start,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
               unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
               tabs: const [Tab(text: 'Overview'), Tab(text: 'Interest'), Tab(text: 'Social'), Tab(text: 'Activity'), Tab(text: 'Market')],
@@ -188,7 +189,7 @@ class _OverviewTab extends StatelessWidget {
         TierBadge(tier: p.nobTier, size: 44),
         const SizedBox(height: AppSpacing.md),
         Text(p.nobTier.label, style: TextStyle(color: tc, fontSize: 20, fontWeight: FontWeight.w700)),
-        Text(p.strengthLabel, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Text(p.strengthLabel, style: TextStyle(color: context.textMuted, fontSize: 12)),
         const SizedBox(height: AppSpacing.md),
         _Bar(value: (p.maturityScore / 100).clamp(0, 1), color: tc, animate: animate, height: 6),
       ])),
@@ -227,7 +228,7 @@ class _OverviewTab extends StatelessWidget {
           Text('Your guide', style: TextStyle(color: tc, fontSize: 13, fontWeight: FontWeight.w600))]),
         const SizedBox(height: AppSpacing.md),
         if (aiLoading) const SizedBox(height: 30, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)))
-        else Text(ai ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5)),
+        else Text(ai ?? '', style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.5)),
       ])),
       const SizedBox(height: AppSpacing.xxl),
 
@@ -264,11 +265,11 @@ class _InterestTab extends StatelessWidget {
       if (!hasAny) ...[
         const SizedBox(height: AppSpacing.xxxxl),
         Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
+          Icon(Icons.radio_button_unchecked_rounded, color: context.textMuted.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: AppSpacing.lg),
-          const Text('Quiet for now', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          Text('Quiet for now', style: TextStyle(color: context.textMuted, fontSize: 14)),
           const SizedBox(height: AppSpacing.xs),
-          Text('Interest will appear as people engage with you.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+          Text('Interest will appear as people engage with you.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
         ])),
       ] else ...[
         _Sec('Reaching toward you'),
@@ -308,11 +309,11 @@ class _SocialTab extends StatelessWidget {
       if (!hasAny) ...[
         const SizedBox(height: AppSpacing.xxxxl),
         Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.groups_outlined, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
+          Icon(Icons.groups_outlined, color: context.textMuted.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: AppSpacing.lg),
-          const Text('Nothing scheduled right now', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          Text('Nothing scheduled right now', style: TextStyle(color: context.textMuted, fontSize: 14)),
           const SizedBox(height: AppSpacing.xs),
-          Text('Social plans and BFF activity will show here.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+          Text('Social plans and BFF activity will show here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
         ])),
       ] else ...[
         _Sec('Friendship circle'),
@@ -344,11 +345,11 @@ class _ActivityTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (activity.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.history_rounded, color: AppColors.textMuted.withValues(alpha: 0.2), size: 48),
+        Icon(Icons.history_rounded, color: context.textMuted.withValues(alpha: 0.2), size: 48),
         const SizedBox(height: AppSpacing.lg),
-        const Text('This space is clear', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+        Text('This space is clear', style: TextStyle(color: context.textMuted, fontSize: 14)),
         const SizedBox(height: AppSpacing.xs),
-        Text('Your recent movement will appear here.', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+        Text('Your recent movement will appear here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
       ]));
     }
     return ListView.builder(
@@ -359,14 +360,14 @@ class _ActivityTab extends StatelessWidget {
         final dt = DateTime.tryParse(a['created_at'] as String? ?? '');
         return Padding(padding: const EdgeInsets.only(bottom: AppSpacing.md), child: Row(children: [
           Container(width: 6, height: 6, decoration: BoxDecoration(
-            color: a['read_at'] == null ? AppColors.gold : AppColors.border, shape: BoxShape.circle)),
+            color: a['read_at'] == null ? AppColors.gold : context.borderColor, shape: BoxShape.circle)),
           const SizedBox(width: AppSpacing.md),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a['title'] as String? ?? '', style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
-            Text(a['body'] as String? ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+            Text(a['title'] as String? ?? '', style: TextStyle(color: context.textPrimary, fontSize: 13)),
+            Text(a['body'] as String? ?? '', style: TextStyle(color: context.textMuted, fontSize: 11),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
-          if (dt != null) Text(_ago(dt), style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+          if (dt != null) Text(_ago(dt), style: TextStyle(color: context.textMuted, fontSize: 10)),
         ]));
       },
     );
@@ -406,11 +407,11 @@ class _MarketTab extends StatelessWidget {
         Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
         const SizedBox(height: AppSpacing.md),
         Text('Reserved for private tools and access.',
-            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.5), fontSize: 13),
+            style: TextStyle(color: context.textMuted.withValues(alpha: 0.5), fontSize: 13),
             textAlign: TextAlign.center),
         const SizedBox(height: AppSpacing.sm),
         Text('This space will stay quiet until it matters.',
-            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.35), fontSize: 11),
+            style: TextStyle(color: context.textMuted.withValues(alpha: 0.35), fontSize: 11),
             textAlign: TextAlign.center),
       ]),
     ));
@@ -428,9 +429,9 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.xxl),
     decoration: BoxDecoration(
-      color: AppColors.surface,
+      color: context.surfaceColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      border: Border.all(color: borderColor ?? AppColors.borderSubtle, width: 0.5),
+      border: Border.all(color: borderColor ?? context.borderSubtleColor, width: 0.5),
       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 4))],
     ),
     child: child);
@@ -440,7 +441,7 @@ class _Sec extends StatelessWidget {
   final String t; const _Sec(this.t);
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Text(t, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)));
+    child: Text(t, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)));
 }
 
 class _Bar extends StatelessWidget {
@@ -451,7 +452,7 @@ class _Bar extends StatelessWidget {
     child: TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: animate ? value : 0), duration: const Duration(milliseconds: 900), curve: Curves.easeOutCubic,
       builder: (_, v, __) => LinearProgressIndicator(value: v, minHeight: height,
-          backgroundColor: AppColors.surfaceAlt, valueColor: AlwaysStoppedAnimation(color))));
+          backgroundColor: context.surfaceAltColor, valueColor: AlwaysStoppedAnimation(color))));
 }
 
 class _GrowthRow extends StatelessWidget {
@@ -461,7 +462,7 @@ class _GrowthRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+      Row(children: [Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11)),
         const Spacer(), Text(_q, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500))]),
       const SizedBox(height: 2),
       _Bar(value: value.clamp(0, 1), color: color, animate: animate, height: 3),
@@ -475,7 +476,7 @@ class _Tip extends StatelessWidget {
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Icon(Icons.lightbulb_outline_rounded, color: AppColors.gold, size: 14),
       const SizedBox(width: AppSpacing.sm),
-      Expanded(child: Text(t, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4))),
+      Expanded(child: Text(t, style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4))),
     ]));
 }
 
@@ -484,9 +485,9 @@ class _Stat extends StatelessWidget {
   const _Stat(this.icon, this.label, this.value);
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Row(children: [Icon(icon, color: AppColors.textMuted, size: 16), const SizedBox(width: AppSpacing.md),
-      Expanded(child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
-      Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600))]));
+    child: Row(children: [Icon(icon, color: context.textMuted, size: 16), const SizedBox(width: AppSpacing.md),
+      Expanded(child: Text(label, style: TextStyle(color: context.textSecondary, fontSize: 13))),
+      Text(value, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600))]));
 }
 
 class _Upcoming extends StatelessWidget {
@@ -500,8 +501,8 @@ class _Upcoming extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.12))),
     child: Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: AppSpacing.md),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 11))]))]),
+        Text(title, style: TextStyle(color: context.textPrimary, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(sub, style: TextStyle(color: context.textMuted, fontSize: 11))]))]),
   );
 }
 
@@ -512,9 +513,9 @@ class _QA extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(
     margin: const EdgeInsets.only(right: AppSpacing.md),
     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.border)),
+    decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        border: Border.all(color: context.borderColor)),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, color: AppColors.gold, size: 15), const SizedBox(width: 6),
-      Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12))])));
+      Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12))])));
 }
