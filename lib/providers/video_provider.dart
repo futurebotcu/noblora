@@ -76,9 +76,14 @@ class VideoSessionNotifier extends StateNotifier<VideoSessionState> {
     }
     // Live subscription — karşı öneri veya onay anında görünsün
     _realtimeSub?.cancel();
-    _realtimeSub = _repo.watchForMatch(matchId).listen((session) {
-      if (mounted) state = state.copyWith(session: session);
-    });
+    _realtimeSub = _repo.watchForMatch(matchId).listen(
+      (session) {
+        if (mounted) state = state.copyWith(session: session);
+      },
+      onError: (Object e) {
+        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+      },
+    );
   }
 
   Future<VideoSession?> proposeTime({

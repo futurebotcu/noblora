@@ -51,9 +51,14 @@ class MiniIntroNotifier extends StateNotifier<MiniIntroState> {
     }
 
     _sub?.cancel();
-    _sub = _repo.watchForMatch(matchId).listen((intros) {
-      if (mounted) state = MiniIntroState(intros: intros);
-    });
+    _sub = _repo.watchForMatch(matchId).listen(
+      (intros) {
+        if (mounted) state = MiniIntroState(intros: intros);
+      },
+      onError: (Object e) {
+        if (mounted) state = MiniIntroState(error: e.toString());
+      },
+    );
   }
 
   Future<MiniIntro?> sendIntro({

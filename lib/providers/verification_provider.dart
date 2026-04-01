@@ -155,9 +155,14 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
     // Live subscription — admin updates a manual_review record to approved
     // → state updates → AppRouter rebuilds → user lands on entry_gate / main
     _sub?.cancel();
-    _sub = _repo.watchVerifications(userId).listen((verifs) {
-      if (mounted) state = state.copyWith(verifications: verifs);
-    });
+    _sub = _repo.watchVerifications(userId).listen(
+      (verifs) {
+        if (mounted) state = state.copyWith(verifications: verifs);
+      },
+      onError: (Object e) {
+        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+      },
+    );
   }
 
   void clear() {

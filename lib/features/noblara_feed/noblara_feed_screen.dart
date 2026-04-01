@@ -132,7 +132,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
                 ),
               )
             else if (!postsState.isLoading && postsState.posts.isEmpty)
-              const SliverFillRemaining(child: _EmptyState())
+              const SliverFillRemaining(hasScrollBody: false, child: _EmptyState())
 
             // Posts
             else

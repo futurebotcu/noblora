@@ -67,24 +67,29 @@ class _PostCallDecisionScreenState
         .from('call_decisions')
         .stream(primaryKey: ['id'])
         .eq('video_session_id', widget.session.id)
-        .listen((rows) async {
-          if (rows.length < 2) return; // still waiting
-          // Both decisions are in — finalize without re-upserting
-          try {
-            final userId = ref.read(authProvider).userId ?? '';
-            final myRow = rows.firstWhere(
-              (r) => r['user_id'] == userId,
-              orElse: () => <String, dynamic>{},
-            );
-            final myEnjoyed = myRow['enjoyed'] as bool? ?? false;
-            final result = await ref
-                .read(videoProvider(widget.match.id).notifier)
-                .finalizeDecision(userId: userId, enjoyed: myEnjoyed);
-            if (!mounted) return;
+        .listen(
+          (rows) async {
+            if (rows.length < 2) return; // still waiting
+            // Both decisions are in — finalize without re-upserting
+            try {
+              final userId = ref.read(authProvider).userId ?? '';
+              final myRow = rows.firstWhere(
+                (r) => r['user_id'] == userId,
+                orElse: () => <String, dynamic>{},
+              );
+              final myEnjoyed = myRow['enjoyed'] as bool? ?? false;
+              final result = await ref
+                  .read(videoProvider(widget.match.id).notifier)
+                  .finalizeDecision(userId: userId, enjoyed: myEnjoyed);
+              if (!mounted) return;
+              _decisionSub?.cancel();
+              _handleResult(result);
+            } catch (_) {}
+          },
+          onError: (Object e) {
             _decisionSub?.cancel();
-            _handleResult(result);
-          } catch (_) {}
-        });
+          },
+        );
   }
 
   void _handleResult(String result) {

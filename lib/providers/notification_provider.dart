@@ -74,24 +74,29 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
     // Subscribe to realtime updates
     _sub?.cancel();
-    _sub = _repo.notificationsStream(userId).listen((all) {
-      if (!mounted) return;
-      // Detect newly arrived unread notifications
-      AppNotification? newest;
-      for (final n in all) {
-        if (n.isUnread && !_seenIds.contains(n.id)) {
-          if (newest == null || n.createdAt.isAfter(newest.createdAt)) {
-            newest = n;
+    _sub = _repo.notificationsStream(userId).listen(
+      (all) {
+        if (!mounted) return;
+        // Detect newly arrived unread notifications
+        AppNotification? newest;
+        for (final n in all) {
+          if (n.isUnread && !_seenIds.contains(n.id)) {
+            if (newest == null || n.createdAt.isAfter(newest.createdAt)) {
+              newest = n;
+            }
           }
         }
-      }
-      _seenIds = all.map((n) => n.id).toSet();
-      state = state.copyWith(
-        notifications: all,
-        isLoading: false,
-        latestUnread: newest,
-      );
-    });
+        _seenIds = all.map((n) => n.id).toSet();
+        state = state.copyWith(
+          notifications: all,
+          isLoading: false,
+          latestUnread: newest,
+        );
+      },
+      onError: (Object e) {
+        if (mounted) state = state.copyWith(isLoading: false);
+      },
+    );
   }
 
   Future<void> markRead(String notificationId) async {

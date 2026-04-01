@@ -58,9 +58,14 @@ class RealMeetingNotifier extends StateNotifier<RealMeetingState> {
       return;
     }
     _sub?.cancel();
-    _sub = _repo.watchForMatch(matchId).listen((meeting) {
-      if (mounted) state = state.copyWith(meeting: meeting);
-    });
+    _sub = _repo.watchForMatch(matchId).listen(
+      (meeting) {
+        if (mounted) state = state.copyWith(meeting: meeting);
+      },
+      onError: (Object e) {
+        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+      },
+    );
   }
 
   Future<bool> propose({
