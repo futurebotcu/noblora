@@ -10,7 +10,7 @@ import '../../providers/status_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/mode_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
-import '../../shared/widgets/skeleton_loader.dart';
+import '../../shared/widgets/premium_skeleton.dart';
 import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
@@ -213,10 +213,10 @@ class _FeedBody extends StatelessWidget {
   Widget build(BuildContext context) {
     if (feed.isLoading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-        child: SkeletonLoader(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.62,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        child: PremiumSkeleton(
+          height: MediaQuery.of(context).size.height * 0.66,
+          radius: AppSpacing.radiusXl,
         ),
       );
     }
@@ -264,36 +264,36 @@ class _EmptyDeck extends StatelessWidget {
   final NobleMode mode;
   const _EmptyDeck({required this.mode});
 
-  String get _message {
-    switch (mode) {
-      case NobleMode.date:
-        return 'No more profiles today.\nCheck back tomorrow.';
-      case NobleMode.bff:
-        return 'You\'ve met everyone nearby.\nExpand your distance filter.';
-      case NobleMode.social:
-        return 'No events in your area right now.\nTry adjusting your filters.';
-      case NobleMode.noblara:
-        return 'No profiles to show.';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final (String title, String sub) = switch (mode) {
+      NobleMode.date => ('All caught up', 'New profiles will appear as people join.'),
+      NobleMode.bff => ('Quiet for now', 'Check back soon or expand your filters.'),
+      NobleMode.social => ('Nothing here yet', 'Events will appear as people create them.'),
+      NobleMode.noblara => ('Nothing to show', 'Check back later.'),
+    };
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(mode.icon, color: mode.accentColor, size: 56),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            _message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textMuted),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: mode.accentColor.withValues(alpha: 0.04),
+                border: Border.all(color: mode.accentColor.withValues(alpha: 0.1)),
+              ),
+              child: Icon(mode.icon, color: mode.accentColor.withValues(alpha: 0.4), size: 28),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: AppSpacing.sm),
+            Text(sub, textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5)),
+          ],
+        ),
       ),
     );
   }
