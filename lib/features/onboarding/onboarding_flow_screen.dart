@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -320,15 +321,15 @@ class _BasicsPageState extends State<_BasicsPage> {
             child: Center(child: Text('You must be at least 18', style: TextStyle(color: AppColors.error, fontSize: 12)))),
       const SizedBox(height: AppSpacing.xxl),
 
-      // Gender
+      // Gender — 3 icon cards
       Text('Gender', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
       const SizedBox(height: AppSpacing.sm),
       Row(children: [
-        _GenderCard('Woman', 'female', widget.gender, widget.onGenderChanged),
-        const SizedBox(width: 8),
-        _GenderCard('Man', 'male', widget.gender, widget.onGenderChanged),
-        const SizedBox(width: 8),
-        _GenderCard('Other', 'other', widget.gender, widget.onGenderChanged),
+        _GenderCard('Man', 'male', Icons.male_rounded, widget.gender, widget.onGenderChanged),
+        const SizedBox(width: 10),
+        _GenderCard('Woman', 'female', Icons.female_rounded, widget.gender, widget.onGenderChanged),
+        const SizedBox(width: 10),
+        _GenderCard('Other', 'other', Icons.person_outline_rounded, widget.gender, widget.onGenderChanged),
       ]),
       const SizedBox(height: AppSpacing.xxxl),
       ElevatedButton(onPressed: _canContinue ? widget.onNext : null,
@@ -347,28 +348,49 @@ class _BasicsPageState extends State<_BasicsPage> {
 
 }
 
-class _GenderCard extends StatelessWidget {
-  final String label, value, current;
+class _GenderCard extends StatefulWidget {
+  final String value;
+  final IconData icon;
+  final String current;
   final ValueChanged<String> onChanged;
-  const _GenderCard(this.label, this.value, this.current, this.onChanged);
+  const _GenderCard(String _, this.value, this.icon, this.current, this.onChanged);
+  @override
+  State<_GenderCard> createState() => _GenderCardState();
+}
+
+class _GenderCardState extends State<_GenderCard> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
+    _scale = Tween(begin: 1.0, end: 0.95).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    final sel = current == value;
+    final sel = widget.current == widget.value;
     return Expanded(child: GestureDetector(
-      onTap: () => onChanged(value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 52,
-        decoration: BoxDecoration(
-          color: sel ? context.accent : context.surfaceColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? context.accent : context.borderColor, width: sel ? 1.5 : 0.5),
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) { _ctrl.reverse(); widget.onChanged(widget.value); HapticFeedback.selectionClick(); },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 72,
+          decoration: BoxDecoration(
+            color: sel ? context.accent.withValues(alpha: 0.08) : context.surfaceColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: sel ? context.accent : context.borderColor, width: sel ? 1.5 : 0.5),
+          ),
+          child: Center(child: Icon(widget.icon, size: 28, color: sel ? context.accent : context.textMuted)),
         ),
-        child: Center(child: Text(label, style: TextStyle(
-          color: sel ? context.onAccent : context.textSecondary,
-          fontSize: 14, fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
-        ))),
       ),
     ));
   }
