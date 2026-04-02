@@ -77,8 +77,8 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
   void _send() {
     // Social interaction gating
     final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
-    if (!gate.canSocialInteract) {
-      showGatingPopup(context, gate.blockReason('social'));
+    if (!gate.canSocialJoin) {
+      showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
       return;
     }
     final text = _msgCtrl.text.trim();

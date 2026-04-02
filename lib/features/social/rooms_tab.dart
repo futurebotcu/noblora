@@ -76,8 +76,8 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
   Future<void> _joinRoom(String roomId, String hostId, String title) async {
     final gate = ref.read(interactionGateProvider).valueOrNull ??
         const InteractionGate();
-    if (!gate.canSocialInteract) {
-      if (mounted) showGatingPopup(context, gate.blockReason('social'));
+    if (!gate.canSocialJoin) {
+      if (mounted) showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
       return;
     }
     final result = await ref.read(roomListProvider.notifier).joinRoom(roomId);
@@ -110,8 +110,10 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
   Future<void> _createRoom() async {
     final gate = ref.read(interactionGateProvider).valueOrNull ??
         const InteractionGate();
-    if (!gate.canSocialInteract) {
-      if (mounted) showGatingPopup(context, gate.blockReason('social'));
+    if (!gate.canSocialCreate) {
+      if (mounted) showGatingPopup(context, 'Verify your photo',
+          'Verify your profile photo to host events and create rooms.',
+          type: GatePopupType.verifyPhoto);
       return;
     }
     final created = await Navigator.push<bool>(

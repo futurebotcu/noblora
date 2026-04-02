@@ -121,7 +121,7 @@ class _SuggestionsTab extends ConsumerWidget {
             onPass: () => _onAction(context, ref, sug.id, 'pass'),
             onReachOut: () async {
               final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
-              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, gate.blockReason('bff')); return; }
+              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.'); return; }
               final sent = await ref.read(bffProvider.notifier).sendReachOut(sug.otherUserId(ref.read(authProvider).userId ?? ''));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -131,7 +131,7 @@ class _SuggestionsTab extends ConsumerWidget {
             },
             onNote: () {
               final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
-              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, gate.blockReason('bff')); return; }
+              if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.'); return; }
               _showNoteDialog(context, ref, sug);
             },
           );
@@ -187,7 +187,7 @@ class _SuggestionsTab extends ConsumerWidget {
     if (action == 'connect') {
       final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
       if (!gate.canBffInteract) {
-        showGatingPopup(context, gate.blockReason('bff'));
+        showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.');
         return;
       }
     }
@@ -268,7 +268,14 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
         final card = feed.cards[i];
         return _BffDiscoveryCard(
           card: card,
-          onConnect: () => ref.read(feedProvider.notifier).swipeRight(card.id),
+          onConnect: () {
+            final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+            if (!gate.canBffInteract) {
+              showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.');
+              return;
+            }
+            ref.read(feedProvider.notifier).swipeRight(card.id);
+          },
           onPass: () => ref.read(feedProvider.notifier).swipeLeft(card.id),
         );
       },

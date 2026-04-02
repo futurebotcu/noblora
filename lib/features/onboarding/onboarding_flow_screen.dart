@@ -27,7 +27,7 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
-  static const _totalSteps = 9;
+  static const _totalSteps = 7;
 
   // Data collected
   final _nameCtrl = TextEditingController();
@@ -41,14 +41,10 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _country = '';
   double? _locationLat;
   double? _locationLng;
-  final _bioCtrl = TextEditingController();
   String? _photoUrl;
-  String _lookingFor = 'Serious relationship';
-  int _ageMin = 20;
-  int _ageMax = 40;
 
   @override
-  void dispose() { _nameCtrl.dispose(); _bioCtrl.dispose(); _pageCtrl.dispose(); super.dispose(); }
+  void dispose() { _nameCtrl.dispose(); _pageCtrl.dispose(); super.dispose(); }
 
   void _next() {
     if (_step < _totalSteps - 1) {
@@ -110,7 +106,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         if (_country.isNotEmpty) 'country': _country,
         if (_locationLat != null) 'location_lat': _locationLat,
         if (_locationLng != null) 'location_lng': _locationLng,
-        'bio': _bioCtrl.text.trim(),
+        'bio': '',
         'date_avatar_url': remotePhotoUrl,
         'bff_avatar_url': remotePhotoUrl,
         'dating_active': true,
@@ -119,7 +115,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'bff_visible': true,
         'social_active': true,
         'social_visible': true,
-        'looking_for': _lookingFor,
+        'looking_for': 'Serious relationship',
         if (_occupation.isNotEmpty) 'occupation': _occupation,
         'is_onboarded': true,
         // Privacy defaults (explicit, not null)
@@ -194,12 +190,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                       }),
                       onNext: _next),
                   _PhotoPage(photoUrl: _photoUrl, onPhotoSelected: (v) => setState(() => _photoUrl = v), onNext: _next),
-                  _BioPage(bioCtrl: _bioCtrl, onNext: _next),
                   _PrivacyPage(onNext: _next),
-                  _PrefsPage(lookingFor: _lookingFor, ageMin: _ageMin, ageMax: _ageMax,
-                      onLookingForChanged: (v) => setState(() => _lookingFor = v),
-                      onAgeRangeChanged: (min, max) => setState(() { _ageMin = min; _ageMax = max; }),
-                      onNext: _next),
                   _CompletePage(name: _nameCtrl.text, onComplete: _complete,
                       validationError: _validateCompletion()),
                 ],
@@ -740,30 +731,6 @@ class _PhotoPage extends StatelessWidget {
   }
 }
 
-class _BioPage extends StatelessWidget {
-  final TextEditingController bioCtrl; final VoidCallback onNext;
-  const _BioPage({required this.bioCtrl, required this.onNext});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.xxxl),
-        Text('Tell us about yourself', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: AppSpacing.sm),
-        Text('A short bio helps others understand who you are.', style: TextStyle(color: context.textMuted, fontSize: 13)),
-        const SizedBox(height: AppSpacing.xxl),
-        TextField(controller: bioCtrl, maxLines: 4, maxLength: 300, style: TextStyle(color: context.textPrimary),
-            decoration: _deco(context, 'Write something about yourself...')),
-        const Spacer(),
-        ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(50)),
-            child: Text(bioCtrl.text.trim().isNotEmpty ? 'Continue' : 'Skip for now')),
-        const SizedBox(height: AppSpacing.xxl),
-    ]));
-  }
-}
-
 class _PrivacyPage extends StatelessWidget {
   final VoidCallback onNext;
   const _PrivacyPage({required this.onNext});
@@ -771,14 +738,19 @@ class _PrivacyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.xxxl),
+        const SizedBox(height: AppSpacing.xxl),
         Text('Your privacy', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.lg),
-        _InfoCard(Icons.visibility_off_rounded, 'Incognito available', 'You can browse invisibly anytime from Settings.'),
-        _InfoCard(Icons.shield_rounded, 'Calm Mode available', 'Only quality profiles can reach you when enabled.'),
-        _InfoCard(Icons.lock_rounded, 'Private by default', 'Your activity, interests, and score are never public.'),
-        _InfoCard(Icons.tune_rounded, 'Full control', 'Adjust who can signal, note, or reach you in Settings.'),
-        const Spacer(),
+        Expanded(child: ListView(children: [
+          _InfoCard(Icons.photo_camera_outlined, 'Add a photo to connect', 'Without a photo you can browse but cannot swipe, connect or message anyone.'),
+          _InfoCard(Icons.event_outlined, 'Photo needed for Social', 'You need a photo to join events and rooms. Verified photo to create them.'),
+          _InfoCard(Icons.auto_awesome_outlined, 'Photo to post Nobs', 'You can read and react to Nobs freely. Upload a photo to share your own.'),
+          _InfoCard(Icons.visibility_off_rounded, 'Incognito available', 'You can browse invisibly anytime from Settings.'),
+          _InfoCard(Icons.shield_rounded, 'Calm Mode available', 'Only quality profiles can reach you when enabled.'),
+          _InfoCard(Icons.lock_rounded, 'Private by default', 'Your activity, interests, and score are never public.'),
+          _InfoCard(Icons.tune_rounded, 'Full control', 'Adjust who can signal, note, or reach you in Settings.'),
+        ])),
+        const SizedBox(height: AppSpacing.md),
         ElevatedButton(onPressed: onNext,
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
                 minimumSize: const Size.fromHeight(50)),
@@ -805,42 +777,6 @@ class _InfoCard extends StatelessWidget {
         Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12)),
       ])),
     ]));
-}
-
-class _PrefsPage extends StatelessWidget {
-  final String lookingFor; final int ageMin; final int ageMax;
-  final ValueChanged<String> onLookingForChanged;
-  final void Function(int, int) onAgeRangeChanged; final VoidCallback onNext;
-  const _PrefsPage({required this.lookingFor, required this.ageMin, required this.ageMax,
-      required this.onLookingForChanged, required this.onAgeRangeChanged, required this.onNext});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.xxxl),
-        Text('Your preferences', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: AppSpacing.sm),
-        Text('Just enough to make your first experience meaningful.', style: TextStyle(color: context.textMuted, fontSize: 13)),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Looking for', style: TextStyle(color: context.textMuted, fontSize: 12)),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(spacing: 6, runSpacing: 6, children: ['Serious relationship', 'Long-term', 'Intentional', 'Open'].map((o) =>
-            ChoiceChip(label: Text(o), selected: lookingFor == o,
-                selectedColor: context.accent, backgroundColor: context.surfaceColor,
-                labelStyle: TextStyle(color: lookingFor == o ? context.onAccent : context.textSecondary, fontSize: 12),
-                onSelected: (_) => onLookingForChanged(o))).toList()),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Preferred age: $ageMin – $ageMax', style: TextStyle(color: context.textPrimary, fontSize: 14)),
-        RangeSlider(values: RangeValues(ageMin.toDouble(), ageMax.toDouble()), min: 18, max: 65, divisions: 47,
-            activeColor: AppColors.gold, onChanged: (v) => onAgeRangeChanged(v.start.round(), v.end.round())),
-        const Spacer(),
-        ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(50)),
-            child: const Text('Continue')),
-        const SizedBox(height: AppSpacing.xxl),
-    ]));
-  }
 }
 
 class _CompletePage extends StatefulWidget {

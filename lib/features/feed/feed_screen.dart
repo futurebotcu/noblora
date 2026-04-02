@@ -386,7 +386,8 @@ class _ActionRowState extends ConsumerState<_ActionRow>
   bool _checkGate(BuildContext context, String mode) {
     final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
     if (gate.canInteract(mode)) return true;
-    showGatingPopup(context, gate.blockReason(mode));
+    showGatingPopup(context, 'Add a photo first',
+        'Upload at least one photo to start connecting with people.');
     return false;
   }
 

@@ -8,6 +8,7 @@ import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/note_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 import 'nob_compose_screen.dart';
 import 'nob_drafts_screen.dart';
 import 'note_inbox_screen.dart';
@@ -26,16 +27,25 @@ class NoblaraFeedScreen extends ConsumerWidget {
     final currentUserId = ref.watch(authProvider).userId;
 
     final tier = tierAsync.maybeWhen(data: (t) => t, orElse: () => NobTier.observer);
-    final canCompose = tier == NobTier.noble || tier == NobTier.explorer;
+    final gate = ref.watch(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    final tierCanCompose = tier == NobTier.noble || tier == NobTier.explorer;
+    final canCompose = tierCanCompose && gate.canPostNob;
 
     return Scaffold(
       backgroundColor: context.bgColor,
-      floatingActionButton: canCompose
+      floatingActionButton: tierCanCompose
           ? _ComposeFab(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NobComposeScreen()),
-              ),
+              onTap: () {
+                if (!gate.canPostNob) {
+                  showGatingPopup(context, 'Add a photo first',
+                      'Upload a photo to share your thoughts with the community.');
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NobComposeScreen()),
+                );
+              },
             )
           : null,
       body: SafeArea(

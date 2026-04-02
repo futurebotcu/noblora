@@ -193,10 +193,11 @@ class _EventsTab extends StatelessWidget {
                                   .read(interactionGateProvider)
                                   .valueOrNull ??
                               const InteractionGate();
-                          if (!gate.canSocialInteract) {
+                          if (!gate.canSocialJoin) {
                             if (context.mounted) {
                               showGatingPopup(
-                                  context, gate.blockReason('social'));
+                                  context, 'Add a photo first',
+                                  'Upload a photo to join events and rooms.');
                             }
                             return;
                           }
@@ -229,9 +230,11 @@ class _EventsTab extends StatelessWidget {
             onPressed: () async {
               final gate = ref.read(interactionGateProvider).valueOrNull ??
                   const InteractionGate();
-              if (!gate.canSocialInteract) {
+              if (!gate.canSocialCreate) {
                 if (context.mounted) {
-                  showGatingPopup(context, gate.blockReason('social'));
+                  showGatingPopup(context, 'Verify your photo',
+                      'Verify your profile photo to host events and create rooms.',
+                      type: GatePopupType.verifyPhoto);
                 }
                 return;
               }
