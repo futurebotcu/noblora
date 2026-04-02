@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../edit_profile_provider.dart';
@@ -78,7 +77,7 @@ class _PromptCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Prompt ${index + 1}', style: TextStyle(color: AppColors.gold, fontSize: 11, fontWeight: FontWeight.w700)),
+              Text('Prompt ${index + 1}', style: TextStyle(color: context.accent, fontSize: 11, fontWeight: FontWeight.w700)),
               const Spacer(),
               GestureDetector(
                 onTap: () => _pickQuestion(context),
@@ -104,7 +103,7 @@ class _PromptCard extends StatelessWidget {
                 filled: true, fillColor: context.bgColor,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.gold)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.accent)),
               ),
             ),
           ] else

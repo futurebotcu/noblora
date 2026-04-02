@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 
@@ -35,7 +34,7 @@ class EditSectionShell extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: saving ? null : onSave,
-            child: Text('Save', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 14)),
+            child: Text('Save', style: TextStyle(color: context.accent, fontWeight: FontWeight.w700, fontSize: 14)),
           ),
         ],
       ),
@@ -59,7 +58,7 @@ class EditSectionShell extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: saving ? null : onSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
+                  backgroundColor: context.accent,
                   foregroundColor: Colors.black,
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
@@ -127,7 +126,7 @@ class EditField extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.gold)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.accent)),
         ),
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_tokens.dart';
 
 class ProfileSectionCard extends StatefulWidget {
@@ -83,7 +82,7 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: done
-                    ? AppColors.gold.withValues(alpha: 0.25)
+                    ? context.accent.withValues(alpha: 0.25)
                     : context.borderColor.withValues(alpha: 0.3),
                 width: 0.5,
               ),
@@ -112,14 +111,14 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  AppColors.gold.withValues(alpha: 0.15),
-                                  AppColors.gold.withValues(alpha: 0.06),
+                                  context.accent.withValues(alpha: 0.15),
+                                  context.accent.withValues(alpha: 0.06),
                                 ],
                               ),
                         color: widget.isEmpty ? context.borderColor.withValues(alpha: 0.15) : null,
                       ),
                       child: Icon(widget.icon,
-                        color: widget.isEmpty ? context.textDisabled : AppColors.gold,
+                        color: widget.isEmpty ? context.textDisabled : context.accent,
                         size: 19,
                       ),
                     ),
@@ -149,10 +148,10 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                       height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: widget.isEmpty ? Colors.transparent : AppColors.gold.withValues(alpha: 0.06),
+                        color: widget.isEmpty ? Colors.transparent : context.accent.withValues(alpha: 0.06),
                       ),
                       child: Icon(Icons.chevron_right_rounded,
-                        color: widget.isEmpty ? context.textDisabled : AppColors.gold.withValues(alpha: 0.6),
+                        color: widget.isEmpty ? context.textDisabled : context.accent.withValues(alpha: 0.6),
                         size: 18,
                       ),
                     ),
@@ -170,21 +169,21 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                       itemBuilder: (_, i) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(alpha: 0.08),
+                          color: context.accent.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.gold.withValues(alpha: 0.12)),
+                          border: Border.all(color: context.accent.withValues(alpha: 0.12)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (i == 0) ...[
-                              Icon(widget.icon, size: 11, color: AppColors.gold.withValues(alpha: 0.6)),
+                              Icon(widget.icon, size: 11, color: context.accent.withValues(alpha: 0.6)),
                               const SizedBox(width: 4),
                             ],
                             Text(
                               widget.previewChips[i],
                               style: TextStyle(
-                                color: AppColors.gold.withValues(alpha: 0.85),
+                                color: context.accent.withValues(alpha: 0.85),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -200,10 +199,10 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.trending_up_rounded, size: 13, color: AppColors.gold.withValues(alpha: 0.6)),
+                      Icon(Icons.trending_up_rounded, size: 13, color: context.accent.withValues(alpha: 0.6)),
                       const SizedBox(width: 5),
                       Text(widget.boostHint!, style: TextStyle(
-                        color: AppColors.gold.withValues(alpha: 0.6),
+                        color: context.accent.withValues(alpha: 0.6),
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         fontStyle: FontStyle.italic,
@@ -221,7 +220,7 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                       minHeight: 2,
                       backgroundColor: context.borderColor.withValues(alpha: 0.12),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        done ? AppColors.gold : AppColors.gold.withValues(alpha: 0.4),
+                        done ? context.accent : context.accent.withValues(alpha: 0.4),
                       ),
                     ),
                   ),

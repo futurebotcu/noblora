@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 
@@ -74,7 +73,7 @@ class _State extends State<SearchableMultiSelectScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _selected),
-            child: Text('Done (${_selected.length})', style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700)),
+            child: Text('Done (${_selected.length})', style: TextStyle(color: context.accent, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -107,11 +106,11 @@ class _State extends State<SearchableMultiSelectScreen> {
                 itemCount: _selected.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (_, i) => Chip(
-                  label: Text(_selected[i], style: const TextStyle(color: AppColors.gold, fontSize: 12)),
-                  deleteIcon: const Icon(Icons.close, size: 14, color: AppColors.gold),
+                  label: Text(_selected[i], style: TextStyle(color: context.accent, fontSize: 12)),
+                  deleteIcon: Icon(Icons.close, size: 14, color: context.accent),
                   onDeleted: () => setState(() => _selected.remove(_selected[i])),
-                  backgroundColor: AppColors.gold.withValues(alpha: 0.1),
-                  side: BorderSide(color: AppColors.gold.withValues(alpha: 0.3)),
+                  backgroundColor: context.accent.withValues(alpha: 0.1),
+                  side: BorderSide(color: context.accent.withValues(alpha: 0.3)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusCircle)),
                 ),
               ),
@@ -127,7 +126,7 @@ class _State extends State<SearchableMultiSelectScreen> {
                 return ListTile(
                   title: Text(item, style: TextStyle(color: context.textPrimary, fontSize: 14)),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle_rounded, color: AppColors.gold, size: 22)
+                      ? Icon(Icons.check_circle_rounded, color: context.accent, size: 22)
                       : Icon(Icons.circle_outlined, color: context.borderColor, size: 22),
                   onTap: () {
                     setState(() {

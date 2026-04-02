@@ -2,45 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/theme/app_colors.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
-
-// ─── Accent color definitions ────────────────────────────────────────
-
-enum AppAccent {
-  gold('Gold', Color(0xFFC9A84C)),
-  midnightBlue('Midnight Blue', Color(0xFF1A237E)),
-  violet('Violet', Color(0xFF7C3AED)),
-  silver('Silver', Color(0xFF9E9E9E)),
-  forest('Forest', Color(0xFF2E7D32));
-
-  final String label;
-  final Color color;
-  const AppAccent(this.label, this.color);
-
-  static AppAccent fromString(String? s) {
-    return AppAccent.values.firstWhere(
-      (a) => a.name == s,
-      orElse: () => AppAccent.gold,
-    );
-  }
-}
 
 // ─── State ───────────────────────────────────────────────────────────
 
 class AppearanceState {
   final ThemeMode themeMode;
-  final AppAccent accent;
+  final String accentId;
 
   const AppearanceState({
     this.themeMode = ThemeMode.dark,
-    this.accent = AppAccent.gold,
+    this.accentId = 'gold',
   });
 
-  AppearanceState copyWith({ThemeMode? themeMode, AppAccent? accent}) =>
+  AccentColor get accent => AppColors.accentById(accentId);
+  bool get isGold => accentId == 'gold';
+  bool get isDarkMode => themeMode == ThemeMode.dark;
+
+  AppearanceState copyWith({ThemeMode? themeMode, String? accentId}) =>
       AppearanceState(
         themeMode: themeMode ?? this.themeMode,
-        accent: accent ?? this.accent,
+        accentId: accentId ?? this.accentId,
       );
 }
 
@@ -63,7 +47,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
 
     state = AppearanceState(
       themeMode: _parseThemeMode(themeStr),
-      accent: AppAccent.fromString(accentStr),
+      accentId: accentStr ?? 'gold',
     );
   }
 
@@ -80,12 +64,12 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
           .maybeSingle();
       if (row == null) return;
       final theme = _parseThemeMode(row['theme_mode'] as String?);
-      final accent = AppAccent.fromString(row['accent_color'] as String?);
-      state = AppearanceState(themeMode: theme, accent: accent);
+      final accentId = (row['accent_color'] as String?) ?? 'gold';
+      state = AppearanceState(themeMode: theme, accentId: accentId);
       // Update local cache
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefThemeKey, _themeModeToString(theme));
-      await prefs.setString(_prefAccentKey, accent.name);
+      await prefs.setString(_prefAccentKey, accentId);
     } catch (_) {}
   }
 
@@ -94,8 +78,8 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     await _persist();
   }
 
-  Future<void> setAccent(AppAccent accent) async {
-    state = state.copyWith(accent: accent);
+  Future<void> setAccent(String id) async {
+    state = state.copyWith(accentId: id);
     await _persist();
   }
 
@@ -103,7 +87,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     // Local
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefThemeKey, _themeModeToString(state.themeMode));
-    await prefs.setString(_prefAccentKey, state.accent.name);
+    await prefs.setString(_prefAccentKey, state.accentId);
 
     // Supabase
     if (isMockMode) return;
@@ -112,22 +96,22 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     try {
       await Supabase.instance.client.from('profiles').update({
         'theme_mode': _themeModeToString(state.themeMode),
-        'accent_color': state.accent.name,
+        'accent_color': state.accentId,
       }).eq('id', uid);
     } catch (_) {}
   }
 
   static ThemeMode _parseThemeMode(String? s) => switch (s) {
-    'light' => ThemeMode.light,
-    'system' => ThemeMode.system,
-    _ => ThemeMode.dark,
-  };
+        'light' => ThemeMode.light,
+        'system' => ThemeMode.system,
+        _ => ThemeMode.dark,
+      };
 
   static String _themeModeToString(ThemeMode m) => switch (m) {
-    ThemeMode.light => 'light',
-    ThemeMode.system => 'system',
-    ThemeMode.dark => 'dark',
-  };
+        ThemeMode.light => 'light',
+        ThemeMode.system => 'system',
+        ThemeMode.dark => 'dark',
+      };
 }
 
 // ─── Provider ────────────────────────────────────────────────────────

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../edit_profile_provider.dart';
@@ -61,7 +60,7 @@ class _State extends ConsumerState<InterestsSection> with SingleTickerProviderSt
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: Row(children: [
-              Text('${d.interests.length} selected', style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
+              Text('${d.interests.length} selected', style: TextStyle(color: context.accent, fontSize: 12, fontWeight: FontWeight.w600)),
               const Spacer(),
               if (d.interests.isNotEmpty)
                 GestureDetector(
@@ -75,8 +74,8 @@ class _State extends ConsumerState<InterestsSection> with SingleTickerProviderSt
           TabBar(
             controller: _tabCtrl,
             isScrollable: true,
-            indicatorColor: AppColors.gold,
-            labelColor: AppColors.gold,
+            indicatorColor: context.accent,
+            labelColor: context.accent,
             unselectedLabelColor: context.textMuted,
             dividerColor: Colors.transparent,
             tabAlignment: TabAlignment.start,
@@ -124,13 +123,13 @@ class _State extends ConsumerState<InterestsSection> with SingleTickerProviderSt
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: active ? AppColors.gold.withValues(alpha: 0.12) : context.surfaceColor,
+                color: active ? context.accent.withValues(alpha: 0.12) : context.surfaceColor,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                border: Border.all(color: active ? AppColors.gold.withValues(alpha: 0.5) : context.borderColor, width: 0.5),
+                border: Border.all(color: active ? context.accent.withValues(alpha: 0.5) : context.borderColor, width: 0.5),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (active) ...[const Icon(Icons.check_rounded, size: 14, color: AppColors.gold), const SizedBox(width: 4)],
-                Text(item, style: TextStyle(color: active ? AppColors.gold : context.textMuted, fontSize: 13, fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
+                if (active) ...[Icon(Icons.check_rounded, size: 14, color: context.accent), const SizedBox(width: 4)],
+                Text(item, style: TextStyle(color: active ? context.accent : context.textMuted, fontSize: 13, fontWeight: active ? FontWeight.w600 : FontWeight.w400)),
               ]),
             ),
           );

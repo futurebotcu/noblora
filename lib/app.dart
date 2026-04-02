@@ -11,7 +11,7 @@ class NobleApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appearance = ref.watch(appearanceProvider);
-    final accent = appearance.accent.color;
+    final accent = appearance.accent;
 
     // Sync appearance from Supabase when user becomes authenticated
     ref.listen<AuthState>(authProvider, (prev, next) {

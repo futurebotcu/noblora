@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import 'edit_profile_provider.dart';
 import 'widgets/profile_section_card.dart';
@@ -37,7 +36,7 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
     if (state.isLoading) {
       return Scaffold(
         backgroundColor: context.bgColor,
-        body: const Center(child: CircularProgressIndicator(color: AppColors.gold)),
+        body: Center(child: CircularProgressIndicator(color: context.accent)),
       );
     }
 
@@ -336,10 +335,10 @@ class _ScorePopOverlayState extends State<_ScorePopOverlay>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.gold,
+                  color: context.accent,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 4)),
+                    BoxShadow(color: context.accent.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Row(
@@ -381,7 +380,7 @@ class _IdentityMirror extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.1)),
+        border: Border.all(color: context.accent.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,7 +401,7 @@ class _IdentityMirror extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.3), width: 1.5),
+                  border: Border.all(color: context.accent.withValues(alpha: 0.3), width: 1.5),
                 ),
                 child: ClipOval(
                   child: photoUrl != null
@@ -427,7 +426,7 @@ class _IdentityMirror extends StatelessWidget {
                     if (interests.isNotEmpty)
                       Text(
                         interests.join(' · '),
-                        style: TextStyle(color: AppColors.gold.withValues(alpha: 0.7), fontSize: 12),
+                        style: TextStyle(color: context.accent.withValues(alpha: 0.7), fontSize: 12),
                       ),
                   ],
                 ),
@@ -442,7 +441,7 @@ class _IdentityMirror extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.bgColor,
                 borderRadius: BorderRadius.circular(10),
-                border: Border(left: BorderSide(color: AppColors.gold.withValues(alpha: 0.4), width: 2)),
+                border: Border(left: BorderSide(color: context.accent.withValues(alpha: 0.4), width: 2)),
               ),
               child: Text(
                 '"${prompt!.length > 70 ? '${prompt!.substring(0, 70)}...' : prompt!}"',
@@ -462,8 +461,8 @@ class _IdentityMirror extends StatelessWidget {
 
   Widget _placeholder(BuildContext context) {
     return Container(
-      color: AppColors.gold.withValues(alpha: 0.08),
-      child: Icon(Icons.person_rounded, color: AppColors.gold.withValues(alpha: 0.3), size: 24),
+      color: context.accent.withValues(alpha: 0.08),
+      child: Icon(Icons.person_rounded, color: context.accent.withValues(alpha: 0.3), size: 24),
     );
   }
 }
@@ -533,8 +532,8 @@ class _PhotoHeroState extends State<_PhotoHero>
                         onTap: widget.onEdit,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]),
+                          decoration: BoxDecoration(color: context.accent, borderRadius: BorderRadius.circular(20),
+                            boxShadow: [BoxShadow(color: context.accent.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 14),
                             const SizedBox(width: 5),
@@ -570,10 +569,10 @@ class _PhotoHeroState extends State<_PhotoHero>
     color: context.surfaceColor,
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(width: 72, height: 72, decoration: BoxDecoration(shape: BoxShape.circle,
-        gradient: LinearGradient(colors: [AppColors.gold.withValues(alpha: 0.15), AppColors.gold.withValues(alpha: 0.05)])),
-        child: Icon(Icons.camera_alt_outlined, color: AppColors.gold.withValues(alpha: 0.6), size: 30)),
+        gradient: LinearGradient(colors: [context.accent.withValues(alpha: 0.15), context.accent.withValues(alpha: 0.05)])),
+        child: Icon(Icons.camera_alt_outlined, color: context.accent.withValues(alpha: 0.6), size: 30)),
       const SizedBox(height: 14),
-      const Text('Add your first photo', style: TextStyle(color: AppColors.gold, fontSize: 15, fontWeight: FontWeight.w600)),
+      Text('Add your first photo', style: TextStyle(color: context.accent, fontSize: 15, fontWeight: FontWeight.w600)),
       const SizedBox(height: 4),
       Text('Profiles with photos get 10x more attention', style: TextStyle(color: context.textMuted, fontSize: 12)),
     ]),
@@ -582,7 +581,7 @@ class _PhotoHeroState extends State<_PhotoHero>
   Widget _slot(BuildContext context) => Container(height: 72,
     decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(12),
       border: Border.all(color: context.borderColor.withValues(alpha: 0.3))),
-    child: Center(child: Icon(Icons.add_rounded, color: AppColors.gold.withValues(alpha: 0.35), size: 22)),
+    child: Center(child: Icon(Icons.add_rounded, color: context.accent.withValues(alpha: 0.35), size: 22)),
   );
 
   void _showFull(BuildContext context, String url) {
@@ -612,15 +611,15 @@ class _HookBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.gold.withValues(alpha: 0.10), AppColors.gold.withValues(alpha: 0.04)]),
+        gradient: LinearGradient(colors: [context.accent.withValues(alpha: 0.10), context.accent.withValues(alpha: 0.04)]),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+        border: Border.all(color: context.accent.withValues(alpha: 0.15)),
       ),
       child: Row(children: [
-        Icon(Icons.auto_awesome_rounded, color: AppColors.gold.withValues(alpha: 0.7), size: 20),
+        Icon(Icons.auto_awesome_rounded, color: context.accent.withValues(alpha: 0.7), size: 20),
         const SizedBox(width: 12),
         Expanded(child: Text.rich(TextSpan(children: [
-          TextSpan(text: '+$left points ', style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
+          TextSpan(text: '+$left points ', style: TextStyle(color: context.accent, fontWeight: FontWeight.w700, fontSize: 13)),
           TextSpan(text: 'to unlock your full potential', style: TextStyle(color: context.textMuted, fontSize: 13)),
         ]))),
       ]),
@@ -642,8 +641,8 @@ class _CompletionStrip extends StatelessWidget {
       SizedBox(width: 42, height: 42, child: Stack(alignment: Alignment.center, children: [
         CircularProgressIndicator(value: score / 100, strokeWidth: 3,
           backgroundColor: context.borderColor.withValues(alpha: 0.2),
-          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold)),
-        Text('$score', style: const TextStyle(color: AppColors.gold, fontSize: 13, fontWeight: FontWeight.w800)),
+          valueColor: AlwaysStoppedAnimation<Color>(context.accent)),
+        Text('$score', style: TextStyle(color: context.accent, fontSize: 13, fontWeight: FontWeight.w800)),
       ])),
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
