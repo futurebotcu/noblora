@@ -6,7 +6,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
-import '../../providers/appearance_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'appearance_settings_screen.dart';
 
@@ -131,12 +130,9 @@ class SettingsScreen extends ConsumerWidget {
           // 2. APPEARANCE
           // ════════════════════════════════════════════════════════════
           _H('Appearance'),
-          _Tile(Icons.palette_rounded, 'Appearance & Theme',
+          _Tile(Icons.palette_rounded, 'Accent & Theme',
               onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AppearanceSettingsScreen()))),
-          _AppearanceThemeSelector(ref: ref),
-          const SizedBox(height: AppSpacing.sm),
-          _AppearanceAccentSelector(ref: ref),
 
           // ════════════════════════════════════════════════════════════
           // 3. MODES
@@ -524,57 +520,3 @@ class _EditCityState extends State<_EditCity> {
       onSubmitted: widget.onChanged, onEditingComplete: () => widget.onChanged(_c.text.trim()))));
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Appearance widgets (preserved from earlier implementation)
-// ═══════════════════════════════════════════════════════════════════
-
-class _AppearanceThemeSelector extends StatelessWidget {
-  final WidgetRef ref;
-  const _AppearanceThemeSelector({required this.ref});
-  @override
-  Widget build(BuildContext context) {
-    final current = ref.watch(appearanceProvider).themeMode;
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg), child: Row(children: [
-      Icon(Icons.brightness_6_rounded, color: context.textPrimary, size: 20),
-      const SizedBox(width: AppSpacing.md),
-      Expanded(child: Text('Theme', style: TextStyle(color: context.textPrimary, fontSize: 14))),
-      SegmentedButton<ThemeMode>(
-        segments: const [
-          ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 16)),
-          ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 16)),
-          ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.settings_brightness_rounded, size: 16)),
-        ],
-        selected: {current},
-        onSelectionChanged: (s) => ref.read(appearanceProvider.notifier).setThemeMode(s.first),
-        style: SegmentedButton.styleFrom(backgroundColor: context.surfaceColor,
-            selectedBackgroundColor: context.accent.withValues(alpha: 0.2), selectedForegroundColor: context.accent, foregroundColor: context.textMuted),
-      ),
-    ]));
-  }
-}
-
-class _AppearanceAccentSelector extends StatelessWidget {
-  final WidgetRef ref;
-  const _AppearanceAccentSelector({required this.ref});
-  @override
-  Widget build(BuildContext context) {
-    final currentId = ref.watch(appearanceProvider).accentId;
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg), child: Row(children: [
-      Icon(Icons.palette_rounded, color: context.textPrimary, size: 20),
-      const SizedBox(width: AppSpacing.md),
-      Expanded(child: Text('Accent', style: TextStyle(color: context.textPrimary, fontSize: 14))),
-      Row(children: AppColors.accents.map((a) {
-        final sel = a.id == currentId;
-        return GestureDetector(onTap: () => ref.read(appearanceProvider.notifier).setAccent(a.id),
-          child: AnimatedContainer(duration: const Duration(milliseconds: 200), width: 28, height: 28,
-            margin: const EdgeInsets.only(left: 6),
-            transform: sel ? Matrix4.diagonal3Values(1.12, 1.12, 1.0) : Matrix4.identity(),
-            transformAlignment: Alignment.center,
-            decoration: BoxDecoration(color: a.primary, shape: BoxShape.circle,
-              border: Border.all(color: sel ? Colors.white : Colors.transparent, width: sel ? 2.5 : 0),
-              boxShadow: sel ? [BoxShadow(color: a.primary.withValues(alpha: 0.4), blurRadius: 8)] : null),
-            child: sel ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null));
-      }).toList()),
-    ]));
-  }
-}

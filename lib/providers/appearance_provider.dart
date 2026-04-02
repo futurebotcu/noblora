@@ -78,7 +78,10 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     await _persist();
   }
 
-  Future<void> setAccent(String id) async {
+  Future<void> setAccent(String id, {bool isNoble = false}) async {
+    final accent = AppColors.accentById(id);
+    // Noble-only accents require Noble tier
+    if (accent.nobleOnly && !isNoble) return;
     state = state.copyWith(accentId: id);
     await _persist();
   }

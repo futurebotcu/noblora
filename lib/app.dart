@@ -23,8 +23,7 @@ class NobleApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Noblara',
       debugShowCheckedModeBanner: false,
-      themeMode: appearance.themeMode,
-      theme: AppTheme.lightWithAccent(accent),
+      themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkWithAccent(accent),
       home: const AppRouter(),
     );

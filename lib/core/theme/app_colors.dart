@@ -10,6 +10,8 @@ class AccentColor {
   final Color onAccent;
   final bool isGold;
 
+  final bool nobleOnly;
+
   const AccentColor({
     required this.id,
     required this.name,
@@ -17,6 +19,7 @@ class AccentColor {
     required this.dim,
     required this.onAccent,
     this.isGold = false,
+    this.nobleOnly = false,
   });
 
   Color get soft => primary.withValues(alpha: 0.08);
@@ -44,6 +47,7 @@ class AppColors {
       primary: Color(0xFF1A3A6B),
       dim: Color(0xFF152E55),
       onAccent: Color(0xFFE8F0FB),
+      nobleOnly: true,
     ),
     AccentColor(
       id: 'emerald',
@@ -51,6 +55,7 @@ class AppColors {
       primary: Color(0xFF1A6B45),
       dim: Color(0xFF155A39),
       onAccent: Color(0xFFE0F5EA),
+      nobleOnly: true,
     ),
     AccentColor(
       id: 'bordeaux',
@@ -58,13 +63,15 @@ class AppColors {
       primary: Color(0xFF6B2D3E),
       dim: Color(0xFF572435),
       onAccent: Color(0xFFFFF0F3),
+      nobleOnly: true,
     ),
     AccentColor(
       id: 'anthracite',
       name: 'Antrasit',
-      primary: Color(0xFF3A3A4A),
-      dim: Color(0xFF2E2E3C),
-      onAccent: Color(0xFFE8E8F0),
+      primary: Color(0xFF4A5568),
+      dim: Color(0xFF3A4556),
+      onAccent: Color(0xFFE8ECF0),
+      nobleOnly: true,
     ),
   ];
 

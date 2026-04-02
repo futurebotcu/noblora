@@ -131,7 +131,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
                               : widget.mode == NobleMode.bff
                                   ? 'CONNECT'
                                   : 'JOIN',
-                          color: Colors.green,
+                          color: AppColors.success,
                         ),
                       ),
                     ),

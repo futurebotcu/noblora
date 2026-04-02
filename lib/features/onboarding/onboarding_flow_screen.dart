@@ -225,8 +225,6 @@ class _WelcomePage extends StatelessWidget {
             textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 16, height: 1.6, letterSpacing: 0.2)),
         const Spacer(flex: 3),
         SizedBox(width: double.infinity, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
             onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.5)))),
         const SizedBox(height: AppSpacing.xxxxl),
     ]));
@@ -260,8 +258,7 @@ class _BasicsPage extends StatelessWidget {
       ]),
       const SizedBox(height: AppSpacing.xxxl),
       ElevatedButton(onPressed: nameCtrl.text.trim().isNotEmpty ? onNext : null,
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-              minimumSize: const Size.fromHeight(50)),
+          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           child: const Text('Continue')),
     ]));
   }
@@ -272,8 +269,8 @@ class _GChip extends StatelessWidget {
   const _GChip(this.label, this.value, this.current, this.onChanged);
   @override
   Widget build(BuildContext context) => ChoiceChip(label: Text(label), selected: current == value,
-      selectedColor: AppColors.gold, backgroundColor: context.surfaceColor,
-      labelStyle: TextStyle(color: current == value ? context.bgColor : context.textSecondary),
+      selectedColor: context.accent, backgroundColor: context.surfaceColor,
+      labelStyle: TextStyle(color: current == value ? context.onAccent : context.textSecondary),
       onSelected: (_) => onChanged(value));
 }
 
@@ -474,8 +471,8 @@ class _PrefsPage extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Wrap(spacing: 6, runSpacing: 6, children: ['Serious relationship', 'Long-term', 'Intentional', 'Open'].map((o) =>
             ChoiceChip(label: Text(o), selected: lookingFor == o,
-                selectedColor: AppColors.gold, backgroundColor: context.surfaceColor,
-                labelStyle: TextStyle(color: lookingFor == o ? context.bgColor : context.textSecondary, fontSize: 12),
+                selectedColor: context.accent, backgroundColor: context.surfaceColor,
+                labelStyle: TextStyle(color: lookingFor == o ? context.onAccent : context.textSecondary, fontSize: 12),
                 onSelected: (_) => onLookingForChanged(o))).toList()),
         const SizedBox(height: AppSpacing.xxl),
         Text('Preferred age: $ageMin – $ageMax', style: TextStyle(color: context.textPrimary, fontSize: 14)),
@@ -524,8 +521,7 @@ class _CompletePageState extends State<_CompletePage> {
         ],
         const SizedBox(height: AppSpacing.xxxxl),
         SizedBox(width: double.infinity, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: widget.validationError != null ? context.textMuted : AppColors.gold,
-                foregroundColor: context.bgColor, minimumSize: const Size.fromHeight(52)),
+            style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: (_loading || widget.validationError != null) ? null : () async {
               setState(() => _loading = true);
               await widget.onComplete();
