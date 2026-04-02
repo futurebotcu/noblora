@@ -94,12 +94,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
               fileOptions: const FileOptions(contentType: 'image/jpeg'));
           remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
         } catch (_) {
-          // Upload failed — continue without photo
           remotePhotoUrl = null;
         }
       }
 
-      await Supabase.instance.client.from('profiles').update({
+      try {
+        await Supabase.instance.client.from('profiles').update({
         'full_name': _nameCtrl.text.trim(),
         'display_name': _nameCtrl.text.trim(),
         'age': _age,
@@ -134,14 +134,22 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'message_preview': true,
         'active_modes': ['date', 'bff', 'social'],
       }).eq('id', uid);
+      } catch (e) {
+        // DB update failed — log but continue to avoid stuck screen
+        debugPrint('Onboarding DB update error: $e');
+      }
     }
 
     // Refresh profile to trigger router re-evaluation
-    await ref.read(profileProvider.notifier).createProfile(
-      fullName: _nameCtrl.text.trim(),
-      currentMode: 'date',
-    );
-    await ref.read(profileProvider.notifier).updateGender(_gender);
+    try {
+      await ref.read(profileProvider.notifier).createProfile(
+        fullName: _nameCtrl.text.trim(),
+        currentMode: 'date',
+      );
+      await ref.read(profileProvider.notifier).updateGender(_gender);
+    } catch (e) {
+      debugPrint('Onboarding profile refresh error: $e');
+    }
   }
 
   @override
@@ -849,8 +857,16 @@ class _CompletePageState extends State<_CompletePage> {
         SizedBox(width: double.infinity, child: ElevatedButton(
             style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: (_loading || widget.validationError != null) ? null : () async {
+              final messenger = ScaffoldMessenger.of(context);
               setState(() => _loading = true);
-              await widget.onComplete();
+              try {
+                await widget.onComplete().timeout(const Duration(seconds: 15));
+              } catch (e) {
+                if (!mounted) return;
+                setState(() => _loading = false);
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+              }
             },
             child: _loading
                 ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: context.bgColor))

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../data/models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
@@ -64,7 +67,7 @@ class _SocialEventsScreenState extends ConsumerState<SocialEventsScreen>
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _EventsTab(ref: ref),
+          const _EventsTab(),
           const RoomsTab(),
         ],
       ),
@@ -150,11 +153,34 @@ class _PillTab extends StatelessWidget {
   }
 }
 
-// ─── Events Tab (existing content, extracted) ─────────────────────
+// ─── Events Tab (grid/list toggle) ───────────────────────────────
 
-class _EventsTab extends StatelessWidget {
-  final WidgetRef ref;
-  const _EventsTab({required this.ref});
+class _EventsTab extends ConsumerStatefulWidget {
+  const _EventsTab();
+  @override
+  ConsumerState<_EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends ConsumerState<_EventsTab> {
+  bool _listView = false;
+
+  void _openDetail(String eventId) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: eventId)));
+  }
+
+  Future<void> _joinEvent(String eventId) async {
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    if (!gate.canSocialJoin) {
+      if (mounted) showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
+      return;
+    }
+    final result = await ref.read(eventListProvider.notifier).joinEvent(eventId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result == 'joined' ? 'You\'re going!' : result),
+          backgroundColor: result == 'joined' ? _violet : context.surfaceColor),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,58 +193,52 @@ class _EventsTab extends StatelessWidget {
         else if (state.events.isEmpty)
           _EmptyEvents()
         else
-          RefreshIndicator(
-            color: _violet,
-            onRefresh: () => ref.read(eventListProvider.notifier).load(),
-            child: ListView.builder(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.md,
-                bottom: AppSpacing.xxxxl + 60,
+          Column(
+            children: [
+              // View toggle row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                child: Row(
+                  children: [
+                    Text('${state.events.length} events', style: TextStyle(color: context.textMuted, fontSize: 12)),
+                    const Spacer(),
+                    _ViewToggle(isListView: _listView, onToggle: () => setState(() => _listView = !_listView)),
+                  ],
+                ),
               ),
-              itemCount: state.events.length,
-              itemBuilder: (context, i) {
-                final event = state.events[i];
-                return EventCardWidget(
-                  event: event,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EventDetailScreen(eventId: event.id),
-                    ),
-                  ),
-                  onJoin: event.isFull
-                      ? null
-                      : () async {
-                          final gate = ref
-                                  .read(interactionGateProvider)
-                                  .valueOrNull ??
-                              const InteractionGate();
-                          if (!gate.canSocialJoin) {
-                            if (context.mounted) {
-                              showGatingPopup(
-                                  context, 'Add a photo first',
-                                  'Upload a photo to join events and rooms.');
-                            }
-                            return;
-                          }
-                          final result = await ref
-                              .read(eventListProvider.notifier)
-                              .joinEvent(event.id);
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(result == 'joined'
-                                  ? 'You\'re going!'
-                                  : result),
-                              backgroundColor: result == 'joined'
-                                  ? _violet
-                                  : context.surfaceColor,
-                            ),
-                          );
-                        },
-                );
-              },
-            ),
+              // Event list
+              Expanded(
+                child: RefreshIndicator(
+                  color: _violet,
+                  onRefresh: () => ref.read(eventListProvider.notifier).load(),
+                  child: _listView
+                      ? ListView.separated(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xxxxl + 60),
+                          itemCount: state.events.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: context.borderSubtleColor, indent: AppSpacing.lg, endIndent: AppSpacing.lg),
+                          itemBuilder: (context, i) {
+                            final event = state.events[i];
+                            return _EventListRow(
+                              event: event,
+                              onTap: () => _openDetail(event.id),
+                            );
+                          },
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xxxxl + 60),
+                          itemCount: state.events.length,
+                          itemBuilder: (context, i) {
+                            final event = state.events[i];
+                            return EventCardWidget(
+                              event: event,
+                              onTap: () => _openDetail(event.id),
+                              onJoin: event.isFull ? null : () => _joinEvent(event.id),
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ],
           ),
         // FAB for creating events
         Positioned(
@@ -228,8 +248,7 @@ class _EventsTab extends StatelessWidget {
             heroTag: 'create_event_fab',
             backgroundColor: _violet,
             onPressed: () async {
-              final gate = ref.read(interactionGateProvider).valueOrNull ??
-                  const InteractionGate();
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
               if (!gate.canSocialCreate) {
                 if (context.mounted) {
                   showGatingPopup(context, 'Verify your photo',
@@ -238,19 +257,107 @@ class _EventsTab extends StatelessWidget {
                 }
                 return;
               }
-              final created = await Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const CreateEventScreen()),
-              );
-              if (created == true) {
-                ref.read(eventListProvider.notifier).load();
-              }
+              final created = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const CreateEventScreen()));
+              if (created == true) ref.read(eventListProvider.notifier).load();
             },
             child: const Icon(Icons.add_rounded, color: Colors.white),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── View Toggle Button ──────────────────────────────────────────
+
+class _ViewToggle extends StatelessWidget {
+  final bool isListView;
+  final VoidCallback onToggle;
+  const _ViewToggle({required this.isListView, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
+        ),
+        child: Icon(
+          isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,
+          color: context.textMuted,
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Compact List Row ────────────────────────────────────────────
+
+class _EventListRow extends StatelessWidget {
+  final NobEvent event;
+  final VoidCallback onTap;
+  const _EventListRow({required this.event, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final day = event.eventDate.day.toString();
+    final month = DateFormat.MMM().format(event.eventDate);
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: Row(
+          children: [
+            // Date block
+            SizedBox(
+              width: 48,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(day, style: const TextStyle(color: AppColors.gold, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
+                  Text(month, style: TextStyle(color: AppColors.gold.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // Title + location
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event.title,
+                      style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (event.locationText != null && event.locationText!.isNotEmpty)
+                    Text(event.locationText!,
+                        style: TextStyle(color: context.textMuted, fontSize: 12),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            // Attendee count pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text('${event.attendeeCount}', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded, color: context.textMuted, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }
