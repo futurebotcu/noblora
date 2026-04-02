@@ -23,7 +23,7 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
-  static const _totalSteps = 9;
+  static const _totalSteps = 10;
 
   // Data collected
   final _nameCtrl = TextEditingController();
@@ -175,10 +175,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                   _BasicsPage(
                       nameCtrl: _nameCtrl,
                       birthDay: _birthDay, birthMonth: _birthMonth, birthYear: _birthYear,
-                      gender: _gender, occupation: _occupation,
+                      gender: _gender,
                       onBirthChanged: (d, m, y, age) => setState(() { _birthDay = d; _birthMonth = m; _birthYear = y; _age = age; }),
                       onGenderChanged: (v) => setState(() => _gender = v),
-                      onOccupationChanged: (v) => setState(() => _occupation = v),
+                      onNext: _next),
+                  _OccupationPage(
+                      occupation: _occupation,
+                      onChanged: (v) => setState(() => _occupation = v),
                       onNext: _next),
                   _ModesPage(dating: _datingActive, bff: _bffActive, social: _socialActive,
                       onDating: (v) => setState(() => _datingActive = v),
@@ -243,29 +246,18 @@ class _WelcomePage extends StatelessWidget {
 class _BasicsPage extends StatefulWidget {
   final TextEditingController nameCtrl;
   final int? birthDay, birthMonth, birthYear;
-  final String gender, occupation;
+  final String gender;
   final void Function(int d, int m, int y, int age) onBirthChanged;
   final ValueChanged<String> onGenderChanged;
-  final ValueChanged<String> onOccupationChanged;
   final VoidCallback onNext;
   const _BasicsPage({required this.nameCtrl, this.birthDay, this.birthMonth, this.birthYear,
-      required this.gender, required this.occupation, required this.onBirthChanged,
-      required this.onGenderChanged, required this.onOccupationChanged, required this.onNext});
+      required this.gender, required this.onBirthChanged,
+      required this.onGenderChanged, required this.onNext});
   @override
   State<_BasicsPage> createState() => _BasicsPageState();
 }
 
 class _BasicsPageState extends State<_BasicsPage> {
-  final _occCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _occCtrl.text = widget.occupation;
-  }
-
-  @override
-  void dispose() { _occCtrl.dispose(); super.dispose(); }
 
   int? get _calcAge {
     if (widget.birthDay == null || widget.birthMonth == null || widget.birthYear == null) return null;
@@ -347,38 +339,6 @@ class _BasicsPageState extends State<_BasicsPage> {
         const SizedBox(width: 8),
         _GenderCard('Other', 'other', widget.gender, widget.onGenderChanged),
       ]),
-      const SizedBox(height: AppSpacing.xxl),
-
-      // Occupation
-      Text('What do you do?', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
-      const SizedBox(height: AppSpacing.sm),
-      GestureDetector(
-        onTap: () => _showOccupationPicker(context),
-        child: Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: widget.occupation.isNotEmpty ? context.accent.withValues(alpha: 0.4) : context.borderColor, width: 0.5),
-          ),
-          child: Row(children: [
-            Expanded(child: Text(
-              widget.occupation.isNotEmpty ? widget.occupation : 'Select or type below',
-              style: TextStyle(color: widget.occupation.isNotEmpty ? context.textPrimary : context.textDisabled, fontSize: 14),
-            )),
-            Icon(Icons.keyboard_arrow_down_rounded, color: context.textMuted, size: 20),
-          ]),
-        ),
-      ),
-      const SizedBox(height: AppSpacing.sm),
-      TextField(
-        controller: _occCtrl,
-        style: TextStyle(color: context.textPrimary, fontSize: 14),
-        decoration: _deco(context, 'Or type your own occupation'),
-        onChanged: (v) => widget.onOccupationChanged(v.trim()),
-      ),
-
       const SizedBox(height: AppSpacing.xxxl),
       ElevatedButton(onPressed: _canContinue ? widget.onNext : null,
           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
@@ -394,25 +354,6 @@ class _BasicsPageState extends State<_BasicsPage> {
     return age;
   }
 
-  void _showOccupationPicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.surfaceColor,
-      isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.75, minChildSize: 0.4, maxChildSize: 0.9, expand: false,
-        builder: (ctx, scroll) => _OccupationSheet(
-          scrollController: scroll,
-          selected: widget.occupation,
-          onSelected: (v) {
-            widget.onOccupationChanged(v);
-            _occCtrl.text = v;
-            Navigator.pop(ctx);
-          },
-        ),
-      ),
-    );
-  }
 }
 
 class _GenderCard extends StatelessWidget {
@@ -438,6 +379,108 @@ class _GenderCard extends StatelessWidget {
           fontSize: 14, fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
         ))),
       ),
+    ));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Occupation Page (Step 2)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _OccupationPage extends StatefulWidget {
+  final String occupation;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onNext;
+  const _OccupationPage({required this.occupation, required this.onChanged, required this.onNext});
+  @override
+  State<_OccupationPage> createState() => _OccupationPageState();
+}
+
+class _OccupationPageState extends State<_OccupationPage> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.text = widget.occupation;
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  void _showPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.surfaceColor,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.75, minChildSize: 0.4, maxChildSize: 0.9, expand: false,
+        builder: (ctx, scroll) => _OccupationSheet(
+          scrollController: scroll,
+          selected: widget.occupation,
+          onSelected: (v) {
+            widget.onChanged(v);
+            _ctrl.text = v;
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.xxl),
+        Text('What do you do?', style: TextStyle(color: context.textPrimary, fontSize: 28, fontWeight: FontWeight.w700)),
+        const SizedBox(height: AppSpacing.xs),
+        Text('This helps people find common ground', style: TextStyle(color: context.textMuted, fontSize: 14)),
+        const SizedBox(height: AppSpacing.xxxl),
+
+        // Dropdown selector
+        GestureDetector(
+          onTap: _showPicker,
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: widget.occupation.isNotEmpty ? context.accent.withValues(alpha: 0.4) : context.borderColor, width: 0.5),
+            ),
+            child: Row(children: [
+              Icon(Icons.work_outline_rounded, color: context.textMuted, size: 20),
+              const SizedBox(width: 12),
+              Expanded(child: Text(
+                widget.occupation.isNotEmpty ? widget.occupation : 'Select your occupation',
+                style: TextStyle(color: widget.occupation.isNotEmpty ? context.textPrimary : context.textDisabled, fontSize: 14),
+              )),
+              Icon(Icons.keyboard_arrow_down_rounded, color: context.textMuted, size: 20),
+            ]),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Manual input
+        Text('Or type your own', style: TextStyle(color: context.textMuted, fontSize: 12)),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _ctrl,
+          style: TextStyle(color: context.textPrimary, fontSize: 14),
+          decoration: _deco(context, 'e.g. UX Designer at Google'),
+          onChanged: (v) => widget.onChanged(v.trim()),
+        ),
+
+        const Spacer(),
+        ElevatedButton(
+          onPressed: widget.onNext,
+          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          child: Text(widget.occupation.isNotEmpty ? 'Continue' : 'Skip for now'),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+      ],
     ));
   }
 }
