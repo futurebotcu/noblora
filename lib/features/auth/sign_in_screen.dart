@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/mock_mode.dart';
+import '../../core/services/device_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
@@ -17,6 +19,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  String? _deviceError;
 
   @override
   void dispose() {
@@ -27,22 +30,39 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    // Device ban check
+    if (!isMockMode) {
+      final banned = await DeviceService.isDeviceBanned();
+      if (banned && mounted) {
+        setState(() => _deviceError = 'This device has been restricted. Contact support.');
+        return;
+      }
+    }
+
+    setState(() => _deviceError = null);
     await ref.read(authProvider.notifier).signIn(
-          _emailCtrl.text.trim(),
-          _passCtrl.text,
-        );
+      _emailCtrl.text.trim(),
+      _passCtrl.text,
+    );
+
+    // Register device on success
+    final auth = ref.read(authProvider);
+    if (auth.isAuthenticated && !isMockMode) {
+      DeviceService.registerDevice(auth.userId!);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // When auth succeeds, clear the nav stack so AppRouter's new home shows.
-    ref.listen<AuthState>(authProvider, (prev, next) {
+    ref.listen(authProvider, (prev, next) {
       if (next.isAuthenticated && mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     });
 
     final auth = ref.watch(authProvider);
+    final error = _deviceError ?? auth.error;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sign In')),
@@ -55,18 +75,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppSpacing.xxxl),
-                Text(
-                  'Welcome back',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
+                Text('Welcome back', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: AppSpacing.xxl),
                 AppTextField(
                   controller: _emailCtrl,
                   label: 'Email',
                   hint: 'you@example.com',
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Email required' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Email required' : null,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
@@ -74,16 +90,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   label: 'Password',
                   hint: '••••••••',
                   obscureText: true,
-                  validator: (v) =>
-                      (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                  validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
-                if (auth.error != null) ...[
+                if (error != null) ...[
                   const SizedBox(height: AppSpacing.md),
-                  Text(
-                    auth.error!,
-                    style: const TextStyle(
-                        color: AppColors.error, fontSize: 13),
-                  ),
+                  Text(error, style: const TextStyle(color: AppColors.error, fontSize: 13)),
                 ],
                 const SizedBox(height: AppSpacing.xxxl),
                 AppButton(
