@@ -8,6 +8,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../shared/widgets/drum_date_picker.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Onboarding Flow — step-based premium setup
@@ -296,37 +297,27 @@ class _BasicsPageState extends State<_BasicsPage> {
             child: Text('Name must be at least 2 characters', style: TextStyle(color: AppColors.error, fontSize: 12))),
       const SizedBox(height: AppSpacing.xxl),
 
-      // Date of Birth
+      // Date of Birth — 3D Drum Picker
       Text('Date of Birth', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
       const SizedBox(height: AppSpacing.sm),
-      Row(children: [
-        // Day
-        Expanded(child: _DropBox(
-          hint: 'Day', value: widget.birthDay?.toString(),
-          items: List.generate(31, (i) => '${i + 1}'),
-          onChanged: (v) { final d = int.parse(v); widget.onBirthChanged(d, widget.birthMonth ?? 1, widget.birthYear ?? (now.year - 25), _calcAgeFrom(d, widget.birthMonth ?? 1, widget.birthYear ?? (now.year - 25))); },
+      DrumDatePicker(
+        day: widget.birthDay,
+        month: widget.birthMonth,
+        year: widget.birthYear,
+        onChanged: (d, m, y) {
+          widget.onBirthChanged(d, m, y, _calcAgeFrom(d, m, y));
+        },
+      ),
+      if (age != null) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Center(child: Text(
+          '${_months[(widget.birthMonth ?? 1) - 1]} ${widget.birthDay ?? 1}, ${widget.birthYear ?? now.year - 25} · $age years old',
+          style: TextStyle(color: ageInvalid ? AppColors.error : AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600),
         )),
-        const SizedBox(width: 8),
-        // Month
-        Expanded(flex: 2, child: _DropBox(
-          hint: 'Month', value: widget.birthMonth != null ? _months[widget.birthMonth! - 1] : null,
-          items: _months,
-          onChanged: (v) { final m = _months.indexOf(v) + 1; widget.onBirthChanged(widget.birthDay ?? 1, m, widget.birthYear ?? (now.year - 25), _calcAgeFrom(widget.birthDay ?? 1, m, widget.birthYear ?? (now.year - 25))); },
-        )),
-        const SizedBox(width: 8),
-        // Year
-        Expanded(child: _DropBox(
-          hint: 'Year', value: widget.birthYear?.toString(),
-          items: List.generate(63, (i) => '${now.year - 18 - i}'),
-          onChanged: (v) { final y = int.parse(v); widget.onBirthChanged(widget.birthDay ?? 1, widget.birthMonth ?? 1, y, _calcAgeFrom(widget.birthDay ?? 1, widget.birthMonth ?? 1, y)); },
-        )),
-      ]),
-      if (age != null)
-        Padding(padding: const EdgeInsets.only(top: 6),
-            child: Text('Age: $age', style: TextStyle(color: ageInvalid ? AppColors.error : context.textMuted, fontSize: 13))),
+      ],
       if (ageInvalid)
-        Padding(padding: const EdgeInsets.only(top: 2),
-            child: Text('You must be at least 18', style: TextStyle(color: AppColors.error, fontSize: 12))),
+        Padding(padding: const EdgeInsets.only(top: 4),
+            child: Center(child: Text('You must be at least 18', style: TextStyle(color: AppColors.error, fontSize: 12)))),
       const SizedBox(height: AppSpacing.xxl),
 
       // Gender
@@ -482,56 +473,6 @@ class _OccupationPageState extends State<_OccupationPage> {
         const SizedBox(height: AppSpacing.xxl),
       ],
     ));
-  }
-}
-
-class _DropBox extends StatelessWidget {
-  final String hint;
-  final String? value;
-  final List<String> items;
-  final ValueChanged<String> onChanged;
-  const _DropBox({required this.hint, this.value, required this.items, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _show(context),
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: value != null ? context.accent.withValues(alpha: 0.3) : context.borderColor, width: 0.5),
-        ),
-        child: Center(child: Text(
-          value ?? hint,
-          style: TextStyle(color: value != null ? context.textPrimary : context.textDisabled, fontSize: 13),
-          overflow: TextOverflow.ellipsis,
-        )),
-      ),
-    );
-  }
-
-  void _show(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.surfaceColor,
-      builder: (_) => SizedBox(
-        height: 300,
-        child: ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (ctx, i) {
-            final sel = items[i] == value;
-            return ListTile(
-              title: Text(items[i], style: TextStyle(color: sel ? context.accent : context.textPrimary, fontSize: 14, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
-              trailing: sel ? Icon(Icons.check_rounded, color: context.accent, size: 18) : null,
-              onTap: () { onChanged(items[i]); Navigator.pop(ctx); },
-            );
-          },
-        ),
-      ),
-    );
   }
 }
 
