@@ -7,9 +7,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../shared/widgets/drum_date_picker.dart';
+import '../../shared/widgets/city_search_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Onboarding Flow — step-based premium setup
@@ -36,6 +38,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _gender = 'female';
   String _occupation = '';
   String _city = '';
+  String _country = '';
+  double? _locationLat;
+  double? _locationLng;
   final _bioCtrl = TextEditingController();
   String? _photoUrl;
   String _lookingFor = 'Serious relationship';
@@ -102,6 +107,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'age': _age,
         'gender': _gender,
         'city': _city,
+        if (_country.isNotEmpty) 'country': _country,
+        if (_locationLat != null) 'location_lat': _locationLat,
+        if (_locationLng != null) 'location_lng': _locationLng,
         'bio': _bioCtrl.text.trim(),
         'date_avatar_url': remotePhotoUrl,
         'bff_avatar_url': remotePhotoUrl,
@@ -177,7 +185,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                       occupation: _occupation,
                       onChanged: (v) => setState(() => _occupation = v),
                       onNext: _next),
-                  _CityPage(city: _city, onChanged: (v) => setState(() => _city = v), onNext: _next),
+                  _LocationPage(
+                      city: _city,
+                      country: _country,
+                      onLocationSet: (city, country, lat, lng) => setState(() {
+                        _city = city; _country = country;
+                        _locationLat = lat; _locationLng = lng;
+                      }),
+                      onNext: _next),
                   _PhotoPage(photoUrl: _photoUrl, onPhotoSelected: (v) => setState(() => _photoUrl = v), onNext: _next),
                   _BioPage(bioCtrl: _bioCtrl, onNext: _next),
                   _PrivacyPage(onNext: _next),
@@ -556,28 +571,128 @@ class _OccupationSheetState extends State<_OccupationSheet> {
   }
 }
 
-class _CityPage extends StatelessWidget {
-  final String city; final ValueChanged<String> onChanged; final VoidCallback onNext;
-  const _CityPage({required this.city, required this.onChanged, required this.onNext});
+class _LocationPage extends StatefulWidget {
+  final String city;
+  final String country;
+  final void Function(String city, String country, double? lat, double? lng) onLocationSet;
+  final VoidCallback onNext;
+  const _LocationPage({required this.city, required this.country, required this.onLocationSet, required this.onNext});
+  @override
+  State<_LocationPage> createState() => _LocationPageState();
+}
+
+class _LocationPageState extends State<_LocationPage> {
+  bool _gpsLoading = false;
+  String? _error;
+
+  Future<void> _useGPS() async {
+    setState(() { _gpsLoading = true; _error = null; });
+    try {
+      final result = await LocationService.getLocationFromGPS();
+      if (result.isEmpty || result['city'] == null) {
+        setState(() { _gpsLoading = false; _error = 'Could not detect location. Try searching manually.'; });
+        return;
+      }
+      widget.onLocationSet(
+        result['city'] as String,
+        result['country'] as String? ?? '',
+        result['lat'] as double?,
+        result['lng'] as double?,
+      );
+    } catch (_) {
+      setState(() => _error = 'Location access failed. Try searching manually.');
+    }
+    setState(() => _gpsLoading = false);
+  }
+
+  void _openSearch() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => CitySearchScreen(
+        initialValue: widget.city.isNotEmpty ? widget.city : null,
+        onSelected: (city, country, lat, lng) {
+          widget.onLocationSet(city, country, lat, lng);
+        },
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ctrl = TextEditingController(text: city);
+    final hasLocation = widget.city.isNotEmpty;
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxxl),
-        Text('Where are you based?', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        Text('Where are you based?', style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        Text('This helps us show people near you.', style: TextStyle(color: context.textMuted, fontSize: 13)),
-        const SizedBox(height: AppSpacing.xxl),
-        TextField(controller: ctrl, onChanged: onChanged, style: TextStyle(color: context.textPrimary),
-            decoration: _deco(context, 'Your city (e.g. Istanbul)')),
+        Text('Help us find people near you', style: TextStyle(color: context.textMuted, fontSize: 14)),
+        const SizedBox(height: AppSpacing.xxxxl),
+
+        // GPS button
+        SizedBox(width: double.infinity, child: ElevatedButton.icon(
+          onPressed: _gpsLoading ? null : _useGPS,
+          icon: _gpsLoading
+              ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.bgColor))
+              : Icon(Icons.my_location_rounded, size: 20),
+          label: Text(_gpsLoading ? 'Detecting...' : 'Use my location',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.gold,
+            foregroundColor: context.bgColor,
+            minimumSize: const Size.fromHeight(52),
+          ),
+        )),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // Manual search
+        Center(child: GestureDetector(
+          onTap: _openSearch,
+          child: Text('Or search manually', style: TextStyle(
+            color: context.accent, fontSize: 14, fontWeight: FontWeight.w500,
+            decoration: TextDecoration.underline, decorationColor: context.accent.withValues(alpha: 0.4),
+          )),
+        )),
+
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+        ],
+
+        // Location result
+        if (hasLocation) ...[
+          const SizedBox(height: AppSpacing.xxxl),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+            ),
+            child: Row(children: [
+              Icon(Icons.location_on_rounded, color: AppColors.gold, size: 22),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.city, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                  if (widget.country.isNotEmpty)
+                    Text(widget.country, style: TextStyle(color: context.textMuted, fontSize: 13)),
+                ],
+              )),
+              Icon(Icons.check_circle_rounded, color: AppColors.gold, size: 20),
+            ]),
+          ),
+        ],
+
         const Spacer(),
-        ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(50)),
-            child: const Text('Continue')),
+        ElevatedButton(
+          onPressed: hasLocation ? widget.onNext : null,
+          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          child: const Text('Continue'),
+        ),
         const SizedBox(height: AppSpacing.xxl),
-    ]));
+      ],
+    ));
   }
 }
 
