@@ -13,7 +13,7 @@ import '../../shared/widgets/drum_date_picker.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Onboarding Flow — step-based premium setup
-// Steps: Welcome → Basics → Modes → City → Photo → Bio → Privacy → Preferences → Complete
+// Steps: Welcome → Basics → Occupation → City → Photo → Bio → Privacy → Preferences → Complete
 // ═══════════════════════════════════════════════════════════════════
 
 class OnboardingFlowScreen extends ConsumerStatefulWidget {
@@ -25,7 +25,7 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
-  static const _totalSteps = 10;
+  static const _totalSteps = 9;
 
   // Data collected
   final _nameCtrl = TextEditingController();
@@ -38,9 +38,6 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _city = '';
   final _bioCtrl = TextEditingController();
   String? _photoUrl;
-  bool _datingActive = true;
-  bool _bffActive = true;
-  bool _socialActive = true;
   String _lookingFor = 'Serious relationship';
   int _ageMin = 20;
   int _ageMax = 40;
@@ -65,8 +62,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   /// Validate minimum requirements before allowing completion
   String? _validateCompletion() {
     if (_nameCtrl.text.trim().isEmpty) return 'Name is required';
-    if (_datingActive && _photoUrl == null) return 'A photo is required for Dating mode';
-    if (!_datingActive && !_bffActive && !_socialActive) return 'Select at least one mode';
+    if (_photoUrl == null) return 'A photo is required';
     return null;
   }
 
@@ -109,12 +105,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'bio': _bioCtrl.text.trim(),
         'date_avatar_url': remotePhotoUrl,
         'bff_avatar_url': remotePhotoUrl,
-        'dating_active': _datingActive,
-        'dating_visible': _datingActive,
-        'bff_active': _bffActive,
-        'bff_visible': _bffActive,
-        'social_active': _socialActive,
-        'social_visible': _socialActive,
+        'dating_active': true,
+        'dating_visible': true,
+        'bff_active': true,
+        'bff_visible': true,
+        'social_active': true,
+        'social_visible': true,
         'looking_for': _lookingFor,
         if (_occupation.isNotEmpty) 'occupation': _occupation,
         'is_onboarded': true,
@@ -129,18 +125,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'signal_permission': 'everyone',
         'note_permission': 'everyone',
         'message_preview': true,
-        'active_modes': [
-          if (_datingActive) 'date',
-          if (_bffActive) 'bff',
-          if (_socialActive) 'social',
-        ],
+        'active_modes': ['date', 'bff', 'social'],
       }).eq('id', uid);
     }
 
     // Refresh profile to trigger router re-evaluation
     await ref.read(profileProvider.notifier).createProfile(
       fullName: _nameCtrl.text.trim(),
-      currentMode: _datingActive ? 'date' : (_bffActive ? 'bff' : 'social'),
+      currentMode: 'date',
     );
     await ref.read(profileProvider.notifier).updateGender(_gender);
   }
@@ -184,11 +176,6 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                   _OccupationPage(
                       occupation: _occupation,
                       onChanged: (v) => setState(() => _occupation = v),
-                      onNext: _next),
-                  _ModesPage(dating: _datingActive, bff: _bffActive, social: _socialActive,
-                      onDating: (v) => setState(() => _datingActive = v),
-                      onBff: (v) => setState(() => _bffActive = v),
-                      onSocial: (v) => setState(() => _socialActive = v),
                       onNext: _next),
                   _CityPage(city: _city, onChanged: (v) => setState(() => _city = v), onNext: _next),
                   _PhotoPage(photoUrl: _photoUrl, onPhotoSelected: (v) => setState(() => _photoUrl = v), onNext: _next),
@@ -321,15 +308,13 @@ class _BasicsPageState extends State<_BasicsPage> {
             child: Center(child: Text('You must be at least 18', style: TextStyle(color: AppColors.error, fontSize: 12)))),
       const SizedBox(height: AppSpacing.xxl),
 
-      // Gender — 3 icon cards
+      // Gender — 2 options
       Text('Gender', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
       const SizedBox(height: AppSpacing.sm),
       Row(children: [
         _GenderCard('Man', 'male', Icons.male_rounded, widget.gender, widget.onGenderChanged),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         _GenderCard('Woman', 'female', Icons.female_rounded, widget.gender, widget.onGenderChanged),
-        const SizedBox(width: 10),
-        _GenderCard('Other', 'other', Icons.person_outline_rounded, widget.gender, widget.onGenderChanged),
       ]),
       const SizedBox(height: AppSpacing.xxxl),
       ElevatedButton(onPressed: _canContinue ? widget.onNext : null,
@@ -569,48 +554,6 @@ class _OccupationSheetState extends State<_OccupationSheet> {
       onTap: () => widget.onSelected(o),
     );
   }
-}
-
-class _ModesPage extends StatelessWidget {
-  final bool dating, bff, social;
-  final ValueChanged<bool> onDating, onBff, onSocial; final VoidCallback onNext;
-  const _ModesPage({required this.dating, required this.bff, required this.social,
-      required this.onDating, required this.onBff, required this.onSocial, required this.onNext});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.xxxl),
-        Text('How would you like to use Noblara?', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: AppSpacing.sm),
-        Text('You can change these anytime in Settings.', style: TextStyle(color: context.textMuted, fontSize: 13)),
-        const SizedBox(height: AppSpacing.xxl),
-        _ModeToggle(Icons.favorite_rounded, 'Dating', 'Find meaningful connections', AppColors.gold, dating, onDating),
-        _ModeToggle(Icons.people_rounded, 'BFF', 'Build your social circle', const Color(0xFF26C6DA), bff, onBff),
-        _ModeToggle(Icons.explore_rounded, 'Social', 'Join real-life events', const Color(0xFFAB47BC), social, onSocial),
-        const Spacer(),
-        ElevatedButton(onPressed: (dating || bff || social) ? onNext : null,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(50)),
-            child: const Text('Continue')),
-        const SizedBox(height: AppSpacing.xxl),
-    ]));
-  }
-}
-
-class _ModeToggle extends StatelessWidget {
-  final IconData icon; final String title; final String sub; final Color color; final bool value; final ValueChanged<bool> onChanged;
-  const _ModeToggle(this.icon, this.title, this.sub, this.color, this.value, this.onChanged);
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: AppSpacing.md),
-    decoration: BoxDecoration(color: value ? color.withValues(alpha: 0.08) : context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: value ? color.withValues(alpha: 0.4) : context.borderColor)),
-    child: ListTile(leading: Icon(icon, color: value ? color : context.textMuted),
-        title: Text(title, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
-        subtitle: Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12)),
-        trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: color.withValues(alpha: 0.4))));
 }
 
 class _CityPage extends StatelessWidget {
