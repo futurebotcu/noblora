@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export SUPABASE_ACCESS_TOKEN=sbp_e36ea6b2837d4da88129639d4ae1e390064e0770)",
+      "Bash(npx supabase:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter build:*)",
+      "Bash(adb -s emulator-5554 install -r build/app/outputs/flutter-apk/app-debug.apk)",
+      "Bash(adb -s emulator-5554 shell am force-stop com.noblara.noblara_flutter)",
+      "Bash(adb -s emulator-5554 shell monkey -p com.noblara.noblara_flutter -c android.intent.category.LAUNCHER 1)",
+      "Bash(adb -s emulator-5554 shell input tap 960 2340)",
+      "Bash(adb -s emulator-5554 shell input swipe 540 400 540 2000 300)",
+      "Bash(adb -s emulator-5554 exec-out screencap -p)",
+      "Bash(adb -s emulator-5554 shell input tap 950 2340)",
+      "Bash(adb -s emulator-5554 shell input tap 960 2380)",
+      "Bash(adb -s emulator-5554 shell input tap 972 2352)",
+      "Bash(adb -s emulator-5554 shell input tap 960 2280)",
+      "Bash(adb -s emulator-5554 shell input tap 70 90)",
+      "Bash(adb -s emulator-5554 shell input swipe 540 500 540 1800 200)",
+      "Bash(adb -s emulator-5554 shell input swipe 540 1800 540 400 400)"
+    ]
+  }
+}
