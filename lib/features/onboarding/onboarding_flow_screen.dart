@@ -28,7 +28,11 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   // Data collected
   final _nameCtrl = TextEditingController();
   int _age = 25;
+  int? _birthDay;
+  int? _birthMonth;
+  int? _birthYear;
   String _gender = 'female';
+  String _occupation = '';
   String _city = '';
   final _bioCtrl = TextEditingController();
   String? _photoUrl;
@@ -110,6 +114,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'social_active': _socialActive,
         'social_visible': _socialActive,
         'looking_for': _lookingFor,
+        if (_occupation.isNotEmpty) 'occupation': _occupation,
         'is_onboarded': true,
         // Privacy defaults (explicit, not null)
         'incognito_mode': false,
@@ -167,9 +172,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _WelcomePage(onNext: _next),
-                  _BasicsPage(nameCtrl: _nameCtrl, age: _age, gender: _gender,
-                      onAgeChanged: (v) => setState(() => _age = v),
+                  _BasicsPage(
+                      nameCtrl: _nameCtrl,
+                      birthDay: _birthDay, birthMonth: _birthMonth, birthYear: _birthYear,
+                      gender: _gender, occupation: _occupation,
+                      onBirthChanged: (d, m, y, age) => setState(() { _birthDay = d; _birthMonth = m; _birthYear = y; _age = age; }),
                       onGenderChanged: (v) => setState(() => _gender = v),
+                      onOccupationChanged: (v) => setState(() => _occupation = v),
                       onNext: _next),
                   _ModesPage(dating: _datingActive, bff: _bffActive, social: _socialActive,
                       onDating: (v) => setState(() => _datingActive = v),
@@ -231,47 +240,329 @@ class _WelcomePage extends StatelessWidget {
   }
 }
 
-class _BasicsPage extends StatelessWidget {
-  final TextEditingController nameCtrl; final int age; final String gender;
-  final ValueChanged<int> onAgeChanged; final ValueChanged<String> onGenderChanged; final VoidCallback onNext;
-  const _BasicsPage({required this.nameCtrl, required this.age, required this.gender,
-      required this.onAgeChanged, required this.onGenderChanged, required this.onNext});
+class _BasicsPage extends StatefulWidget {
+  final TextEditingController nameCtrl;
+  final int? birthDay, birthMonth, birthYear;
+  final String gender, occupation;
+  final void Function(int d, int m, int y, int age) onBirthChanged;
+  final ValueChanged<String> onGenderChanged;
+  final ValueChanged<String> onOccupationChanged;
+  final VoidCallback onNext;
+  const _BasicsPage({required this.nameCtrl, this.birthDay, this.birthMonth, this.birthYear,
+      required this.gender, required this.occupation, required this.onBirthChanged,
+      required this.onGenderChanged, required this.onOccupationChanged, required this.onNext});
+  @override
+  State<_BasicsPage> createState() => _BasicsPageState();
+}
+
+class _BasicsPageState extends State<_BasicsPage> {
+  final _occCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _occCtrl.text = widget.occupation;
+  }
+
+  @override
+  void dispose() { _occCtrl.dispose(); super.dispose(); }
+
+  int? get _calcAge {
+    if (widget.birthDay == null || widget.birthMonth == null || widget.birthYear == null) return null;
+    final now = DateTime.now();
+    int age = now.year - widget.birthYear!;
+    if (now.month < widget.birthMonth! || (now.month == widget.birthMonth! && now.day < widget.birthDay!)) age--;
+    return age;
+  }
+
+  bool get _canContinue =>
+      widget.nameCtrl.text.trim().length >= 2 &&
+      _calcAge != null && _calcAge! >= 18 &&
+      widget.gender.isNotEmpty;
+
+  static const _months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
   @override
   Widget build(BuildContext context) {
+    final age = _calcAge;
+    final ageInvalid = age != null && age < 18;
+    final now = DateTime.now();
+
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: ListView(children: [
-      const SizedBox(height: AppSpacing.xxxl),
-      Text('About you', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
       const SizedBox(height: AppSpacing.xxl),
-      TextField(controller: nameCtrl, style: TextStyle(color: context.textPrimary),
+      Text('About You', style: TextStyle(color: context.textPrimary, fontSize: 28, fontWeight: FontWeight.w700)),
+      const SizedBox(height: AppSpacing.xs),
+      Text('Help others know the real you', style: TextStyle(color: context.textMuted, fontSize: 14)),
+      const SizedBox(height: AppSpacing.xxxl),
+
+      // Name
+      TextField(controller: widget.nameCtrl, style: TextStyle(color: context.textPrimary),
+          onChanged: (_) => setState(() {}),
           decoration: _deco(context, 'Your name')),
+      if (widget.nameCtrl.text.isNotEmpty && widget.nameCtrl.text.trim().length < 2)
+        Padding(padding: const EdgeInsets.only(top: 4),
+            child: Text('Name must be at least 2 characters', style: TextStyle(color: AppColors.error, fontSize: 12))),
       const SizedBox(height: AppSpacing.xxl),
-      Text('Age: $age', style: TextStyle(color: context.textPrimary, fontSize: 14)),
-      Slider(value: age.toDouble(), min: 18, max: 65, divisions: 47, activeColor: AppColors.gold,
-          onChanged: (v) => onAgeChanged(v.round())),
-      const SizedBox(height: AppSpacing.xxl),
-      Text('Gender', style: TextStyle(color: context.textMuted, fontSize: 12)),
+
+      // Date of Birth
+      Text('Date of Birth', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
       const SizedBox(height: AppSpacing.sm),
-      Wrap(spacing: 8, children: [
-        _GChip('Woman', 'female', gender, onGenderChanged),
-        _GChip('Man', 'male', gender, onGenderChanged),
-        _GChip('Other', 'other', gender, onGenderChanged),
+      Row(children: [
+        // Day
+        Expanded(child: _DropBox(
+          hint: 'Day', value: widget.birthDay?.toString(),
+          items: List.generate(31, (i) => '${i + 1}'),
+          onChanged: (v) { final d = int.parse(v); widget.onBirthChanged(d, widget.birthMonth ?? 1, widget.birthYear ?? (now.year - 25), _calcAgeFrom(d, widget.birthMonth ?? 1, widget.birthYear ?? (now.year - 25))); },
+        )),
+        const SizedBox(width: 8),
+        // Month
+        Expanded(flex: 2, child: _DropBox(
+          hint: 'Month', value: widget.birthMonth != null ? _months[widget.birthMonth! - 1] : null,
+          items: _months,
+          onChanged: (v) { final m = _months.indexOf(v) + 1; widget.onBirthChanged(widget.birthDay ?? 1, m, widget.birthYear ?? (now.year - 25), _calcAgeFrom(widget.birthDay ?? 1, m, widget.birthYear ?? (now.year - 25))); },
+        )),
+        const SizedBox(width: 8),
+        // Year
+        Expanded(child: _DropBox(
+          hint: 'Year', value: widget.birthYear?.toString(),
+          items: List.generate(63, (i) => '${now.year - 18 - i}'),
+          onChanged: (v) { final y = int.parse(v); widget.onBirthChanged(widget.birthDay ?? 1, widget.birthMonth ?? 1, y, _calcAgeFrom(widget.birthDay ?? 1, widget.birthMonth ?? 1, y)); },
+        )),
       ]),
+      if (age != null)
+        Padding(padding: const EdgeInsets.only(top: 6),
+            child: Text('Age: $age', style: TextStyle(color: ageInvalid ? AppColors.error : context.textMuted, fontSize: 13))),
+      if (ageInvalid)
+        Padding(padding: const EdgeInsets.only(top: 2),
+            child: Text('You must be at least 18', style: TextStyle(color: AppColors.error, fontSize: 12))),
+      const SizedBox(height: AppSpacing.xxl),
+
+      // Gender
+      Text('Gender', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+      const SizedBox(height: AppSpacing.sm),
+      Row(children: [
+        _GenderCard('Woman', 'female', widget.gender, widget.onGenderChanged),
+        const SizedBox(width: 8),
+        _GenderCard('Man', 'male', widget.gender, widget.onGenderChanged),
+        const SizedBox(width: 8),
+        _GenderCard('Other', 'other', widget.gender, widget.onGenderChanged),
+      ]),
+      const SizedBox(height: AppSpacing.xxl),
+
+      // Occupation
+      Text('What do you do?', style: TextStyle(color: context.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+      const SizedBox(height: AppSpacing.sm),
+      GestureDetector(
+        onTap: () => _showOccupationPicker(context),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: widget.occupation.isNotEmpty ? context.accent.withValues(alpha: 0.4) : context.borderColor, width: 0.5),
+          ),
+          child: Row(children: [
+            Expanded(child: Text(
+              widget.occupation.isNotEmpty ? widget.occupation : 'Select or type below',
+              style: TextStyle(color: widget.occupation.isNotEmpty ? context.textPrimary : context.textDisabled, fontSize: 14),
+            )),
+            Icon(Icons.keyboard_arrow_down_rounded, color: context.textMuted, size: 20),
+          ]),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      TextField(
+        controller: _occCtrl,
+        style: TextStyle(color: context.textPrimary, fontSize: 14),
+        decoration: _deco(context, 'Or type your own occupation'),
+        onChanged: (v) => widget.onOccupationChanged(v.trim()),
+      ),
+
       const SizedBox(height: AppSpacing.xxxl),
-      ElevatedButton(onPressed: nameCtrl.text.trim().isNotEmpty ? onNext : null,
+      ElevatedButton(onPressed: _canContinue ? widget.onNext : null,
           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           child: const Text('Continue')),
+      const SizedBox(height: AppSpacing.xxl),
     ]));
+  }
+
+  int _calcAgeFrom(int d, int m, int y) {
+    final now = DateTime.now();
+    int age = now.year - y;
+    if (now.month < m || (now.month == m && now.day < d)) age--;
+    return age;
+  }
+
+  void _showOccupationPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.surfaceColor,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.75, minChildSize: 0.4, maxChildSize: 0.9, expand: false,
+        builder: (ctx, scroll) => _OccupationSheet(
+          scrollController: scroll,
+          selected: widget.occupation,
+          onSelected: (v) {
+            widget.onOccupationChanged(v);
+            _occCtrl.text = v;
+            Navigator.pop(ctx);
+          },
+        ),
+      ),
+    );
   }
 }
 
-class _GChip extends StatelessWidget {
-  final String label; final String value; final String current; final ValueChanged<String> onChanged;
-  const _GChip(this.label, this.value, this.current, this.onChanged);
+class _GenderCard extends StatelessWidget {
+  final String label, value, current;
+  final ValueChanged<String> onChanged;
+  const _GenderCard(this.label, this.value, this.current, this.onChanged);
+
   @override
-  Widget build(BuildContext context) => ChoiceChip(label: Text(label), selected: current == value,
-      selectedColor: context.accent, backgroundColor: context.surfaceColor,
-      labelStyle: TextStyle(color: current == value ? context.onAccent : context.textSecondary),
-      onSelected: (_) => onChanged(value));
+  Widget build(BuildContext context) {
+    final sel = current == value;
+    return Expanded(child: GestureDetector(
+      onTap: () => onChanged(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 52,
+        decoration: BoxDecoration(
+          color: sel ? context.accent : context.surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? context.accent : context.borderColor, width: sel ? 1.5 : 0.5),
+        ),
+        child: Center(child: Text(label, style: TextStyle(
+          color: sel ? context.onAccent : context.textSecondary,
+          fontSize: 14, fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+        ))),
+      ),
+    ));
+  }
+}
+
+class _DropBox extends StatelessWidget {
+  final String hint;
+  final String? value;
+  final List<String> items;
+  final ValueChanged<String> onChanged;
+  const _DropBox({required this.hint, this.value, required this.items, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _show(context),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: value != null ? context.accent.withValues(alpha: 0.3) : context.borderColor, width: 0.5),
+        ),
+        child: Center(child: Text(
+          value ?? hint,
+          style: TextStyle(color: value != null ? context.textPrimary : context.textDisabled, fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        )),
+      ),
+    );
+  }
+
+  void _show(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.surfaceColor,
+      builder: (_) => SizedBox(
+        height: 300,
+        child: ListView.builder(
+          itemCount: items.length,
+          itemBuilder: (ctx, i) {
+            final sel = items[i] == value;
+            return ListTile(
+              title: Text(items[i], style: TextStyle(color: sel ? context.accent : context.textPrimary, fontSize: 14, fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+              trailing: sel ? Icon(Icons.check_rounded, color: context.accent, size: 18) : null,
+              onTap: () { onChanged(items[i]); Navigator.pop(ctx); },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Occupation picker
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const _occupationCategories = {
+  'Students': ['Student', 'PhD Student', 'Medical Student', 'Law Student'],
+  'Creative': ['Designer', 'Architect', 'Artist', 'Photographer', 'Writer / Author', 'Musician', 'Actor / Performer', 'Content Creator', 'Fashion Designer', 'Interior Designer'],
+  'Tech': ['Software Engineer', 'Product Manager', 'Data Scientist', 'UX/UI Designer', 'DevOps Engineer', 'AI/ML Engineer', 'Cybersecurity Expert', 'Startup Founder', 'CTO / Tech Lead'],
+  'Business': ['Entrepreneur', 'Business Owner', 'Consultant', 'Marketing Manager', 'Sales Manager', 'Finance Manager', 'Investment Banker', 'Venture Capitalist', 'Real Estate Agent', 'Lawyer', 'Accountant'],
+  'Healthcare': ['Doctor', 'Dentist', 'Pharmacist', 'Nurse', 'Psychologist / Therapist', 'Veterinarian'],
+  'Education': ['Teacher', 'Professor', 'Academic Researcher'],
+  'Other': ['Engineer (Civil/Mechanical/etc.)', 'Chef', 'Pilot', 'Athlete', 'Military Officer', 'Police Officer', 'Journalist', 'Diplomat', 'NGO / Non-profit', 'Retired', 'Other'],
+};
+
+class _OccupationSheet extends StatefulWidget {
+  final ScrollController scrollController;
+  final String selected;
+  final ValueChanged<String> onSelected;
+  const _OccupationSheet({required this.scrollController, required this.selected, required this.onSelected});
+  @override
+  State<_OccupationSheet> createState() => _OccupationSheetState();
+}
+
+class _OccupationSheetState extends State<_OccupationSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      const SizedBox(height: AppSpacing.lg),
+      Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
+      const SizedBox(height: AppSpacing.lg),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        child: TextField(
+          onChanged: (v) => setState(() => _q = v),
+          style: TextStyle(color: context.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Search occupation...',
+            prefixIcon: Icon(Icons.search_rounded, color: context.textMuted, size: 20),
+          ),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Expanded(
+        child: ListView(
+          controller: widget.scrollController,
+          children: _q.isEmpty
+              ? _occupationCategories.entries.expand((cat) => [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, AppSpacing.xs),
+                    child: Text(cat.key, style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                  ),
+                  ...cat.value.map((o) => _occTile(context, o)),
+                ]).toList()
+              : _occupationCategories.values.expand((v) => v)
+                  .where((o) => o.toLowerCase().contains(_q.toLowerCase()))
+                  .map((o) => _occTile(context, o)).toList(),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _occTile(BuildContext context, String o) {
+    final sel = o == widget.selected;
+    return ListTile(
+      title: Text(o, style: TextStyle(color: sel ? context.accent : context.textPrimary, fontSize: 14)),
+      trailing: sel ? Icon(Icons.check_rounded, color: context.accent, size: 18) : null,
+      onTap: () => widget.onSelected(o),
+    );
+  }
 }
 
 class _ModesPage extends StatelessWidget {
