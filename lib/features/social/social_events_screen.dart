@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/toast_service.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -176,10 +177,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
     }
     final result = await ref.read(eventListProvider.notifier).joinEvent(eventId);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result == 'joined' ? 'You\'re going!' : result),
-          backgroundColor: result == 'joined' ? _violet : context.surfaceColor),
-    );
+    ToastService.show(context, message: result == 'joined' ? 'You\'re going!' : result, type: result == 'joined' ? ToastType.event : ToastType.error);
   }
 
   @override

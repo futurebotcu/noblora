@@ -8,6 +8,7 @@ import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../core/services/toast_service.dart';
 import '../../providers/mode_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../../shared/widgets/premium_skeleton.dart';
@@ -363,9 +364,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                 targetId: targetUserId,
                 content: text,
               );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.gold),
-              );
+              ToastService.show(context, message: 'Note sent', type: ToastType.success);
             },
             child: const Text('Send', style: TextStyle(color: AppColors.gold)),
           ),

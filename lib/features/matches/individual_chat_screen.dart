@@ -14,9 +14,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/messages_provider.dart';
 import '../../services/gemini_service.dart';
+import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
 import '../match/real_meeting_screen.dart';
 import '../match/video_scheduling_screen.dart';
+import 'end_connection_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Individual Chat Screen — 1-on-1 for Date & BFF alliances
@@ -84,8 +86,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
           if (prefs != null && prefs['message_softening'] == false) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AI opener help is disabled in Settings')));
+              ToastService.show(context, message: 'AI opener help is disabled in Settings', type: ToastType.system);
             }
             return;
           }
@@ -364,6 +365,29 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 _showQuickIntroSheet(context, matchState.matches),
             tooltip: 'Quick Intro',
           ),
+          if (widget.matchId != null)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert_rounded, color: context.textMuted),
+              color: context.surfaceColor,
+              onSelected: (v) {
+                if (v == 'end') {
+                  final match = matchState.matches.where((m) => m.id == widget.matchId).firstOrNull;
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => EndConnectionScreen(
+                    matchId: widget.matchId!,
+                    otherUserId: match?.otherUserId ?? '',
+                    otherUserName: _item.name,
+                    otherUserPhotoUrl: match?.otherUserPhotoUrl,
+                  )));
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'end', child: Row(children: [
+                  Icon(Icons.link_off_rounded, color: context.textMuted, size: 18),
+                  const SizedBox(width: 8),
+                  Text('End this connection', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                ])),
+              ],
+            ),
         ],
       ),
       body: Column(

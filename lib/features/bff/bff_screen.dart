@@ -11,6 +11,7 @@ import '../../providers/bff_provider.dart';
 import '../../providers/filter_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
+import '../../core/services/toast_service.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
@@ -124,10 +125,7 @@ class _SuggestionsTab extends ConsumerWidget {
               if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.'); return; }
               final sent = await ref.read(bffProvider.notifier).sendReachOut(sug.otherUserId(ref.read(authProvider).userId ?? ''));
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(sent ? 'Reached out!' : 'Limit reached'),
-                backgroundColor: sent ? _teal : context.surfaceColor,
-              ));
+              ToastService.show(context, message: sent ? 'Reached out!' : 'Limit reached', type: sent ? ToastType.success : ToastType.error);
             },
             onNote: () {
               final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
@@ -171,9 +169,7 @@ class _SuggestionsTab extends ConsumerWidget {
                 targetId: sug.otherUserId(uid),
                 content: text,
               );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Note sent'), backgroundColor: _teal),
-              );
+              ToastService.show(context, message: 'Note sent', type: ToastType.success);
             },
             child: const Text('Send', style: TextStyle(color: _teal)),
           ),
@@ -199,9 +195,7 @@ class _SuggestionsTab extends ConsumerWidget {
       'passed' => 'Passed.',
       _ => 'Done.',
     };
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: result == 'connected' ? _teal : context.surfaceColor),
-    );
+    ToastService.show(context, message: message, type: result == 'connected' ? ToastType.match : ToastType.system);
   }
 }
 
@@ -447,9 +441,7 @@ class _ReachOutsTab extends ConsumerWidget {
                   final msg = result['result'] == 'connected'
                       ? 'Connected! Check your chats.'
                       : (result['error'] as String? ?? 'Error');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg), backgroundColor: result['result'] == 'connected' ? _teal : context.surfaceColor),
-                  );
+                  ToastService.show(context, message: msg, type: result['result'] == 'connected' ? ToastType.match : ToastType.error);
                   ref.read(bffProvider.notifier).load();
                 },
                 child: const Text('Connect'),

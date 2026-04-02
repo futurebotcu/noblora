@@ -13,6 +13,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/check_in_provider.dart';
 import '../../providers/match_provider.dart';
 import '../match/check_in_screen.dart';
+import '../../core/services/toast_service.dart';
 import 'individual_chat_screen.dart';
 
 /// Reads message_preview setting for current user
@@ -409,9 +410,7 @@ class _CirclesTab extends StatelessWidget {
           circle: circle,
           onTap: () {
             // TODO: fetch real table from DB by circle.tableId
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Group chat — coming soon')),
-            );
+            ToastService.show(context, message: 'Group chat — coming soon', type: ToastType.system);
           },
         );
       },
@@ -916,9 +915,7 @@ class _RequestTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${item.name} accepted!')),
-                ),
+                onTap: () => ToastService.show(context, message: '${item.name} accepted!', type: ToastType.match),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md, vertical: AppSpacing.xs),
