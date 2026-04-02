@@ -11,6 +11,7 @@ import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../shared/widgets/drum_date_picker.dart';
+import '../../shared/widgets/avatar_picker.dart';
 import '../../shared/widgets/city_search_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -42,6 +43,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   double? _locationLat;
   double? _locationLng;
   String? _photoUrl;
+  int? _avatarId;
 
   @override
   void dispose() { _nameCtrl.dispose(); _pageCtrl.dispose(); super.dispose(); }
@@ -63,7 +65,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   /// Validate minimum requirements before allowing completion
   String? _validateCompletion() {
     if (_nameCtrl.text.trim().isEmpty) return 'Name is required';
-    if (_photoUrl == null) return 'A photo is required';
+    if (_photoUrl == null && _avatarId == null) return 'A photo or avatar is required';
     return null;
   }
 
@@ -117,6 +119,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'social_visible': true,
         'looking_for': 'Serious relationship',
         if (_occupation.isNotEmpty) 'occupation': _occupation,
+        if (_avatarId != null) 'avatar_id': _avatarId,
         'is_onboarded': true,
         // Privacy defaults (explicit, not null)
         'incognito_mode': false,
@@ -189,7 +192,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                         _locationLat = lat; _locationLng = lng;
                       }),
                       onNext: _next),
-                  _PhotoPage(photoUrl: _photoUrl, onPhotoSelected: (v) => setState(() => _photoUrl = v), onNext: _next),
+                  _PhotoPage(
+                      photoUrl: _photoUrl,
+                      avatarId: _avatarId,
+                      onPhotoSelected: (v) => setState(() { _photoUrl = v; _avatarId = null; }),
+                      onAvatarSelected: (v) => setState(() { _avatarId = v; _photoUrl = null; }),
+                      onNext: _next),
                   _PrivacyPage(onNext: _next),
                   _CompletePage(name: _nameCtrl.text, onComplete: _complete,
                       validationError: _validateCompletion()),
@@ -688,44 +696,70 @@ class _LocationPageState extends State<_LocationPage> {
 }
 
 class _PhotoPage extends StatelessWidget {
-  final String? photoUrl; final ValueChanged<String?> onPhotoSelected; final VoidCallback onNext;
-  const _PhotoPage({required this.photoUrl, required this.onPhotoSelected, required this.onNext});
+  final String? photoUrl;
+  final int? avatarId;
+  final ValueChanged<String?> onPhotoSelected;
+  final ValueChanged<int> onAvatarSelected;
+  final VoidCallback onNext;
+  const _PhotoPage({required this.photoUrl, this.avatarId, required this.onPhotoSelected, required this.onAvatarSelected, required this.onNext});
+
   @override
   Widget build(BuildContext context) {
+    final hasSelection = photoUrl != null || avatarId != null;
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: AppSpacing.xxxl),
-        Text('Add a photo', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
-        const SizedBox(height: AppSpacing.sm),
-        Text('Your first impression matters. Pick a clear, recent photo.', style: TextStyle(color: context.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xxl),
+        Text('Add a photo', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Or choose an avatar to get started', style: TextStyle(color: context.textMuted, fontSize: 13)),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // Upload photo button
         Center(child: GestureDetector(
           onTap: () async {
             final picker = ImagePicker();
             final img = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800);
-            if (img != null) {
-              // In real: upload to Supabase Storage
-              onPhotoSelected(img.path);
-            }
+            if (img != null) onPhotoSelected(img.path);
           },
-          child: Container(width: 160, height: 200,
-            decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: photoUrl != null ? AppColors.gold : context.borderColor, width: photoUrl != null ? 2 : 1)),
+          child: Container(width: 120, height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: context.surfaceColor,
+              border: Border.all(color: photoUrl != null ? AppColors.gold : context.borderColor, width: photoUrl != null ? 2.5 : 1),
+            ),
             child: photoUrl != null
-                ? ClipRRect(borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    child: Image.asset(photoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) =>
-                        const Center(child: Icon(Icons.check_rounded, color: AppColors.gold, size: 48))))
+                ? const Center(child: Icon(Icons.check_rounded, color: AppColors.gold, size: 40))
                 : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.add_a_photo_rounded, color: context.textMuted, size: 32),
-                    const SizedBox(height: 8),
-                    Text('Tap to add', style: TextStyle(color: context.textMuted, fontSize: 12)),
-                  ]))),
+                    Icon(Icons.add_a_photo_rounded, color: context.textMuted, size: 28),
+                    const SizedBox(height: 4),
+                    Text('Upload', style: TextStyle(color: context.textMuted, fontSize: 11)),
+                  ])),
+          ),
         )),
-        const Spacer(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // Divider with "or"
+        Row(children: [
+          Expanded(child: Container(height: 0.5, color: context.borderColor)),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Text('or', style: TextStyle(color: context.textMuted, fontSize: 12))),
+          Expanded(child: Container(height: 0.5, color: context.borderColor)),
+        ]),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Avatar grid
+        Expanded(child: SingleChildScrollView(child: AvatarPicker(
+          selectedId: avatarId,
+          onSelected: onAvatarSelected,
+        ))),
+        const SizedBox(height: AppSpacing.md),
+
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
-                minimumSize: const Size.fromHeight(50)),
-            child: Text(photoUrl != null ? 'Continue' : 'Skip for now')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: hasSelection ? AppColors.gold : context.surfaceColor,
+              foregroundColor: hasSelection ? context.bgColor : context.textMuted,
+              minimumSize: const Size.fromHeight(50)),
+            child: Text(hasSelection ? 'Continue' : 'Skip for now')),
         const SizedBox(height: AppSpacing.xxl),
     ]));
   }
@@ -742,6 +776,7 @@ class _PrivacyPage extends StatelessWidget {
         Text('Your privacy', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.lg),
         Expanded(child: ListView(children: [
+          _InfoCard(Icons.favorite_outline_rounded, 'Dating & BFF interactions', 'Add a photo to swipe, connect, and message. Without one you can only browse.'),
           _InfoCard(Icons.photo_camera_outlined, 'Add a photo to connect', 'Without a photo you can browse but cannot swipe, connect or message anyone.'),
           _InfoCard(Icons.event_outlined, 'Photo needed for Social', 'You need a photo to join events and rooms. Verified photo to create them.'),
           _InfoCard(Icons.auto_awesome_outlined, 'Photo to post Nobs', 'You can read and react to Nobs freely. Upload a photo to share your own.'),
