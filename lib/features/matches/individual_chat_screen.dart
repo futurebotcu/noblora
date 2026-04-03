@@ -469,15 +469,30 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.chat_bubble_outline_rounded,
-                                color: context.textDisabled, size: 40),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'No messages yet.\nSay hello!',
-                              style: TextStyle(
-                                  color: context.textMuted, fontSize: 14),
-                              textAlign: TextAlign.center,
+                            Container(
+                              width: 64, height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.gold.withValues(alpha: 0.06),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: 0.20)),
+                              ),
+                              child: Icon(
+                                _isBff ? Icons.handshake_outlined : Icons.chat_bubble_outline_rounded,
+                                color: AppColors.gold.withValues(alpha: 0.7), size: 28,
+                              ),
                             ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Text('No messages yet',
+                                style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              _isBff ? 'Break the ice — say something friendly' : 'Start the conversation',
+                              style: TextStyle(color: context.textMuted, fontSize: 13),
+                            ),
+                            if (!_isBff) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Icon(Icons.favorite_outline_rounded, color: AppColors.gold.withValues(alpha: 0.25), size: 16),
+                            ],
                           ],
                         ),
                       )
