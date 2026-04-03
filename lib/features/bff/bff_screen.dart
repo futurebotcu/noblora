@@ -474,7 +474,7 @@ class _HeaderBanner extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
-                'AI finds people you might vibe with. Both of you see this at the same time.',
+                'People you might vibe with. AI highlights what you have in common.',
                 style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4),
               ),
             ),
@@ -506,7 +506,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxl),
             Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
             const SizedBox(height: AppSpacing.sm),
-            Text('AI is finding your best matches. Check back soon.',
+            Text('We\'re finding your best matches. Check back soon.',
                 textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
           ],
         ),

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../services/gemini_service.dart';
 import '../models/bff_suggestion.dart';
 import '../models/bff_plan.dart';
 
@@ -19,6 +21,28 @@ class BffSuggestionRepository {
         .or('user_a_id.eq.$userId,user_b_id.eq.$userId')
         .eq('status', 'pending')
         .order('created_at', ascending: false);
+
+    // Fetch current user's bio + recent posts once for common ground generation
+    String currentUserBio = '';
+    List<String> currentUserPosts = [];
+    if (rows.any((r) => (r['common_ground'] as List<dynamic>?)?.isEmpty ?? true)) {
+      final myProfile = await _supabase
+          .from('profiles')
+          .select('bio')
+          .eq('id', userId)
+          .maybeSingle();
+      currentUserBio = myProfile?['bio'] as String? ?? '';
+
+      final myPosts = await _supabase
+          .from('posts')
+          .select('content')
+          .eq('user_id', userId)
+          .eq('is_draft', false)
+          .eq('is_archived', false)
+          .order('published_at', ascending: false)
+          .limit(3);
+      currentUserPosts = myPosts.map((p) => (p['content'] ?? '') as String).toList();
+    }
 
     final suggestions = <BffSuggestion>[];
     for (final row in rows) {
@@ -40,6 +64,31 @@ class BffSuggestionRepository {
           .eq('is_archived', false)
           .order('published_at', ascending: false)
           .limit(3);
+
+      // Generate common ground via AI if missing
+      final existingGround = (row['common_ground'] as List<dynamic>?) ?? [];
+      if (existingGround.isEmpty) {
+        try {
+          final otherBio = profile?['bio'] as String? ?? '';
+          final otherPosts = (posts as List).map((p) => (p['content'] ?? '') as String).toList();
+
+          final ground = await GeminiService.generateCommonGround(
+            userABio: currentUserBio,
+            userBBio: otherBio,
+            userAPosts: currentUserPosts,
+            userBPosts: otherPosts,
+          );
+
+          if (ground.isNotEmpty) {
+            await _supabase.from('bff_suggestions')
+                .update({'common_ground': ground})
+                .eq('id', row['id']);
+            row['common_ground'] = ground;
+          }
+        } catch (e) {
+          debugPrint('Common ground generation failed: $e');
+        }
+      }
 
       row['other_profile'] = profile;
       row['other_posts'] = posts;

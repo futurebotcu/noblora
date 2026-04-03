@@ -819,7 +819,7 @@ class _EditPersonaSheetState extends State<_EditPersonaSheet> {
 }
 
 // ---------------------------------------------------------------------------
-// Noble Scorecard — AI-powered percentile + animated breakdown bars
+// Noble Scorecard — percentile + animated breakdown bars (AI explains tier)
 // ---------------------------------------------------------------------------
 
 class _NobleScorecardSection extends ConsumerStatefulWidget {
