@@ -44,8 +44,6 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   String? _feedback;
   bool _feedbackIsPositive = false;
 
-  static const _asciiOnly = r'^[\x20-\x7E\n\r\t]*$';
-
   String get _prompt =>
       _prompts[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % _prompts.length];
 
@@ -284,13 +282,6 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       });
       return;
     }
-    if (!RegExp(_asciiOnly).hasMatch(text)) {
-      setState(() {
-        _feedback = 'Please write in English only.';
-        _feedbackIsPositive = false;
-      });
-      return;
-    }
     if (_photoBytes != null && _uploadedPhotoUrl == null) {
       await _uploadPhoto();
       if (_uploadedPhotoUrl == null) return;
@@ -326,13 +317,6 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     if (_nobType == 'moment' && _photoBytes == null && text.length < 10) {
       setState(() {
         _feedback = 'Add a photo or write at least 10 characters.';
-        _feedbackIsPositive = false;
-      });
-      return;
-    }
-    if (text.isNotEmpty && !RegExp(_asciiOnly).hasMatch(text)) {
-      setState(() {
-        _feedback = 'Please write in English only.';
         _feedbackIsPositive = false;
       });
       return;

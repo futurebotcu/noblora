@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -23,7 +24,7 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
   List<_PlacePrediction> _results = [];
   bool _loading = false;
 
-  static const _apiKey = 'AIzaSyBjqBeQBOz-EiL1Y_RQ3MzjrkQIi0YOJgQ';
+  static String get _apiKey => dotenv.maybeGet('GOOGLE_PLACES_KEY') ?? '';
 
   @override
   void initState() {
