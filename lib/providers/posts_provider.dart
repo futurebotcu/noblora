@@ -361,12 +361,6 @@ final nobTierProvider = FutureProvider<NobTier>((ref) async {
   }
 });
 
-// Whether current user is a Noble (can post) — kept for legacy compatibility
-final isNobleProvider = FutureProvider<bool>((ref) async {
-  final tier = await ref.watch(nobTierProvider.future);
-  return tier == NobTier.noble;
-});
-
 // Whether current user is an admin
 final isAdminProvider = FutureProvider<bool>((ref) async {
   if (isMockMode) return true;
