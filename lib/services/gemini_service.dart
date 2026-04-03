@@ -23,7 +23,7 @@ class GeminiVerificationResult {
 
 class GeminiService {
   static const _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
   static String get _apiKey => dotenv.maybeGet('GEMINI_API_KEY') ?? '';
 
