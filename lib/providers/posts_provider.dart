@@ -344,17 +344,21 @@ final lastNobsProvider =
   return repo.fetchLastNobs(userId, limit: 3);
 });
 
-// Current user's nob tier
+// Current user's nob tier — auto-dispose so it refetches on re-watch
 final nobTierProvider = FutureProvider<NobTier>((ref) async {
   if (isMockMode) return NobTier.noble;
   final userId = ref.watch(authProvider).userId;
   if (userId == null) return NobTier.observer;
-  final row = await Supabase.instance.client
-      .from('profiles')
-      .select('nob_tier')
-      .eq('id', userId)
-      .maybeSingle();
-  return NobTier.fromString(row?['nob_tier'] as String?);
+  try {
+    final row = await Supabase.instance.client
+        .from('profiles')
+        .select('nob_tier')
+        .eq('id', userId)
+        .maybeSingle();
+    return NobTier.fromString(row?['nob_tier'] as String?);
+  } catch (_) {
+    return NobTier.observer;
+  }
 });
 
 // Whether current user is a Noble (can post) — kept for legacy compatibility

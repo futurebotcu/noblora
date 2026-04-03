@@ -49,7 +49,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   String get _prompt =>
       _prompts[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % _prompts.length];
 
-  int get _maxChars => _nobType == 'thought' ? 150 : 300;
+  int get _maxChars => _nobType == 'thought' ? 300 : 150;
   TextEditingController get _activeCtrl =>
       _nobType == 'thought' ? _contentCtrl : _captionCtrl;
 
@@ -205,15 +205,41 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
 
   // ── Photo pick ───────────────────────────────────────────────────────────
 
-  Future<void> _pickPhoto() async {
+  Future<void> _pickPhoto({ImageSource? source}) async {
+    if (source == null) {
+      // Show bottom sheet with options
+      final picked = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: AppColors.nobSurface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 12),
+          Container(width: 36, height: 3, decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          ListTile(
+            leading: const Icon(Icons.camera_alt_rounded, color: AppColors.noblaraGold),
+            title: const Text('Take photo', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+            onTap: () => Navigator.pop(ctx, ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_rounded, color: AppColors.noblaraGold),
+            title: const Text('Choose from gallery', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+          ),
+          const SizedBox(height: 12),
+        ])),
+      );
+      if (picked == null) return;
+      source = picked;
+    }
     final picker = ImagePicker();
-    final xfile = await picker.pickImage(
-        source: ImageSource.gallery, maxWidth: 1080, imageQuality: 85);
+    final xfile = await picker.pickImage(source: source, maxWidth: 1080, imageQuality: 85);
     if (xfile == null) return;
     final bytes = await xfile.readAsBytes();
     setState(() {
       _photoBytes = bytes;
       _uploadedPhotoUrl = null;
+      if (_nobType == 'thought') _nobType = 'moment';
     });
   }
 
@@ -288,31 +314,32 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
 
   Future<void> _publish() async {
     final text = _activeCtrl.text.trim();
-    if (text.isEmpty && _nobType == 'thought') {
+    // Thought: requires min 10 chars
+    if (_nobType == 'thought' && text.length < 10) {
       setState(() {
-        _feedback = 'Write something first.';
+        _feedback = text.isEmpty ? 'Write something first.' : 'At least 10 characters needed.';
         _feedbackIsPositive = false;
       });
       return;
     }
-    if (!RegExp(_asciiOnly).hasMatch(text)) {
+    // Moment: requires photo OR min 10 chars
+    if (_nobType == 'moment' && _photoBytes == null && text.length < 10) {
+      setState(() {
+        _feedback = 'Add a photo or write at least 10 characters.';
+        _feedbackIsPositive = false;
+      });
+      return;
+    }
+    if (text.isNotEmpty && !RegExp(_asciiOnly).hasMatch(text)) {
       setState(() {
         _feedback = 'Please write in English only.';
         _feedbackIsPositive = false;
       });
       return;
     }
-    if (_nobType == 'moment' && _uploadedPhotoUrl == null) {
-      if (_photoBytes != null) {
-        await _uploadPhoto();
-        if (_uploadedPhotoUrl == null) return;
-      } else {
-        setState(() {
-          _feedback = 'Add a photo for a Moment Nob.';
-          _feedbackIsPositive = false;
-        });
-        return;
-      }
+    if (_nobType == 'moment' && _photoBytes != null && _uploadedPhotoUrl == null) {
+      await _uploadPhoto();
+      if (_uploadedPhotoUrl == null) return;
     }
 
     final canPublish =
@@ -457,16 +484,20 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                       maxLength: _maxChars,
                     ),
 
-                    // ── Char counter (bottom-right) ───────────────────────
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '$charCount / $_maxChars',
-                        style: TextStyle(
-                            color: counterColor,
-                            fontSize: 10,
-                            letterSpacing: 0.5),
-                      ),
+                    // ── Media toolbar + counter ──────────────────────────
+                    Row(
+                      children: [
+                        _ToolbarIcon(icon: Icons.camera_alt_outlined, onTap: _pickPhoto),
+                        const SizedBox(width: 4),
+                        _ToolbarIcon(icon: Icons.tag_rounded, onTap: () {
+                          setState(() { _feedback = 'Vibe tags coming soon.'; _feedbackIsPositive = true; });
+                        }),
+                        const Spacer(),
+                        Text(
+                          '$charCount/$_maxChars',
+                          style: TextStyle(color: counterColor, fontSize: 11, letterSpacing: 0.3),
+                        ),
+                      ],
                     ),
 
                     // ── Feedback ──────────────────────────────────────────
@@ -678,41 +709,38 @@ class _TypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.nobSurface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.nobBorder),
-      ),
-      child: Row(
-        children: [
-          _PillTab(
-            label: 'Thought',
-            icon: Icons.format_quote_rounded,
-            isActive: nobType == 'thought',
-            onTap: () => onChanged('thought'),
-          ),
-          _PillTab(
-            label: 'Moment',
-            icon: Icons.image_outlined,
-            isActive: nobType == 'moment',
-            onTap: () => onChanged('moment'),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        _TypeCard(
+          label: 'Thought',
+          subtitle: 'Text-based',
+          icon: Icons.format_quote_rounded,
+          isActive: nobType == 'thought',
+          onTap: () => onChanged('thought'),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        _TypeCard(
+          label: 'Moment',
+          subtitle: 'Photo-based',
+          icon: Icons.camera_alt_rounded,
+          isActive: nobType == 'moment',
+          onTap: () => onChanged('moment'),
+        ),
+      ],
     );
   }
 }
 
-class _PillTab extends StatelessWidget {
+class _TypeCard extends StatelessWidget {
   final String label;
+  final String subtitle;
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _PillTab({
+  const _TypeCard({
     required this.label,
+    required this.subtitle,
     required this.icon,
     required this.isActive,
     required this.onTap,
@@ -725,40 +753,27 @@ class _PillTab extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.md),
           decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.noblaraGold.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm - 1),
-            border: isActive
-                ? Border.all(
-                    color: AppColors.noblaraGold.withValues(alpha: 0.3))
-                : null,
+            color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.08) : AppColors.nobSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder,
+              width: isActive ? 1.5 : 0.5,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: [
-              Icon(
-                icon,
-                size: 14,
-                color: isActive
-                    ? AppColors.noblaraGold
-                    : AppColors.nobObserver,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isActive
-                      ? AppColors.noblaraGold
-                      : AppColors.nobObserver,
-                  fontSize: 12,
-                  fontWeight:
-                      isActive ? FontWeight.w600 : FontWeight.w400,
-                  letterSpacing: 0.2,
-                ),
-              ),
+              Icon(icon, size: 24, color: isActive ? AppColors.noblaraGold : AppColors.nobObserver),
+              const SizedBox(height: 6),
+              Text(label, style: TextStyle(
+                color: isActive ? AppColors.noblaraGold : AppColors.textPrimary,
+                fontSize: 14, fontWeight: FontWeight.w600,
+              )),
+              Text(subtitle, style: TextStyle(
+                color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.6) : AppColors.nobObserver,
+                fontSize: 11,
+              )),
             ],
           ),
         ),
@@ -805,6 +820,28 @@ class _AiChip extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ToolbarIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ToolbarIcon({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.nobSurface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.nobBorder, width: 0.5),
+        ),
+        child: Icon(icon, size: 18, color: AppColors.noblaraGold.withValues(alpha: 0.7)),
       ),
     );
   }

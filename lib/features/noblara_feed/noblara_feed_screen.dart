@@ -26,7 +26,11 @@ class NoblaraFeedScreen extends ConsumerWidget {
     final tierAsync = ref.watch(nobTierProvider);
     final currentUserId = ref.watch(authProvider).userId;
 
-    final tier = tierAsync.maybeWhen(data: (t) => t, orElse: () => NobTier.observer);
+    final tier = tierAsync.when(
+      data: (t) => t,
+      loading: () => NobTier.observer,
+      error: (_, __) => NobTier.observer,
+    );
     final gate = ref.watch(interactionGateProvider).valueOrNull ?? const InteractionGate();
     final tierCanCompose = tier == NobTier.noble || tier == NobTier.explorer;
     final canCompose = tierCanCompose && gate.canPostNob;
