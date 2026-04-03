@@ -15,6 +15,8 @@ import '../features/profile/tier_promotion_screen.dart';
 import '../data/models/post.dart';
 import '../providers/notification_provider.dart';
 import '../providers/posts_provider.dart';
+import '../providers/profile_provider.dart';
+import '../core/services/toast_service.dart';
 
 class MainTabNavigator extends ConsumerStatefulWidget {
   const MainTabNavigator({super.key});
@@ -34,6 +36,17 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   int _currentIndex = 0;
   // Tracks which tab indices have been visited — unvisited tabs are not built
   final Set<int> _visitedTabs = {0};
+  static bool _welcomeShown = false;
+
+  void _showWelcomeToast() {
+    final name = ref.read(profileProvider).profile?.displayName;
+    if (name == null || name.trim().isEmpty) return;
+    final firstName = name.trim().split(' ').first;
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      ToastService.show(context, message: 'Welcome back, $firstName', type: ToastType.system);
+    });
+  }
 
   void _switchTo(int index) {
     setState(() {
@@ -66,6 +79,12 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
 
   @override
   Widget build(BuildContext context) {
+    // Welcome toast — once per session
+    if (!_welcomeShown) {
+      _welcomeShown = true;
+      _showWelcomeToast();
+    }
+
     final isAdmin =
         ref.watch(isAdminProvider).maybeWhen(data: (v) => v, orElse: () => false);
     final tabs = isAdmin ? [..._baseTabs, _adminTab] : _baseTabs;

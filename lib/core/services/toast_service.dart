@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import '../../shared/widgets/swipe_toast.dart';
@@ -9,20 +8,31 @@ class ToastService {
   static OverlayEntry? _current;
   static final Queue<_ToastRequest> _queue = Queue();
   static bool _showing = false;
+  static OverlayState? _overlay;
+  static double _topPadding = 0;
+
+  /// Default duration per toast type.
+  static Duration _defaultDuration(ToastType type) => switch (type) {
+    ToastType.match => const Duration(seconds: 8),
+    ToastType.signal => const Duration(seconds: 6),
+    ToastType.message => const Duration(seconds: 6),
+    ToastType.event => const Duration(seconds: 6),
+    ToastType.success => const Duration(seconds: 4),
+    ToastType.error => const Duration(seconds: 5),
+    ToastType.system => const Duration(seconds: 3),
+  };
 
   static void show(
     BuildContext context, {
     required String message,
     ToastType type = ToastType.system,
-    Duration duration = const Duration(seconds: 4),
+    Duration? duration,
     VoidCallback? onTap,
   }) {
-    _queue.add(_ToastRequest(message: message, type: type, duration: duration, onTap: onTap));
+    final dur = duration ?? _defaultDuration(type);
+    _queue.add(_ToastRequest(message: message, type: type, duration: dur, onTap: onTap));
     if (!_showing) _showNext(context);
   }
-
-  static OverlayState? _overlay;
-  static double _topPadding = 0;
 
   static void _showNext(BuildContext? ctx) {
     if (_queue.isEmpty) {
