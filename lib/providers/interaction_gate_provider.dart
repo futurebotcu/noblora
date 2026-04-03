@@ -41,9 +41,16 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
   if (uid == null) return const InteractionGate();
   try {
     final row = await Supabase.instance.client.from('profiles')
-        .select('photo_count, verified_profile_photo')
+        .select('photo_count, verified_profile_photo, nob_tier')
         .eq('id', uid).maybeSingle();
     if (row == null) return const InteractionGate();
+
+    // Noble tier users get full access — never blocked by gating
+    final tier = row['nob_tier'] as String?;
+    if (tier == 'noble') {
+      return const InteractionGate(photoCount: 5, verifiedPhoto: true);
+    }
+
     return InteractionGate(
       photoCount: (row['photo_count'] as int?) ?? 0,
       verifiedPhoto: (row['verified_profile_photo'] as bool?) ?? false,
