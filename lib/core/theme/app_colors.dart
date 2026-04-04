@@ -108,12 +108,12 @@ class AppColors {
   static const Color textOnEmerald = Color(0xFFFFFFFF);
 
   // ══════════════════════════════════════════════════════════════
-  // SEMANTIC
+  // SEMANTIC — mono palette (emerald + white + black only)
   // ══════════════════════════════════════════════════════════════
   static const Color success = Color(0xFF2FA36C);
-  static const Color error   = Color(0xFFD1584A);
-  static const Color warning = Color(0xFFC48A2C);
-  static const Color info    = Color(0xFF4F89F6);
+  static const Color error   = Color(0xFF4A5550);  // muted dark — no red
+  static const Color warning = Color(0xFF1F6E53);  // emerald700 — soft alert
+  static const Color info    = Color(0xFF43A27A);  // emerald500
 
   // ══════════════════════════════════════════════════════════════
   // BORDERS — karanlık zeminde seçilebilir
@@ -128,7 +128,7 @@ class AppColors {
   // SWIPE OVERLAYS
   // ══════════════════════════════════════════════════════════════
   static const Color selectOverlay = Color(0x552FA36C);
-  static const Color passOverlay  = Color(0x55D1584A);
+  static const Color passOverlay  = Color(0x55303D37);  // dark neutral — no red
 
   // ══════════════════════════════════════════════════════════════
   // MODE ACCENTS

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 import '../edit_profile_provider.dart';
 import '../widgets/edit_section_shell.dart';
 
@@ -47,8 +49,9 @@ class VisibilitySection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             decoration: BoxDecoration(
               color: context.surfaceColor,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              border: Border.all(color: context.borderColor, width: 0.5),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08), width: 0.5),
+              boxShadow: Premium.shadowSm,
             ),
             child: Row(
               children: [

@@ -17,7 +17,11 @@
       "Bash(adb -s emulator-5554 shell input tap 960 2280)",
       "Bash(adb -s emulator-5554 shell input tap 70 90)",
       "Bash(adb -s emulator-5554 shell input swipe 540 500 540 1800 200)",
-      "Bash(adb -s emulator-5554 shell input swipe 540 1800 540 400 400)"
+      "Bash(adb -s emulator-5554 shell input swipe 540 1800 540 400 400)",
+      "mcp__supabase__get_edge_function",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__deploy_edge_function"
     ]
   }
 }

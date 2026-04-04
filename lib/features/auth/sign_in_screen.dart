@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/device_service.dart';
 import '../../providers/auth_provider.dart';
@@ -121,10 +122,16 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   Text(error, style: const TextStyle(color: AppColors.error, fontSize: 13)),
                 ],
                 const SizedBox(height: AppSpacing.xxxl),
-                AppButton(
-                  label: 'Sign In',
-                  isLoading: auth.isLoading,
-                  onPressed: auth.isLoading ? null : _submit,
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    boxShadow: auth.isLoading ? null : Premium.emeraldGlow(intensity: 0.6),
+                  ),
+                  child: AppButton(
+                    label: 'Sign In',
+                    isLoading: auth.isLoading,
+                    onPressed: auth.isLoading ? null : _submit,
+                  ),
                 ),
               ],
             ),

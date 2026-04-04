@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
@@ -132,12 +133,12 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
               Row(
                 children: [
                   const Icon(Icons.auto_awesome_outlined,
-                      color: AppColors.noblaraGold, size: 16),
+                      color: AppColors.emerald600, size: 16),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     isTurkish ? 'Geliştirilmiş sürüm' : 'Improved version',
                     style: const TextStyle(
-                      color: AppColors.noblaraGold,
+                      color: AppColors.emerald600,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       letterSpacing: 0.3,
@@ -182,7 +183,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.noblaraGold,
+                        backgroundColor: AppColors.emerald600,
                         foregroundColor: AppColors.nobBackground,
                         minimumSize: const Size.fromHeight(40),
                       ),
@@ -219,12 +220,12 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
           Container(width: 36, height: 3, decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
           ListTile(
-            leading: const Icon(Icons.camera_alt_rounded, color: AppColors.noblaraGold),
+            leading: const Icon(Icons.camera_alt_rounded, color: AppColors.emerald600),
             title: const Text('Take photo', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_rounded, color: AppColors.noblaraGold),
+            leading: const Icon(Icons.photo_library_rounded, color: AppColors.emerald600),
             title: const Text('Choose from gallery', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
@@ -386,6 +387,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   Widget build(BuildContext context) {
     final charCount = _activeCtrl.text.length;
     final isOver = charCount > _maxChars;
+    final pct = charCount / _maxChars;
     final counterColor = isOver
         ? AppColors.error
         : charCount >= _maxChars - 20
@@ -398,21 +400,37 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         backgroundColor: AppColors.nobBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'N E W  N O B',
-          style: TextStyle(
-            color: AppColors.noblaraGold,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            letterSpacing: 4,
-          ),
+        title: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.emerald600.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text('N', style: TextStyle(
+                  color: AppColors.emerald600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'serif',
+                )),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'New Nob',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+              ),
+            ),
+          ],
         ),
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppColors.nobBorder),
-        ),
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -420,146 +438,212 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl, AppSpacing.xxl, AppSpacing.xxl, 0),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Type selector (pill) ──────────────────────────────
-                    _TypeSelector(
+                    // ── Type toggle ──────────────────────────────────────
+                    _TypeToggle(
                       nobType: _nobType,
                       onChanged: (t) => setState(() => _nobType = t),
                     ),
-                    const SizedBox(height: AppSpacing.xxl),
+                    const SizedBox(height: 24),
 
-                    // ── AI row ────────────────────────────────────────────
-                    _AiChip(
-                      label: _aiLoading ? 'AI thinking…' : 'AI Improve',
-                      onTap: _aiLoading ? () {} : () => _aiEdit('improve'),
-                      loading: _aiLoading,
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // ── Photo area (Moment) ───────────────────────────────
+                    // ── Photo area (Moment) ──────────────────────────────
                     if (_nobType == 'moment') ...[
                       _buildPhotoArea(),
-                      const SizedBox(height: AppSpacing.xl),
+                      const SizedBox(height: 16),
                     ],
 
-                    // ── Text area ─────────────────────────────────────────
-                    _buildTextArea(
-                      controller: _nobType == 'thought'
-                          ? _contentCtrl
-                          : _captionCtrl,
-                      hint: _nobType == 'thought'
-                          ? _prompt
-                          : 'Caption your moment…',
-                      maxLength: _maxChars,
-                    ),
-
-                    // ── Media toolbar + counter ──────────────────────────
-                    Row(
-                      children: [
-                        _ToolbarIcon(icon: Icons.camera_alt_outlined, onTap: _pickPhoto),
-                        const SizedBox(width: 4),
-                        _ToolbarIcon(icon: Icons.tag_rounded, onTap: () {
-                          setState(() { _feedback = 'Vibe tags coming soon.'; _feedbackIsPositive = true; });
-                        }),
-                        const Spacer(),
-                        Text(
-                          '$charCount/$_maxChars',
-                          style: TextStyle(color: counterColor, fontSize: 11, letterSpacing: 0.3),
+                    // ── Text area card ───────────────────────────────────
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.nobSurface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _activeCtrl.text.isNotEmpty
+                              ? AppColors.emerald600.withValues(alpha: 0.2)
+                              : AppColors.nobBorder.withValues(alpha: 0.5),
                         ),
-                      ],
-                    ),
-
-                    // ── Feedback ──────────────────────────────────────────
-                    if (_feedback != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            _feedbackIsPositive
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.error_outline_rounded,
-                            color: _feedbackIsPositive
-                                ? AppColors.noblaraGold
-                                : AppColors.error,
-                            size: 13,
+                          _buildTextArea(
+                            controller: _nobType == 'thought'
+                                ? _contentCtrl
+                                : _captionCtrl,
+                            hint: _nobType == 'thought'
+                                ? _prompt
+                                : 'Caption your moment…',
+                            maxLength: _maxChars,
                           ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            _feedback!,
-                            style: TextStyle(
-                              color: _feedbackIsPositive
-                                  ? AppColors.noblaraGold
-                                  : AppColors.error,
-                              fontSize: 12,
+                          // ── Toolbar row inside card ────────────────────
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                            child: Row(
+                              children: [
+                                _ToolbarIcon(icon: Icons.camera_alt_outlined, onTap: _pickPhoto),
+                                const SizedBox(width: 6),
+                                _ToolbarIcon(icon: Icons.tag_rounded, onTap: () {
+                                  setState(() { _feedback = 'Vibe tags coming soon.'; _feedbackIsPositive = true; });
+                                }),
+                                const SizedBox(width: 8),
+                                _AiChip(
+                                  label: _aiLoading ? 'Thinking…' : 'AI Polish',
+                                  onTap: _aiLoading ? () {} : () => _aiEdit('improve'),
+                                  loading: _aiLoading,
+                                ),
+                                const Spacer(),
+                                // Circular character counter
+                                SizedBox(
+                                  width: 32,
+                                  height: 32,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        value: pct.clamp(0.0, 1.0),
+                                        strokeWidth: 2,
+                                        backgroundColor: AppColors.nobBorder.withValues(alpha: 0.4),
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          isOver ? AppColors.error : AppColors.emerald600.withValues(alpha: 0.5),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${_maxChars - charCount}',
+                                        style: TextStyle(
+                                          color: counterColor,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
+                    ),
+
+                    // ── Feedback ─────────────────────────────────────────
+                    if (_feedback != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: (_feedbackIsPositive
+                              ? AppColors.emerald600
+                              : AppColors.error).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _feedbackIsPositive
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.info_outline_rounded,
+                              color: _feedbackIsPositive
+                                  ? AppColors.emerald600
+                                  : AppColors.error,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                _feedback!,
+                                style: TextStyle(
+                                  color: _feedbackIsPositive
+                                      ? AppColors.emerald600
+                                      : AppColors.error,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
 
-                    const SizedBox(height: AppSpacing.xxxl),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
             ),
 
-            // ── Bottom action bar ─────────────────────────────────────────
+            // ── Bottom action bar (gradient fade) ────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, AppSpacing.xxl),
-              decoration: const BoxDecoration(
-                color: AppColors.nobBackground,
-                border: Border(
-                    top: BorderSide(color: AppColors.nobBorder)),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.nobBackground.withValues(alpha: 0.0),
+                    AppColors.nobBackground.withValues(alpha: 0.9),
+                    AppColors.nobBackground,
+                  ],
+                  stops: const [0.0, 0.3, 1.0],
+                ),
               ),
-              child: Row(
-                children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.nobObserver,
-                      side: const BorderSide(color: AppColors.nobBorder),
-                      minimumSize: const Size(90, 48),
-                    ),
-                    onPressed: _saveDraft,
-                    child: const Text('Draft',
-                        style: TextStyle(fontSize: 13)),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.noblaraGold,
-                        foregroundColor: AppColors.nobBackground,
-                        minimumSize: const Size.fromHeight(48),
-                        elevation: 0,
-                        shadowColor: Colors.transparent,
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.nobObserver,
+                        side: BorderSide(color: AppColors.nobBorder.withValues(alpha: 0.6)),
+                        minimumSize: const Size(80, 50),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed: (isOver || _isPublishing) ? null : _publish,
-                      child: _isPublishing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.nobBackground),
-                            )
-                          : const Text(
-                              'Publish Nob',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  letterSpacing: 0.3),
-                            ),
+                      onPressed: _saveDraft,
+                      child: const Text('Draft',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: (isOver || _isPublishing) ? null : Premium.emeraldGlow(intensity: 0.5),
+                        ),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.emerald600,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.emerald600.withValues(alpha: 0.3),
+                            disabledForegroundColor: Colors.white54,
+                            minimumSize: const Size.fromHeight(50),
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        onPressed: (isOver || _isPublishing) ? null : _publish,
+                        child: _isPublishing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text(
+                                'Publish',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15),
+                              ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -576,25 +660,25 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     return TextField(
       controller: controller,
       maxLines: null,
-      minLines: 6,
+      minLines: _nobType == 'moment' ? 3 : 6,
       maxLength: maxLength,
       maxLengthEnforcement: MaxLengthEnforcement.enforced,
       style: const TextStyle(
         color: AppColors.textPrimary,
         fontSize: 16,
         height: 1.7,
-        letterSpacing: 0.2,
+        letterSpacing: 0.15,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: AppColors.nobObserver,
+        hintStyle: TextStyle(
+          color: AppColors.nobObserver.withValues(alpha: 0.7),
           fontSize: 15,
           height: 1.7,
           fontStyle: FontStyle.italic,
         ),
         border: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
+        contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         counterText: '',
       ),
       onChanged: (_) => setState(() {}),
@@ -604,15 +688,19 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   Widget _buildPhotoArea() {
     return GestureDetector(
       onTap: _pickPhoto,
-      child: Container(
-        height: 220,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 240,
         decoration: BoxDecoration(
-          color: AppColors.nobSurface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          color: _photoBytes != null
+              ? Colors.transparent
+              : AppColors.nobSurface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: _photoBytes != null
-                ? AppColors.noblaraGold.withValues(alpha: 0.4)
-                : AppColors.nobBorder,
+                ? AppColors.emerald600.withValues(alpha: 0.3)
+                : AppColors.nobBorder.withValues(alpha: 0.4),
+            width: _photoBytes != null ? 1.5 : 1,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -621,9 +709,23 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.memory(_photoBytes!, fit: BoxFit.cover),
+                  // Gradient overlay at top for the close button
                   Positioned(
-                    top: AppSpacing.sm,
-                    right: AppSpacing.sm,
+                    top: 0, left: 0, right: 0,
+                    child: Container(
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black.withValues(alpha: 0.4), Colors.transparent],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
                     child: GestureDetector(
                       onTap: () => setState(() {
                         _photoBytes = null;
@@ -631,12 +733,12 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                       }),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
-                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(6),
                         child: const Icon(Icons.close_rounded,
-                            color: Colors.white, size: 14),
+                            color: Colors.white, size: 16),
                       ),
                     ),
                   ),
@@ -645,7 +747,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                       color: Colors.black.withValues(alpha: 0.45),
                       child: const Center(
                         child: CircularProgressIndicator(
-                            color: AppColors.noblaraGold),
+                            color: AppColors.emerald600, strokeWidth: 2.5),
                       ),
                     ),
                 ],
@@ -654,21 +756,31 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      color: AppColors.nobSurfaceAlt,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.nobBorder),
+                      color: AppColors.emerald600.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(Icons.add_photo_alternate_outlined,
-                        color: AppColors.nobObserver, size: 22),
+                        color: AppColors.emerald600, size: 26),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: 10),
                   const Text(
-                    'Tap to add a photo',
+                    'Add a photo',
                     style: TextStyle(
-                        color: AppColors.nobObserver, fontSize: 12),
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap to choose from gallery or camera',
+                    style: TextStyle(
+                      color: AppColors.nobObserver.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -678,49 +790,51 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Type selector — pill tabs
+// Type toggle — compact segmented pill
 // ---------------------------------------------------------------------------
 
-class _TypeSelector extends StatelessWidget {
+class _TypeToggle extends StatelessWidget {
   final String nobType;
   final ValueChanged<String> onChanged;
 
-  const _TypeSelector({required this.nobType, required this.onChanged});
+  const _TypeToggle({required this.nobType, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _TypeCard(
-          label: 'Thought',
-          subtitle: 'Text-based',
-          icon: Icons.format_quote_rounded,
-          isActive: nobType == 'thought',
-          onTap: () => onChanged('thought'),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        _TypeCard(
-          label: 'Moment',
-          subtitle: 'Photo-based',
-          icon: Icons.camera_alt_rounded,
-          isActive: nobType == 'moment',
-          onTap: () => onChanged('moment'),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.nobSurface,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          _TogglePill(
+            label: 'Thought',
+            icon: Icons.format_quote_rounded,
+            isActive: nobType == 'thought',
+            onTap: () { HapticFeedback.selectionClick(); onChanged('thought'); },
+          ),
+          _TogglePill(
+            label: 'Moment',
+            icon: Icons.camera_alt_rounded,
+            isActive: nobType == 'moment',
+            onTap: () { HapticFeedback.selectionClick(); onChanged('moment'); },
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _TypeCard extends StatelessWidget {
+class _TogglePill extends StatelessWidget {
   final String label;
-  final String subtitle;
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _TypeCard({
+  const _TogglePill({
     required this.label,
-    required this.subtitle,
     required this.icon,
     required this.isActive,
     required this.onTap,
@@ -732,27 +846,26 @@ class _TypeCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.md),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.08) : AppColors.nobSurface,
-            borderRadius: BorderRadius.circular(14),
+            color: isActive ? AppColors.emerald600.withValues(alpha: 0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
             border: Border.all(
-              color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.4) : AppColors.nobBorder,
-              width: isActive ? 1.5 : 0.5,
+              color: isActive ? AppColors.emerald600.withValues(alpha: 0.3) : Colors.transparent,
             ),
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 24, color: isActive ? AppColors.noblaraGold : AppColors.nobObserver),
-              const SizedBox(height: 6),
+              Icon(icon, size: 16,
+                color: isActive ? AppColors.emerald600 : AppColors.nobObserver),
+              const SizedBox(width: 6),
               Text(label, style: TextStyle(
-                color: isActive ? AppColors.noblaraGold : AppColors.textPrimary,
-                fontSize: 14, fontWeight: FontWeight.w600,
-              )),
-              Text(subtitle, style: TextStyle(
-                color: isActive ? AppColors.noblaraGold.withValues(alpha: 0.6) : AppColors.nobObserver,
-                fontSize: 11,
+                color: isActive ? AppColors.emerald500 : AppColors.nobObserver,
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               )),
             ],
           ),
@@ -763,7 +876,7 @@ class _TypeCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// AI chip
+// AI chip — inline action pill
 // ---------------------------------------------------------------------------
 
 class _AiChip extends StatelessWidget {
@@ -777,33 +890,30 @@ class _AiChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-          border: Border.all(
-              color: AppColors.noblaraGold.withValues(alpha: 0.35)),
+          color: AppColors.emerald600.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (loading)
               const SizedBox(
-                width: 11, height: 11,
+                width: 12, height: 12,
                 child: CircularProgressIndicator(
-                    strokeWidth: 1.5, color: AppColors.noblaraGold),
+                    strokeWidth: 1.5, color: AppColors.emerald600),
               )
             else
               const Icon(Icons.auto_awesome_outlined,
-                  size: 11, color: AppColors.noblaraGold),
-            const SizedBox(width: 4),
+                  size: 12, color: AppColors.emerald600),
+            const SizedBox(width: 5),
             Text(
               label,
               style: const TextStyle(
-                color: AppColors.noblaraGold,
+                color: AppColors.emerald600,
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -812,6 +922,10 @@ class _AiChip extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Toolbar icon — subtle rounded action button
+// ---------------------------------------------------------------------------
 
 class _ToolbarIcon extends StatelessWidget {
   final IconData icon;
@@ -823,13 +937,12 @@ class _ToolbarIcon extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36, height: 36,
+        width: 34, height: 34,
         decoration: BoxDecoration(
-          color: AppColors.nobSurface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.nobBorder, width: 0.5),
+          color: AppColors.nobSurfaceAlt.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(9),
         ),
-        child: Icon(icon, size: 18, color: AppColors.noblaraGold.withValues(alpha: 0.7)),
+        child: Icon(icon, size: 17, color: AppColors.textSecondary),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
 import '../../providers/auth_provider.dart';
@@ -115,9 +116,9 @@ class _PostCallDecisionScreenState
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Row(children: [
-          Icon(Icons.chat_bubble_rounded, color: AppColors.gold),
+          Icon(Icons.chat_bubble_rounded, color: AppColors.emerald600),
           SizedBox(width: AppSpacing.sm),
-          Text('Chat is Open!', style: TextStyle(color: AppColors.gold)),
+          Text('Chat is Open!', style: TextStyle(color: AppColors.emerald600)),
         ]),
         content: Text(
           'You both chose to keep it open!\nStart chatting — take your time getting to know each other.',
@@ -129,7 +130,7 @@ class _PostCallDecisionScreenState
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
+              backgroundColor: AppColors.emerald600,
               foregroundColor: AppColors.bg,
             ),
             onPressed: () {
@@ -201,7 +202,7 @@ class _PostCallDecisionScreenState
           width: 48,
           height: 48,
           child: CircularProgressIndicator(
-            color: AppColors.gold,
+            color: AppColors.emerald600,
             strokeWidth: 2,
           ),
         ),
@@ -240,7 +241,7 @@ class _PostCallDecisionScreenState
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.videocam_off_rounded,
-            color: AppColors.gold, size: 64),
+            color: AppColors.emerald600, size: 64),
         const SizedBox(height: AppSpacing.xxl),
         Text(
           'Call Ended',
@@ -260,12 +261,12 @@ class _PostCallDecisionScreenState
         ),
         const SizedBox(height: AppSpacing.xxxl),
         if (_submitting)
-          const CircularProgressIndicator(color: AppColors.gold)
+          const CircularProgressIndicator(color: AppColors.emerald600)
         else ...[
           _DecisionButton(
             label: 'Keep Open',
             icon: Icons.check_circle_outline_rounded,
-            color: AppColors.gold,
+            color: AppColors.emerald600,
             onTap: () => _submit(true),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -323,15 +324,19 @@ class _DecisionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressEffect(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
+          border: Border.all(color: color.withValues(alpha: 0.25), width: 0.5),
+          boxShadow: [
+            ...Premium.shadowMd,
+            BoxShadow(color: color.withValues(alpha: 0.10), blurRadius: 16, spreadRadius: -2),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

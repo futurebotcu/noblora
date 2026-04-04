@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import 'appearance_settings_screen.dart';
@@ -234,11 +235,23 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm), border: Border.all(color: context.borderColor)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  colors: [AppColors.emerald600.withValues(alpha: 0.04), AppColors.surface],
+                ),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
+                boxShadow: Premium.shadowSm,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AI Privacy', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Row(children: [
+                    Icon(Icons.shield_outlined, color: AppColors.emerald500, size: 14),
+                    const SizedBox(width: 6),
+                    Text('AI Privacy', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ]),
                   const SizedBox(height: AppSpacing.sm),
                   Text('AI uses: profile text, behavior patterns, interaction quality.\n'
                       'AI never uses: private messages, call audio/video.\n'
@@ -320,16 +333,24 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showStaticContent(BuildContext context, String title, String body) {
     showModalBottomSheet(
-      context: context, backgroundColor: context.surfaceColor, isScrollControlled: true,
+      context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.6, expand: false,
-        builder: (ctx, scroll) => ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)))),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: AppSpacing.lg),
-          Text(body, style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
-        ]),
+        builder: (ctx, scroll) => Container(
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
+          ),
+          child: ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
+            Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: AppColors.emerald600.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)))),
+            const SizedBox(height: AppSpacing.xxl),
+            Text(title, style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+            const SizedBox(height: AppSpacing.lg),
+            Text(body, style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
+          ]),
+        ),
       ),
     );
   }
@@ -443,7 +464,7 @@ class _H extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
-    child: Text(t.toUpperCase(), style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 3.0)),
+    child: Text(t.toUpperCase(), style: Premium.sectionHeader(context.textMuted)),
   );
 }
 

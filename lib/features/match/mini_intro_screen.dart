@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/mini_intro_provider.dart';
@@ -154,8 +155,10 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: mode.accentLight,
+                    color: mode.accentColor.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: mode.accentColor.withValues(alpha: 0.12), width: 0.5),
+                    boxShadow: Premium.shadowSm,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,16 +259,21 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
               const Spacer(),
 
               // Schedule Short Intro button
-              ElevatedButton(
-                onPressed: _isSending ? null : _sendIntro,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: mode.accentColor,
-                  foregroundColor: AppColors.bg,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  ),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  boxShadow: _isSending ? null : Premium.accentGlow(mode.accentColor, intensity: 0.6),
                 ),
+                child: ElevatedButton(
+                  onPressed: _isSending ? null : _sendIntro,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mode.accentColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                  ),
                 child: _isSending
                     ? const SizedBox(
                         width: 24,
@@ -278,6 +286,7 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 16),
                       ),
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
 

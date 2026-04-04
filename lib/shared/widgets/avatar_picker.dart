@@ -41,7 +41,7 @@ class AvatarPicker extends StatelessWidget {
                     ? Border.all(color: Colors.white, width: 3)
                     : Border.all(color: Colors.transparent, width: 3),
                 boxShadow: sel
-                    ? [BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 12)]
+                    ? [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.3), blurRadius: 12)]
                     : null,
               ),
               child: ClipOval(

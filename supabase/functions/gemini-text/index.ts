@@ -10,7 +10,11 @@ const CORS_HEADERS = {
 // Validate that request comes from a Supabase client (has valid apikey header)
 function validateApiKey(req: Request): boolean {
   const key = req.headers.get("apikey") ?? "";
-  return key.length > 20;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  if (!key || (anonKey && key !== anonKey) || key.length < 20) {
+    return false;
+  }
+  return true;
 }
 
 serve(async (req) => {

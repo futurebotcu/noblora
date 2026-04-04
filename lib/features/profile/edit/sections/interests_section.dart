@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 import '../edit_profile_provider.dart';
 import '../profile_options.dart';
 import '../widgets/edit_section_shell.dart';
@@ -122,10 +123,10 @@ class _State extends ConsumerState<InterestsSection> with SingleTickerProviderSt
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: active ? context.accent.withValues(alpha: 0.12) : context.surfaceColor,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                border: Border.all(color: active ? context.accent.withValues(alpha: 0.5) : context.borderColor, width: 0.5),
+              decoration: Premium.chipDecoration(
+                bgColor: active ? context.accent.withValues(alpha: 0.12) : context.surfaceColor,
+                borderColor: active ? context.accent.withValues(alpha: 0.5) : context.borderColor,
+                selected: active,
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (active) ...[Icon(Icons.check_rounded, size: 14, color: context.accent), const SizedBox(width: 4)],

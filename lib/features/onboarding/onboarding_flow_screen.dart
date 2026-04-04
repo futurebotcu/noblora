@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
@@ -177,8 +178,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                     onPressed: _back, padding: EdgeInsets.zero, constraints: const BoxConstraints()),
                 if (_step > 0) const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: ClipRRect(borderRadius: BorderRadius.circular(1),
-                    child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 2,
+                  child: ClipRRect(borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 3,
                         backgroundColor: context.borderSubtleColor, valueColor: AlwaysStoppedAnimation(context.accent))),
                 ),
               ]),
@@ -242,23 +243,37 @@ class _WelcomePage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center, children: [
         const Spacer(flex: 2),
         Container(
-          width: 72, height: 72,
+          width: 80, height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: context.accentSoft,
-            border: Border.all(color: context.accentBorder),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [context.accent.withValues(alpha: 0.12), context.accent.withValues(alpha: 0.04)],
+            ),
+            border: Border.all(color: context.accent.withValues(alpha: 0.20), width: 0.5),
+            boxShadow: [
+              ...Premium.emeraldGlow(intensity: 0.6),
+              ...Premium.shadowMd,
+            ],
           ),
-          child: Icon(Icons.diamond_outlined, color: context.accent, size: 32),
+          child: Icon(Icons.diamond_outlined, color: context.accent, size: 34),
         ),
         const SizedBox(height: AppSpacing.xxxl),
         Text('Noblara', style: Theme.of(context).textTheme.displayMedium?.copyWith(
-            color: context.textPrimary, fontWeight: FontWeight.w300, letterSpacing: 2)),
+            color: context.textPrimary, fontWeight: FontWeight.w300, letterSpacing: 4)),
         const SizedBox(height: AppSpacing.lg),
         Text('A private space for\nmeaningful connections.',
             textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 16, height: 1.6, letterSpacing: 0.2)),
         const Spacer(flex: 3),
-        SizedBox(width: double.infinity, child: ElevatedButton(
-            onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.5)))),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            boxShadow: Premium.emeraldGlow(intensity: 0.7),
+          ),
+          child: ElevatedButton(
+              onPressed: onNext, child: const Text('Begin', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, letterSpacing: 0.5))),
+        ),
         const SizedBox(height: AppSpacing.xxxxl),
     ]));
   }
@@ -399,12 +414,13 @@ class _GenderCardState extends State<_GenderCard> with SingleTickerProviderState
       child: ScaleTransition(
         scale: _scale,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: Premium.dFast,
           height: 72,
           decoration: BoxDecoration(
             color: sel ? context.accent.withValues(alpha: 0.08) : context.surfaceColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: sel ? context.accent : context.borderColor, width: sel ? 1.5 : 0.5),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: sel ? context.accent.withValues(alpha: 0.6) : context.borderColor.withValues(alpha: 0.5), width: sel ? 1.5 : 0.5),
+            boxShadow: sel ? Premium.emeraldGlow(intensity: 0.3) : Premium.shadowSm,
           ),
           child: Center(child: Icon(widget.icon, size: 28, color: sel ? context.accent : context.textMuted)),
         ),
@@ -477,8 +493,8 @@ class _OccupationPageState extends State<_OccupationPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: context.surfaceColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: widget.occupation.isNotEmpty ? context.accent.withValues(alpha: 0.4) : context.borderColor, width: 0.5),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: widget.occupation.isNotEmpty ? context.accent.withValues(alpha: 0.3) : context.borderColor.withValues(alpha: 0.5), width: 0.5),
             ),
             child: Row(children: [
               Icon(Icons.work_outline_rounded, color: context.textMuted, size: 20),
@@ -545,7 +561,7 @@ class _OccupationSheetState extends State<_OccupationSheet> {
   Widget build(BuildContext context) {
     return Column(children: [
       const SizedBox(height: AppSpacing.lg),
-      Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
+      Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(4))),
       const SizedBox(height: AppSpacing.lg),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
@@ -681,12 +697,23 @@ class _LocationPageState extends State<_LocationPage> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: context.accentSoft,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: context.accentBorder),
+              color: context.accent.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.accent.withValues(alpha: 0.15), width: 0.5),
+              boxShadow: [
+                ...Premium.shadowSm,
+                BoxShadow(color: context.accent.withValues(alpha: 0.08), blurRadius: 16, spreadRadius: -2),
+              ],
             ),
             child: Row(children: [
-              Icon(Icons.location_on_rounded, color: context.accent, size: 22),
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.accent.withValues(alpha: 0.08),
+                ),
+                child: Icon(Icons.location_on_rounded, color: context.accent, size: 20),
+              ),
               const SizedBox(width: 12),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -743,7 +770,8 @@ class _PhotoPage extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: context.surfaceColor,
-              border: Border.all(color: photoUrl != null ? context.accent : context.borderColor, width: photoUrl != null ? 2.5 : 1),
+              border: Border.all(color: photoUrl != null ? context.accent : context.borderColor.withValues(alpha: 0.5), width: photoUrl != null ? 2.5 : 0.5),
+              boxShadow: photoUrl != null ? Premium.emeraldGlow(intensity: 0.5) : Premium.shadowMd,
             ),
             child: photoUrl != null
                 ? Center(child: Icon(Icons.check_rounded, color: context.accent, size: 40))
@@ -820,14 +848,25 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: AppSpacing.md),
     padding: const EdgeInsets.all(AppSpacing.lg),
-    decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: context.borderColor)),
+    decoration: BoxDecoration(
+      color: context.surfaceColor,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08), width: 0.5),
+      boxShadow: Premium.shadowSm,
+    ),
     child: Row(children: [
-      Icon(icon, color: context.accent, size: 20),
+      Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: context.accent.withValues(alpha: 0.06),
+        ),
+        child: Icon(icon, color: context.accent, size: 18),
+      ),
       const SizedBox(width: AppSpacing.md),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-        Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12)),
+        Text(sub, style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4)),
       ])),
     ]));
 }
@@ -845,10 +884,22 @@ class _CompletePageState extends State<_CompletePage> {
   Widget build(BuildContext context) {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxxl), child: Column(
       mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.check_circle_outline_rounded, color: context.accent, size: 64),
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [context.accent.withValues(alpha: 0.12), context.accent.withValues(alpha: 0.04)],
+            ),
+            border: Border.all(color: context.accent.withValues(alpha: 0.20), width: 0.5),
+            boxShadow: Premium.emeraldGlow(intensity: 0.8),
+          ),
+          child: Icon(Icons.check_circle_outline_rounded, color: context.accent, size: 40),
+        ),
         const SizedBox(height: AppSpacing.xxl),
         Text('You\'re all set${widget.name.isNotEmpty ? ', ${widget.name}' : ''}',
-            style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
+            style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
         const SizedBox(height: AppSpacing.md),
         Text(widget.validationError != null ? '' : 'Your private world is ready.',
             style: TextStyle(color: context.textMuted, fontSize: 14)),
@@ -864,7 +915,13 @@ class _CompletePageState extends State<_CompletePage> {
             ])),
         ],
         const SizedBox(height: AppSpacing.xxxxl),
-        SizedBox(width: double.infinity, child: ElevatedButton(
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            boxShadow: (_loading || widget.validationError != null) ? null : Premium.emeraldGlow(intensity: 0.7),
+          ),
+          child: ElevatedButton(
             style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: (_loading || widget.validationError != null) ? null : () async {
               final messenger = ScaffoldMessenger.of(context);
@@ -880,7 +937,8 @@ class _CompletePageState extends State<_CompletePage> {
             },
             child: _loading
                 ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: context.bgColor))
-                : const Text('Enter Noblara', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)))),
+                : const Text('Enter Noblara', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16))),
+        ),
     ]));
   }
 }
@@ -889,7 +947,7 @@ class _CompletePageState extends State<_CompletePage> {
 InputDecoration _deco(BuildContext context, String hint) => InputDecoration(
   hintText: hint, hintStyle: TextStyle(color: context.textDisabled),
   filled: true, fillColor: context.surfaceColor,
-  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
-  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
-  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.accent)),
+  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.borderColor.withValues(alpha: 0.5))),
+  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.borderColor.withValues(alpha: 0.5))),
+  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.accent)),
 );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
 import '../../providers/auth_provider.dart';
@@ -210,7 +211,7 @@ class _VideoSchedulingScreenState extends ConsumerState<VideoSchedulingScreen> {
                     child: ElevatedButton(
                       onPressed: _submitting ? null : () => _accept(session),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
+                        backgroundColor: AppColors.emerald600,
                         foregroundColor: AppColors.bg,
                         minimumSize: const Size.fromHeight(48),
                       ),
@@ -261,16 +262,18 @@ class _VideoSchedulingScreenState extends ConsumerState<VideoSchedulingScreen> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  color: AppColors.emerald600.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.12), width: 0.5),
+                  boxShadow: Premium.shadowSm,
                 ),
                 child: Row(children: [
                   const Icon(Icons.calendar_today_rounded,
-                      color: AppColors.gold, size: 18),
+                      color: AppColors.emerald600, size: 18),
                   const SizedBox(width: AppSpacing.sm),
                   Text(_formattedScheduled,
                       style: const TextStyle(
-                          color: AppColors.gold,
+                          color: AppColors.emerald600,
                           fontWeight: FontWeight.w600)),
                 ]),
               ),
@@ -279,7 +282,7 @@ class _VideoSchedulingScreenState extends ConsumerState<VideoSchedulingScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.gold,
+                    backgroundColor: AppColors.emerald600,
                     foregroundColor: AppColors.bg,
                     minimumSize: const Size.fromHeight(52),
                   ),
@@ -349,7 +352,7 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
       builder: (c, child) => Theme(
         data: ThemeData.light().copyWith(
           colorScheme: const ColorScheme.light(
-            primary: AppColors.gold,
+            primary: AppColors.emerald600,
             surface: AppColors.surface,
           ),
         ),
@@ -365,7 +368,7 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
       builder: (c, child) => Theme(
         data: ThemeData.light().copyWith(
           colorScheme: const ColorScheme.light(
-            primary: AppColors.gold,
+            primary: AppColors.emerald600,
             surface: AppColors.surface,
           ),
         ),
@@ -468,21 +471,21 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.08),
+                        color: AppColors.emerald600.withValues(alpha: 0.08),
                         borderRadius:
                             BorderRadius.circular(AppSpacing.radiusSm),
                         border: Border.all(
-                            color: AppColors.gold.withValues(alpha: 0.4)),
+                            color: AppColors.emerald600.withValues(alpha: 0.4)),
                       ),
                       child: Row(children: [
                         const Icon(Icons.schedule_rounded,
-                            color: AppColors.gold, size: 18),
+                            color: AppColors.emerald600, size: 18),
                         const SizedBox(width: AppSpacing.sm),
                         Text(
                           DateFormat('EEE, d MMM · HH:mm')
                               .format(_counterTime!),
                           style: const TextStyle(
-                              color: AppColors.gold,
+                              color: AppColors.emerald600,
                               fontWeight: FontWeight.w600),
                         ),
                         const Spacer(),
@@ -508,7 +511,7 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                           : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: hasCounter
-                            ? AppColors.gold
+                            ? AppColors.emerald600
                             : AppColors.surface,
                         foregroundColor: AppColors.bg,
                         disabledBackgroundColor:
@@ -590,11 +593,11 @@ class _ReasonTile extends StatelessWidget {
             horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.gold.withValues(alpha: 0.1)
+              ? AppColors.emerald600.withValues(alpha: 0.1)
               : AppColors.bg,
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
-            color: selected ? AppColors.gold : AppColors.border,
+            color: selected ? AppColors.emerald600 : AppColors.border,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -606,9 +609,9 @@ class _ReasonTile extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                  color: selected ? AppColors.gold : AppColors.border,
+                  color: selected ? AppColors.emerald600 : AppColors.border,
                   width: 2),
-              color: selected ? AppColors.gold : Colors.transparent,
+              color: selected ? AppColors.emerald600 : Colors.transparent,
             ),
             child: selected
                 ? const Icon(Icons.check, size: 12, color: AppColors.bg)
@@ -657,13 +660,13 @@ class _AcceptedView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.videocam_rounded,
-                color: AppColors.gold, size: 72),
+                color: AppColors.emerald600, size: 72),
             const SizedBox(height: AppSpacing.xxl),
             Text('Call Confirmed!',
                 style: Theme.of(context)
                     .textTheme
                     .headlineMedium
-                    ?.copyWith(color: AppColors.gold)),
+                    ?.copyWith(color: AppColors.emerald600)),
             const SizedBox(height: AppSpacing.md),
             _TimeDisplay(scheduledAt: session.scheduledAt),
             const SizedBox(height: AppSpacing.xxxl),
@@ -673,7 +676,7 @@ class _AcceptedView extends StatelessWidget {
                 icon: const Icon(Icons.videocam_rounded),
                 label: const Text('Join Call'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
+                  backgroundColor: AppColors.emerald600,
                   foregroundColor: AppColors.bg,
                   minimumSize: const Size.fromHeight(52),
                 ),
@@ -918,13 +921,13 @@ class _InfoBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.08),
+        color: AppColors.emerald600.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.3)),
       ),
       child: const Row(
         children: [
-          Icon(Icons.videocam_rounded, color: AppColors.gold),
+          Icon(Icons.videocam_rounded, color: AppColors.emerald600),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -932,7 +935,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Text('First Call — 5 Minutes',
                     style: TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.emerald600,
                         fontWeight: FontWeight.w700)),
                 SizedBox(height: 4),
                 Text(
@@ -959,16 +962,16 @@ class _TimeDisplay extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.1),
+        color: AppColors.emerald600.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.5)),
       ),
       child: Row(children: [
-        const Icon(Icons.schedule_rounded, color: AppColors.gold, size: 28),
+        const Icon(Icons.schedule_rounded, color: AppColors.emerald600, size: 28),
         const SizedBox(width: AppSpacing.md),
         Text(fmt.format(scheduledAt.toLocal()),
             style: const TextStyle(
-                color: AppColors.gold, fontWeight: FontWeight.w600)),
+                color: AppColors.emerald600, fontWeight: FontWeight.w600)),
       ]),
     );
   }
@@ -996,11 +999,11 @@ class _DateSelector extends StatelessWidget {
             child: Container(
               width: 56,
               decoration: BoxDecoration(
-                color: isSel ? AppColors.gold : AppColors.surface,
+                color: isSel ? AppColors.emerald600 : AppColors.surface,
                 borderRadius:
                     BorderRadius.circular(AppSpacing.radiusSm),
                 border: Border.all(
-                    color: isSel ? AppColors.gold : AppColors.border),
+                    color: isSel ? AppColors.emerald600 : AppColors.border),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1090,12 +1093,12 @@ class _TimeSelectorState extends State<_TimeSelector> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: isSel ? AppColors.gold : AppColors.surface,
+                    color: isSel ? AppColors.emerald600 : AppColors.surface,
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusSm),
                     border: Border.all(
                         color:
-                            isSel ? AppColors.gold : AppColors.border),
+                            isSel ? AppColors.emerald600 : AppColors.border),
                   ),
                   child: Text(
                     '${_pad(h)}:__',
@@ -1129,20 +1132,20 @@ class _TimeSelectorState extends State<_TimeSelector> {
                         vertical: AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: isSel
-                          ? AppColors.gold.withValues(alpha: 0.15)
+                          ? AppColors.emerald600.withValues(alpha: 0.15)
                           : AppColors.surfaceAlt,
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusSm),
                       border: Border.all(
                           color: isSel
-                              ? AppColors.gold
+                              ? AppColors.emerald600
                               : AppColors.border),
                     ),
                     child: Text(
                       ':${_pad(m)}',
                       style: TextStyle(
                         color: isSel
-                            ? AppColors.gold
+                            ? AppColors.emerald600
                             : AppColors.textMuted,
                         fontWeight: isSel
                             ? FontWeight.w700

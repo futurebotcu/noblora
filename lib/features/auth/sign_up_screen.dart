@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/device_service.dart';
 import '../../providers/auth_provider.dart';
@@ -230,9 +231,10 @@ class _SignUpState extends ConsumerState<SignUpScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+                      color: AppColors.warning.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.20), width: 0.5),
+                      boxShadow: Premium.shadowSm,
                     ),
                     child: Row(children: [
                       const Icon(Icons.person_outline, color: AppColors.warning, size: 18),
@@ -298,8 +300,12 @@ class _SignUpState extends ConsumerState<SignUpScreen> {
                 width: 80, height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: context.accent.withValues(alpha: 0.08),
-                  border: Border.all(color: context.accent.withValues(alpha: 0.2)),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [context.accent.withValues(alpha: 0.12), context.accent.withValues(alpha: 0.04)],
+                  ),
+                  border: Border.all(color: context.accent.withValues(alpha: 0.20), width: 0.5),
+                  boxShadow: Premium.emeraldGlow(intensity: 0.6),
                 ),
                 child: Icon(Icons.mark_email_read_outlined, color: context.accent, size: 36),
               ),

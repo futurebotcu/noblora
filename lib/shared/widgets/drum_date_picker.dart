@@ -94,7 +94,7 @@ class _DrumDatePickerState extends State<DrumDatePicker> {
                 labelBuilder: (v) => v.toString().padLeft(2, '0'),
                 onChanged: _onDayChanged,
               )),
-              Container(width: 1, color: AppColors.gold.withValues(alpha: 0.15)),
+              Container(width: 1, color: AppColors.emerald600.withValues(alpha: 0.15)),
               // Month
               Expanded(child: _DrumColumn<int>(
                 items: months,
@@ -102,7 +102,7 @@ class _DrumDatePickerState extends State<DrumDatePicker> {
                 labelBuilder: (v) => _monthLabels[v - 1],
                 onChanged: _onMonthChanged,
               )),
-              Container(width: 1, color: AppColors.gold.withValues(alpha: 0.15)),
+              Container(width: 1, color: AppColors.emerald600.withValues(alpha: 0.15)),
               // Year
               Expanded(child: _DrumColumn<int>(
                 items: years,
@@ -117,9 +117,9 @@ class _DrumDatePickerState extends State<DrumDatePicker> {
             top: 160 / 2 - 22,
             left: 0, right: 0,
             child: IgnorePointer(child: Column(children: [
-              Container(height: 1, color: AppColors.gold.withValues(alpha: 0.35)),
+              Container(height: 1, color: AppColors.emerald600.withValues(alpha: 0.35)),
               const SizedBox(height: 43),
-              Container(height: 1, color: AppColors.gold.withValues(alpha: 0.35)),
+              Container(height: 1, color: AppColors.emerald600.withValues(alpha: 0.35)),
             ])),
           ),
         ],
@@ -192,7 +192,7 @@ class _DrumColumnState<T> extends State<_DrumColumn<T>> {
           Color color;
 
           if (distance == 0) {
-            opacity = 1.0; fontSize = 22; weight = FontWeight.w700; color = AppColors.gold;
+            opacity = 1.0; fontSize = 22; weight = FontWeight.w700; color = AppColors.emerald600;
           } else if (distance == 1) {
             opacity = 0.45; fontSize = 16; weight = FontWeight.w500; color = Colors.white;
           } else {

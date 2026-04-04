@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../providers/posts_provider.dart';
 
@@ -36,42 +37,40 @@ class NobArchiveScreen extends ConsumerWidget {
       body: archivedAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(
-                color: AppColors.noblaraGold, strokeWidth: 1.5)),
+                color: AppColors.emerald600, strokeWidth: 1.5)),
         error: (e, _) => Center(
             child: Text('Error: $e',
                 style: const TextStyle(color: AppColors.error, fontSize: 13))),
         data: (posts) {
           if (posts.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.nobSurface,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.nobBorder),
-                    ),
-                    child: const Icon(Icons.archive_outlined,
-                        color: AppColors.nobObserver, size: 22),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+                  decoration: Premium.emptyStateDecoration(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 60, height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [AppColors.emerald600.withValues(alpha: 0.10), AppColors.emerald600.withValues(alpha: 0.03)],
+                          ),
+                          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.12), width: 0.5),
+                        ),
+                        child: Icon(Icons.archive_outlined, color: AppColors.emerald600.withValues(alpha: 0.45), size: 26),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text('Nothing archived', style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                      const SizedBox(height: 8),
+                      const Text('Archived Nobs will appear here', style: TextStyle(color: AppColors.nobObserver, fontSize: 14, height: 1.5)),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const Text(
-                    'Nothing archived.',
-                    style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'Archived Nobs will appear here.',
-                    style: TextStyle(
-                        color: AppColors.nobObserver, fontSize: 13),
-                  ),
-                ],
+                ),
               ),
             );
           }
@@ -102,7 +101,8 @@ class _ArchivedCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.nobSurface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.nobBorder),
+        border: Border.all(color: AppColors.nobBorder, width: 0.5),
+        boxShadow: Premium.shadowMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,23 +202,23 @@ class _ArchivedCard extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.noblaraGold.withValues(alpha: 0.08),
+                      color: AppColors.emerald600.withValues(alpha: 0.08),
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusSm),
                       border: Border.all(
                           color:
-                              AppColors.noblaraGold.withValues(alpha: 0.3)),
+                              AppColors.emerald600.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(Icons.unarchive_outlined,
-                            size: 13, color: AppColors.noblaraGold),
+                            size: 13, color: AppColors.emerald600),
                         SizedBox(width: AppSpacing.xs),
                         Text(
                           'Restore',
                           style: TextStyle(
-                            color: AppColors.noblaraGold,
+                            color: AppColors.emerald600,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),

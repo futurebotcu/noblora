@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile.dart';
@@ -61,17 +62,22 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
     if (uid == null) return;
     try {
       final c = Supabase.instance.client;
-      _notesReceived = (await c.from('notes').select('id').eq('receiver_id', uid)).length;
-      _notesSent = (await c.from('notes').select('id').eq('sender_id', uid)).length;
-      _signalsReceived = (await c.from('signals').select('id').eq('receiver_id', uid)).length;
-      _signalsSent = (await c.from('signals').select('id').eq('sender_id', uid)).length;
-      _connectionCount = (await c.from('matches').select('id').or('user1_id.eq.$uid,user2_id.eq.$uid')
-          .neq('status', 'expired').neq('status', 'closed')).length;
-
-      // Recent activity from notifications
-      final notifs = await c.from('notifications').select().eq('user_id', uid)
-          .order('created_at', ascending: false).limit(20);
-      _recentActivity = List<Map<String, dynamic>>.from(notifs);
+      final results = await Future.wait([
+        c.from('notes').select('id').eq('receiver_id', uid),         // 0: notes received
+        c.from('notes').select('id').eq('sender_id', uid),           // 1: notes sent
+        c.from('signals').select('id').eq('receiver_id', uid),       // 2: signals received
+        c.from('signals').select('id').eq('sender_id', uid),         // 3: signals sent
+        c.from('matches').select('id').or('user1_id.eq.$uid,user2_id.eq.$uid')
+            .neq('status', 'expired').neq('status', 'closed'),      // 4: connections
+        c.from('notifications').select().eq('user_id', uid)
+            .order('created_at', ascending: false).limit(20),        // 5: recent activity
+      ]);
+      _notesReceived = (results[0] as List).length;
+      _notesSent = (results[1] as List).length;
+      _signalsReceived = (results[2] as List).length;
+      _signalsSent = (results[3] as List).length;
+      _connectionCount = (results[4] as List).length;
+      _recentActivity = List<Map<String, dynamic>>.from(results[5] as List);
 
       _loaded = true;
       if (mounted) setState(() {});
@@ -109,7 +115,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
     if (!_loaded) WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     if (_ai == null && !_aiLoading) WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi(p));
 
-    final tc = switch (p.nobTier) { NobTier.noble => AppColors.emerald500, NobTier.explorer => AppColors.info, NobTier.observer => context.textMuted };
+    final tc = switch (p.nobTier) { NobTier.noble => AppColors.emerald500, NobTier.explorer => AppColors.emerald500, NobTier.observer => context.textMuted };
 
     return Scaffold(
       backgroundColor: context.bgColor,
@@ -121,18 +127,19 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [tc.withValues(alpha: 0.04), context.bgColor]),
-                ),
+                decoration: BoxDecoration(gradient: Premium.heroGradient(tint: tc)),
                 padding: EdgeInsets.fromLTRB(AppSpacing.xxl, MediaQuery.of(ctx).padding.top + 12, AppSpacing.xxl, 0),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                   Container(
-                    width: 44, height: 44,
+                    width: 48, height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: tc.withValues(alpha: 0.08),
-                      border: Border.all(color: tc.withValues(alpha: 0.2), width: 1.5),
+                      border: Border.all(color: tc.withValues(alpha: 0.25), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: tc.withValues(alpha: 0.15), blurRadius: 16, spreadRadius: 1),
+                        ...Premium.shadowSm,
+                      ],
                     ),
                     child: Center(child: Text((p.displayName.isNotEmpty ? p.displayName[0] : 'N').toUpperCase(),
                         style: TextStyle(color: tc, fontWeight: FontWeight.w700, fontSize: 18))),
@@ -271,7 +278,7 @@ class _InterestTab extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Text('Quiet for now', style: TextStyle(color: context.textMuted, fontSize: 14)),
           const SizedBox(height: AppSpacing.xs),
-          Text('Interest will appear as people engage with you.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+          Text('Interest appears as people engage with you.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
         ])),
       ] else ...[
         _Sec('Reaching toward you'),
@@ -313,9 +320,9 @@ class _SocialTab extends StatelessWidget {
         Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.groups_outlined, color: context.textMuted.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: AppSpacing.lg),
-          Text('Nothing scheduled right now', style: TextStyle(color: context.textMuted, fontSize: 14)),
+          Text('All clear', style: TextStyle(color: context.textMuted, fontSize: 14)),
           const SizedBox(height: AppSpacing.xs),
-          Text('Social plans and BFF activity will show here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+          Text('Plans and social activity will appear here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
         ])),
       ] else ...[
         _Sec('Friendship circle'),
@@ -349,9 +356,9 @@ class _ActivityTab extends StatelessWidget {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.history_rounded, color: context.textMuted.withValues(alpha: 0.2), size: 48),
         const SizedBox(height: AppSpacing.lg),
-        Text('This space is clear', style: TextStyle(color: context.textMuted, fontSize: 14)),
+        Text('No recent activity', style: TextStyle(color: context.textMuted, fontSize: 14)),
         const SizedBox(height: AppSpacing.xs),
-        Text('Your recent movement will appear here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
+        Text('Your movement and updates will show here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
       ]));
     }
     return ListView.builder(
@@ -393,29 +400,36 @@ class _MarketTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(child: Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxxl),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 80, height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.emerald500.withValues(alpha: 0.04),
-            border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.1)),
-            boxShadow: [BoxShadow(color: AppColors.emerald500.withValues(alpha: 0.05), blurRadius: 40)],
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        decoration: Premium.emptyStateDecoration(),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                colors: [AppColors.emerald500.withValues(alpha: 0.10), AppColors.emerald500.withValues(alpha: 0.03)],
+              ),
+              border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.12), width: 0.5),
+              boxShadow: [BoxShadow(color: AppColors.emerald500.withValues(alpha: 0.05), blurRadius: 40)],
+            ),
+            child: const Icon(Icons.diamond_outlined, color: AppColors.emerald500, size: 26),
           ),
-          child: const Icon(Icons.diamond_outlined, color: AppColors.emerald500, size: 30),
-        ),
-        const SizedBox(height: AppSpacing.xxxl),
-        Text('Market', style: TextStyle(color: AppColors.emerald500.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
-        const SizedBox(height: AppSpacing.md),
-        Text('Reserved for private tools and access.',
-            style: TextStyle(color: context.textMuted.withValues(alpha: 0.5), fontSize: 13),
-            textAlign: TextAlign.center),
-        const SizedBox(height: AppSpacing.sm),
-        Text('This space will stay quiet until it matters.',
-            style: TextStyle(color: context.textMuted.withValues(alpha: 0.35), fontSize: 11),
-            textAlign: TextAlign.center),
-      ]),
+          const SizedBox(height: 24),
+          Text('Market', style: TextStyle(color: AppColors.emerald500.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
+          const SizedBox(height: AppSpacing.md),
+          Text('Reserved for private tools and access.',
+              style: TextStyle(color: context.textMuted.withValues(alpha: 0.5), fontSize: 13),
+              textAlign: TextAlign.center),
+          const SizedBox(height: AppSpacing.sm),
+          Text('This space will stay quiet until it matters.',
+              style: TextStyle(color: context.textMuted.withValues(alpha: 0.35), fontSize: 11),
+              textAlign: TextAlign.center),
+        ]),
+      ),
     ));
   }
 }
@@ -431,10 +445,10 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.xxl),
     decoration: BoxDecoration(
-      color: context.surfaceColor,
+      gradient: Premium.cardGradient,
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      border: Border.all(color: borderColor ?? context.borderSubtleColor, width: 0.5),
-      boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 8))],
+      border: Border.all(color: borderColor ?? AppColors.emerald600.withValues(alpha: 0.08), width: 0.5),
+      boxShadow: Premium.shadowMd,
     ),
     child: child);
 }
@@ -499,11 +513,24 @@ class _Upcoming extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: AppSpacing.sm),
     padding: const EdgeInsets.all(AppSpacing.md),
-    decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: color.withValues(alpha: 0.12))),
-    child: Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: AppSpacing.md),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      border: Border.all(color: color.withValues(alpha: 0.10), width: 0.5),
+      boxShadow: Premium.shadowSm,
+    ),
+    child: Row(children: [
+      Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: 0.08),
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
+      const SizedBox(width: AppSpacing.md),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(color: context.textPrimary, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(title, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
         Text(sub, style: TextStyle(color: context.textMuted, fontSize: 11))]))]),
   );
 }
@@ -512,11 +539,15 @@ class _QA extends StatelessWidget {
   final IconData icon; final String label; final VoidCallback onTap;
   const _QA(this.icon, this.label, this.onTap);
   @override
-  Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(
+  Widget build(BuildContext context) => PressEffect(onTap: onTap, child: Container(
     margin: const EdgeInsets.only(right: AppSpacing.md),
     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-    decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: context.borderColor)),
+    decoration: BoxDecoration(
+      color: context.surfaceColor,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
+      boxShadow: Premium.shadowSm,
+    ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, color: AppColors.emerald500, size: 15), const SizedBox(width: 6),
       Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12))])));

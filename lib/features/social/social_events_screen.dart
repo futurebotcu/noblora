@@ -6,6 +6,7 @@ import '../../core/services/toast_service.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart' show Premium;
 import '../../data/models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
@@ -17,7 +18,7 @@ import 'event_detail_screen.dart';
 import 'create_event_screen.dart';
 import 'rooms_tab.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class SocialEventsScreen extends ConsumerStatefulWidget {
   const SocialEventsScreen({super.key});
@@ -136,7 +137,7 @@ class _PillTab extends StatelessWidget {
           curve: Curves.easeOut,
           margin: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: isActive ? _violet : Colors.transparent,
+            color: isActive ? _accent : Colors.transparent,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
           ),
           alignment: Alignment.center,
@@ -187,7 +188,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
     return Stack(
       children: [
         if (state.isLoading && state.events.isEmpty)
-          const Center(child: CircularProgressIndicator(color: _violet))
+          const Center(child: CircularProgressIndicator(color: _accent))
         else if (state.events.isEmpty)
           _EmptyEvents()
         else
@@ -207,7 +208,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
               // Event list
               Expanded(
                 child: RefreshIndicator(
-                  color: _violet,
+                  color: _accent,
                   onRefresh: () => ref.read(eventListProvider.notifier).load(),
                   child: _listView
                       ? ListView.separated(
@@ -242,10 +243,15 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
         Positioned(
           right: AppSpacing.lg,
           bottom: AppSpacing.xxl,
-          child: FloatingActionButton(
-            heroTag: 'create_event_fab',
-            backgroundColor: _violet,
-            onPressed: () async {
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: Premium.emeraldGlow(intensity: 0.8),
+            ),
+            child: FloatingActionButton(
+              heroTag: 'create_event_fab',
+              backgroundColor: AppColors.emerald600,
+              onPressed: () async {
               final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
               if (!gate.canSocialCreate) {
                 if (context.mounted) {
@@ -259,6 +265,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
               if (created == true) ref.read(eventListProvider.notifier).load();
             },
             child: const Icon(Icons.add_rounded, color: Colors.white),
+            ),
           ),
         ),
       ],
@@ -281,7 +288,7 @@ class _ViewToggle extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.borderSubtleColor, width: 0.5),
         ),
         child: Icon(
@@ -319,8 +326,8 @@ class _EventListRow extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(day, style: const TextStyle(color: AppColors.gold, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
-                  Text(month, style: TextStyle(color: AppColors.gold.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                  Text(day, style: const TextStyle(color: AppColors.emerald600, fontSize: 22, fontWeight: FontWeight.w700, height: 1)),
+                  Text(month, style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -346,10 +353,10 @@ class _EventListRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.emerald600.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text('${event.attendeeCount}', style: const TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
+              child: Text('${event.attendeeCount}', style: const TextStyle(color: AppColors.emerald600, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(width: 4),
             Icon(Icons.chevron_right_rounded, color: context.textMuted, size: 18),
@@ -365,40 +372,56 @@ class _EmptyEvents extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _violet.withValues(alpha: 0.04),
-                border: Border.all(color: _violet.withValues(alpha: 0.1)),
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+          decoration: Premium.emptyStateDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _accent.withValues(alpha: 0.10),
+                      _accent.withValues(alpha: 0.03),
+                    ],
+                  ),
+                  border: Border.all(color: _accent.withValues(alpha: 0.12), width: 0.5),
+                ),
+                child: Icon(
+                  Icons.event_outlined,
+                  color: _accent.withValues(alpha: 0.45),
+                  size: 26,
+                ),
               ),
-              child: Icon(
-                Icons.event_outlined,
-                color: _violet.withValues(alpha: 0.4),
-                size: 28,
+              const SizedBox(height: 24),
+              Text(
+                'No events yet',
+                style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              'No events yet',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: context.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Be the first to create one!\nTap + to get started.',
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: context.textMuted, fontSize: 13, height: 1.5),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Be the first to create one\nTap + to get started',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -418,7 +441,7 @@ class _SocialFilterButton extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.tune_rounded),
-          color: count > 0 ? _violet : context.textMuted,
+          color: count > 0 ? _accent : context.textMuted,
           onPressed: () => FilterBottomSheet.show(context),
         ),
         if (count > 0)
@@ -429,7 +452,7 @@ class _SocialFilterButton extends StatelessWidget {
               width: 16,
               height: 16,
               decoration:
-                  const BoxDecoration(color: _violet, shape: BoxShape.circle),
+                  const BoxDecoration(color: _accent, shape: BoxShape.circle),
               child: Center(
                 child: Text(
                   '$count',

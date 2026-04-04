@@ -6,6 +6,7 @@ class InboxItem {
   final String id;
   final String name;
   final String avatarSeed;
+  final String? photoUrl;
   final String lastMessage;
   final Duration ago;
   final NobleMode mode;
@@ -27,6 +28,7 @@ class InboxItem {
     required this.id,
     required this.name,
     required this.avatarSeed,
+    this.photoUrl,
     required this.lastMessage,
     required this.ago,
     required this.mode,

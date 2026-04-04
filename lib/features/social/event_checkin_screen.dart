@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/event_provider.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class EventCheckinScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -33,7 +34,7 @@ class _EventCheckinScreenState extends ConsumerState<EventCheckinScreen> {
     if (!mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _violet),
+      const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _accent),
     );
   }
 
@@ -89,7 +90,7 @@ class _EventCheckinScreenState extends ConsumerState<EventCheckinScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _violet,
+                    backgroundColor: _accent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
@@ -146,12 +147,12 @@ class _Question extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: selected ? _violet.withValues(alpha: 0.2) : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          border: Border.all(color: selected ? _violet : AppColors.border),
+        decoration: Premium.chipDecoration(
+          bgColor: selected ? _accent.withValues(alpha: 0.15) : AppColors.surface,
+          borderColor: selected ? _accent.withValues(alpha: 0.5) : AppColors.border.withValues(alpha: 0.4),
+          selected: selected,
         ),
-        child: Text(label, style: TextStyle(color: selected ? _violet : AppColors.textMuted, fontSize: 16)),
+        child: Text(label, style: TextStyle(color: selected ? _accent : AppColors.textMuted, fontSize: 16)),
       ),
     );
   }

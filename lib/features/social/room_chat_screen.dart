@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../data/models/room.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/room_message.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/room_provider.dart';
 import 'edit_room_screen.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class RoomChatScreen extends ConsumerStatefulWidget {
   final String roomId;
@@ -92,16 +92,12 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
           if (isHost)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              color: _violet,
+              color: _accent,
               onPressed: () async {
-                final room = Room(
-                  id: widget.roomId,
-                  hostId: widget.hostId,
-                  title: widget.roomTitle,
-                  topicTags: const [],
-                  lastActivityAt: DateTime.now(),
-                  createdAt: DateTime.now(),
-                );
+                // Fetch real room data instead of constructing fake object
+                final repo = ref.read(roomRepositoryProvider);
+                final room = await repo.fetchRoom(widget.roomId);
+                if (room == null || !context.mounted) return;
                 final edited = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(builder: (_) => EditRoomScreen(room: room)),
@@ -115,7 +111,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
           // Participants button
           IconButton(
             icon: const Icon(Icons.people_outline_rounded),
-            color: _violet,
+            color: _accent,
             onPressed: () => _showParticipants(context, chatState),
           ),
           // Leave button
@@ -164,10 +160,10 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                           children: [
                             if (m.goldFlagged)
                               const Icon(Icons.push_pin_rounded,
-                                  color: AppColors.gold, size: 12)
+                                  color: AppColors.emerald600, size: 12)
                             else
                               Icon(Icons.flag_rounded,
-                                  color: Colors.blue.shade300, size: 12),
+                                  color: AppColors.emerald500, size: 12),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -191,7 +187,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
           Expanded(
             child: chatState.isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: _violet),
+                    child: CircularProgressIndicator(color: _accent),
                   )
                 : chatState.messages.isEmpty
                     ? Center(
@@ -275,7 +271,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                     width: 40,
                     height: 40,
                     decoration: const BoxDecoration(
-                      color: _violet,
+                      color: _accent,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -384,7 +380,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                     children: [
                       CircleAvatar(
                         radius: 18,
-                        backgroundColor: _violet.withValues(alpha: 0.2),
+                        backgroundColor: _accent.withValues(alpha: 0.2),
                         backgroundImage: p.avatarUrl != null
                             ? NetworkImage(p.avatarUrl!)
                             : null,
@@ -392,7 +388,7 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                             ? Text(
                                 (p.displayName ?? '?')[0].toUpperCase(),
                                 style: const TextStyle(
-                                    color: _violet, fontSize: 13),
+                                    color: _accent, fontSize: 13),
                               )
                             : null,
                       ),
@@ -411,13 +407,13 @@ class _RoomChatScreenState extends ConsumerState<RoomChatScreen> {
                             horizontal: 5, vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: _violet.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
+                            color: _accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
                             'Host',
                             style: TextStyle(
-                              color: _violet,
+                              color: _accent,
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                             ),
@@ -464,14 +460,14 @@ class _MessageBubble extends StatelessWidget {
           if (!isSelf) ...[
             CircleAvatar(
               radius: 14,
-              backgroundColor: _violet.withValues(alpha: 0.15),
+              backgroundColor: _accent.withValues(alpha: 0.15),
               backgroundImage: message.senderAvatarUrl != null
                   ? NetworkImage(message.senderAvatarUrl!)
                   : null,
               child: message.senderAvatarUrl == null
                   ? Text(
                       (message.senderName ?? '?')[0].toUpperCase(),
-                      style: const TextStyle(color: _violet, fontSize: 10),
+                      style: const TextStyle(color: _accent, fontSize: 10),
                     )
                   : null,
             ),
@@ -487,18 +483,19 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isSelf
-                      ? _violet.withValues(alpha: 0.15)
+                      ? _accent.withValues(alpha: 0.12)
                       : context.elevatedColor,
                   border: Border.all(
                     color: message.goldFlagged
-                        ? AppColors.gold.withValues(alpha: 0.5)
+                        ? AppColors.emerald600.withValues(alpha: 0.5)
                         : message.blueFlagged
-                            ? Colors.blue.withValues(alpha: 0.3)
+                            ? AppColors.emerald500.withValues(alpha: 0.3)
                             : isSelf
-                                ? _violet.withValues(alpha: 0.2)
+                                ? _accent.withValues(alpha: 0.15)
                                 : context.borderSubtleColor,
                     width: message.goldFlagged || message.blueFlagged ? 1 : 0.5,
                   ),
+                  boxShadow: Premium.shadowSm,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(AppSpacing.radiusLg),
                     topRight: const Radius.circular(AppSpacing.radiusLg),
@@ -518,7 +515,7 @@ class _MessageBubble extends StatelessWidget {
                           Text(
                             message.senderName ?? 'User',
                             style: TextStyle(
-                              color: message.isHost ? _violet : context.textMuted,
+                              color: message.isHost ? _accent : context.textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -530,13 +527,13 @@ class _MessageBubble extends StatelessWidget {
                                 horizontal: 4, vertical: 1,
                               ),
                               decoration: BoxDecoration(
-                                color: _violet.withValues(alpha: 0.15),
+                                color: _accent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: const Text(
                                 'Host',
                                 style: TextStyle(
-                                  color: _violet,
+                                  color: _accent,
                                   fontSize: 8,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -546,12 +543,12 @@ class _MessageBubble extends StatelessWidget {
                           if (message.goldFlagged) ...[
                             const SizedBox(width: 4),
                             const Icon(Icons.push_pin_rounded,
-                                color: AppColors.gold, size: 11),
+                                color: AppColors.emerald600, size: 11),
                           ],
                           if (message.blueFlagged) ...[
                             const SizedBox(width: 4),
                             Icon(Icons.flag_rounded,
-                                color: Colors.blue.shade300, size: 11),
+                                color: AppColors.emerald500, size: 11),
                           ],
                         ],
                       ),
@@ -591,7 +588,7 @@ class _MessageBubble extends StatelessWidget {
             if (onGoldFlag != null)
               ListTile(
                 leading: const Icon(Icons.push_pin_rounded,
-                    color: AppColors.gold),
+                    color: AppColors.emerald600),
                 title: Text('Gold Pin',
                     style: TextStyle(color: context.textPrimary)),
                 subtitle: Text('Pin this message (max 3)',
@@ -603,7 +600,7 @@ class _MessageBubble extends StatelessWidget {
               ),
             if (onBlueFlag != null)
               ListTile(
-                leading: Icon(Icons.flag_rounded, color: Colors.blue.shade300),
+                leading: Icon(Icons.flag_rounded, color: AppColors.emerald500),
                 title: Text('Blue Flag',
                     style: TextStyle(color: context.textPrimary)),
                 subtitle: Text('Flag this message',

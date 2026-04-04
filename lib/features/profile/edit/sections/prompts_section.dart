@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 import '../edit_profile_provider.dart';
 import '../profile_draft.dart';
 import '../profile_options.dart';
@@ -70,7 +72,8 @@ class _PromptCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: context.borderColor, width: 0.5),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08), width: 0.5),
+        boxShadow: Premium.shadowMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

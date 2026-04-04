@@ -4,6 +4,7 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
@@ -123,7 +124,7 @@ class _Header extends ConsumerWidget {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: AppColors.gold,
+              color: AppColors.emerald600,
               fontFamily: 'serif',
             ),
           ),
@@ -249,37 +250,82 @@ class _EmptyDeck extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.gold.withValues(alpha: 0.04),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.25), width: 0.5),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+          decoration: Premium.emptyStateDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.emerald600.withValues(alpha: 0.12),
+                      AppColors.emerald600.withValues(alpha: 0.04),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: AppColors.emerald600.withValues(alpha: 0.15),
+                    width: 0.5,
+                  ),
+                ),
+                child: Icon(Icons.favorite_outline_rounded,
+                    color: AppColors.emerald600.withValues(alpha: 0.5), size: 28),
               ),
-              child: Icon(Icons.favorite_outline_rounded, color: AppColors.gold.withValues(alpha: 0.4), size: 30),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('All caught up', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: AppSpacing.sm),
-            Text('Check back soon — new people join every day', textAlign: TextAlign.center,
-                style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
-            const SizedBox(height: AppSpacing.xxl),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.auto_awesome_outlined, size: 16),
-              label: const Text('Explore Nob Feed'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.gold,
-                side: const BorderSide(color: AppColors.gold, width: 0.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusCircle)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              const SizedBox(height: 24),
+              Text('All caught up',
+                  style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.3,
+                  )),
+              const SizedBox(height: 8),
+              Text(
+                'Check back soon — new people\njoin every day',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
               ),
-              onPressed: () => MainTabNavigator.switchTab(1),
-            ),
-          ],
+              const SizedBox(height: 28),
+              PressEffect(
+                onTap: () => MainTabNavigator.switchTab(1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald600.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                    border: Border.all(
+                      color: AppColors.emerald600.withValues(alpha: 0.25),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome_outlined,
+                          color: AppColors.emerald600, size: 16),
+                      const SizedBox(width: 8),
+                      Text('Explore Nob Feed',
+                          style: TextStyle(
+                            color: AppColors.emerald600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -366,7 +412,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
               );
               ToastService.show(context, message: 'Note sent', type: ToastType.success);
             },
-            child: const Text('Send', style: TextStyle(color: AppColors.gold)),
+            child: const Text('Send', style: TextStyle(color: AppColors.emerald600)),
           ),
         ],
       ),
@@ -404,32 +450,27 @@ class _ActionRowState extends ConsumerState<_ActionRow>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Pass
-              GestureDetector(
+              PressEffect(
                 onTap: () =>
                     ref.read(feedProvider.notifier).swipeLeft(topCard.id),
                 child: Container(
-                  width: 60,
-                  height: 60,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.10),
+                    color: AppColors.surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.error.withValues(alpha: 0.30),
+                      color: AppColors.border.withValues(alpha: 0.5),
+                      width: 0.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.error.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: Premium.shadowMd,
                   ),
                   child: Icon(Icons.close_rounded,
-                      color: AppColors.error.withValues(alpha: 0.85), size: 26),
+                      color: AppColors.textSecondary, size: 24),
                 ),
               ),
               // Signal / Note (GATED)
-              GestureDetector(
+              PressEffect(
                 onTap: () {
                   if (_checkGate(context, mode.name)) {
                     if (mode == NobleMode.date) {
@@ -440,50 +481,47 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   }
                 },
                 child: Container(
-                  width: 56,
-                  height: 56,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.emerald500.withValues(alpha: 0.10),
+                    color: AppColors.surface,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.emerald500.withValues(alpha: 0.30),
+                      color: AppColors.emerald500.withValues(alpha: 0.20),
+                      width: 0.5,
                     ),
                     boxShadow: [
+                      ...Premium.shadowMd,
                       BoxShadow(
-                        color: AppColors.emerald500.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
+                        color: AppColors.emerald500.withValues(alpha: 0.06),
+                        blurRadius: 16,
                       ),
                     ],
                   ),
                   child: const Icon(Icons.bolt_rounded,
-                      color: AppColors.emerald500, size: 24),
+                      color: AppColors.emerald500, size: 22),
                 ),
               ),
-              // Connect / Like (GATED)
-              GestureDetector(
+              // Connect / Like (GATED) — HERO CTA
+              PressEffect(
+                scale: 0.92,
                 onTap: mode == NobleMode.bff
                     ? () { if (_checkGate(context, 'bff')) _onConnect(topCard.id); }
                     : () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
                 child: Container(
-                  width: 64,
-                  height: 64,
+                  width: 66,
+                  height: 66,
                   decoration: BoxDecoration(
-                    color: AppColors.emerald600,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.emerald500,
+                        AppColors.emerald600,
+                      ],
+                    ),
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.emerald600.withValues(alpha: 0.45),
-                        blurRadius: 18,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: AppColors.emerald600.withValues(alpha: 0.20),
-                        blurRadius: 8,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+                    boxShadow: Premium.emeraldGlow(intensity: 1.2),
                   ),
                   child: const Icon(Icons.favorite_rounded,
                       color: AppColors.textOnEmerald, size: 28),
@@ -503,7 +541,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   scale: _hsScale.value,
                   child: const Icon(
                     Icons.handshake_rounded,
-                    color: AppColors.gold,
+                    color: AppColors.emerald600,
                     size: 52,
                   ),
                 ),

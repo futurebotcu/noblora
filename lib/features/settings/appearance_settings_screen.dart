@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../providers/appearance_provider.dart';
 import '../../providers/posts_provider.dart';
@@ -59,9 +60,10 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: AppSpacing.lg),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.emerald500.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.15)),
+                color: AppColors.emerald500.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.12), width: 0.5),
+                boxShadow: Premium.shadowSm,
               ),
               child: Row(children: [
                 Icon(Icons.lock_outline_rounded, color: AppColors.emerald500.withValues(alpha: 0.6), size: 18),

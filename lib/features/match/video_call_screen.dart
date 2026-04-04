@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
 import '../../providers/profile_provider.dart';
@@ -177,7 +178,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.schedule_rounded, color: AppColors.gold, size: 64),
+            const Icon(Icons.schedule_rounded, color: AppColors.emerald600, size: 64),
             const SizedBox(height: AppSpacing.xxl),
             Text(
               'Call starts in',
@@ -190,7 +191,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
             Text(
               _formatDuration(_remaining.value),
               style: const TextStyle(
-                color: AppColors.gold,
+                color: AppColors.emerald600,
                 fontSize: 52,
                 fontWeight: FontWeight.w300,
                 fontFamily: 'monospace',
@@ -246,10 +247,10 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   Widget _buildCallUI() {
     final pct = _remaining.value.inSeconds / _callDuration.inSeconds;
     final color = pct > 0.4
-        ? AppColors.gold
+        ? AppColors.emerald600
         : pct > 0.15
-            ? Colors.orange
-            : AppColors.error;
+            ? AppColors.emerald500
+            : AppColors.textMuted;
 
     return Stack(
       children: [
@@ -262,21 +263,21 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
               children: [
                 Icon(
                   _isAudioPhase ? Icons.mic_rounded : Icons.videocam_rounded,
-                  color: AppColors.gold, size: 80,
+                  color: AppColors.emerald600, size: 80,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 // Phase indicator
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
-                    color: (_isAudioPhase ? Colors.blue : AppColors.gold).withValues(alpha: 0.15),
+                    color: (_isAudioPhase ? AppColors.emerald500 : AppColors.emerald600).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                    border: Border.all(color: (_isAudioPhase ? Colors.blue : AppColors.gold).withValues(alpha: 0.3)),
+                    border: Border.all(color: (_isAudioPhase ? AppColors.emerald500 : AppColors.emerald600).withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     _isAudioPhase ? 'Audio Only — Video starts soon' : 'Video Phase',
                     style: TextStyle(
-                      color: _isAudioPhase ? Colors.blue : AppColors.gold,
+                      color: _isAudioPhase ? AppColors.emerald500 : AppColors.emerald600,
                       fontSize: 12, fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -376,12 +377,12 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
               decoration: BoxDecoration(
                 color: AppColors.surface.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.auto_awesome,
-                      color: AppColors.gold, size: 18),
+                      color: AppColors.emerald600, size: 18),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
@@ -415,9 +416,11 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.6),
+                      color: AppColors.surface.withValues(alpha: 0.5),
                       borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
+                          BorderRadius.circular(AppSpacing.radiusMd),
+                      border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
+                      boxShadow: Premium.shadowSm,
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -427,16 +430,16 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColors.gold),
+                                strokeWidth: 2, color: AppColors.emerald600),
                           )
                         else
                           const Icon(Icons.lightbulb_outline,
-                              color: AppColors.gold, size: 16),
+                              color: AppColors.emerald600, size: 16),
                         const SizedBox(width: 6),
                         Text(
                           'Need a topic?',
                           style: TextStyle(
-                            color: AppColors.gold.withValues(alpha: 0.9),
+                            color: AppColors.emerald600.withValues(alpha: 0.9),
                             fontSize: 13,
                           ),
                         ),

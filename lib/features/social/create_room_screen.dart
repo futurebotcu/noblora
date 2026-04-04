@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/room_provider.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 const _topicOptions = [
   'Tech', 'Design', 'Startup', 'Music', 'Film',
@@ -169,13 +170,13 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: selected
-                          ? _violet.withValues(alpha: 0.12)
+                          ? _accent.withValues(alpha: 0.12)
                           : context.elevatedColor,
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusCircle),
                       border: Border.all(
                         color: selected
-                            ? _violet.withValues(alpha: 0.4)
+                            ? _accent.withValues(alpha: 0.4)
                             : context.borderSubtleColor,
                         width: 0.5,
                       ),
@@ -183,7 +184,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                     child: Text(
                       tag,
                       style: TextStyle(
-                        color: selected ? _violet : context.textMuted,
+                        color: selected ? _accent : context.textMuted,
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                       ),
@@ -205,7 +206,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                 Text(
                   '$_maxParticipants',
                   style: const TextStyle(
-                    color: _violet,
+                    color: _accent,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -214,10 +215,10 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             ),
             SliderTheme(
               data: SliderThemeData(
-                activeTrackColor: _violet,
+                activeTrackColor: _accent,
                 inactiveTrackColor: context.borderColor,
-                thumbColor: _violet,
-                overlayColor: _violet.withValues(alpha: 0.1),
+                thumbColor: _accent,
+                overlayColor: _accent.withValues(alpha: 0.1),
               ),
               child: Slider(
                 value: _maxParticipants.toDouble(),
@@ -262,12 +263,16 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             ],
 
             // Submit
-            SizedBox(
+            Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                boxShadow: _submitting ? null : Premium.emeraldGlow(intensity: 0.6),
+              ),
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _violet,
+                  backgroundColor: _accent,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 
 /// Common shell for every edit section screen.
 class EditSectionShell extends StatelessWidget {
@@ -51,10 +52,14 @@ class EditSectionShell extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, AppSpacing.xxxl),
             decoration: BoxDecoration(
               color: context.surfaceColor,
-              border: Border(top: BorderSide(color: context.borderColor, width: 0.5)),
+              border: Border(top: BorderSide(color: context.borderColor.withValues(alpha: 0.3), width: 0.5)),
             ),
-            child: SizedBox(
+            child: Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                boxShadow: saving ? null : Premium.emeraldGlow(intensity: 0.5),
+              ),
               child: ElevatedButton(
                 onPressed: saving ? null : onSave,
                 style: ElevatedButton.styleFrom(

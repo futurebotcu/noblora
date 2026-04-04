@@ -129,7 +129,8 @@ class EventRepository {
         .from('event_messages')
         .select('*, profiles(display_name, date_avatar_url)')
         .eq('event_id', eventId)
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true)
+        .limit(200);
 
     return rows.map((r) => EventMessage.fromJson(r, hostId: hostId)).toList();
   }

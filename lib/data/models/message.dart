@@ -7,6 +7,8 @@ class ChatMessage {
   final String mode; // 'date' | 'bff' | 'social'
   final bool isSystem;
   final DateTime createdAt;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
 
   const ChatMessage({
     required this.id,
@@ -17,7 +19,12 @@ class ChatMessage {
     required this.mode,
     this.isSystem = false,
     required this.createdAt,
+    this.deliveredAt,
+    this.readAt,
   });
+
+  bool get isDelivered => deliveredAt != null;
+  bool get isRead => readAt != null;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
@@ -29,6 +36,12 @@ class ChatMessage {
       mode: json['mode'] as String? ?? 'date',
       isSystem: json['is_system'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      deliveredAt: json['delivered_at'] != null
+          ? DateTime.tryParse(json['delivered_at'] as String)
+          : null,
+      readAt: json['read_at'] != null
+          ? DateTime.tryParse(json['read_at'] as String)
+          : null,
     );
   }
 

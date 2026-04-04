@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../shared/widgets/app_button.dart';
 import 'sign_in_screen.dart';
 import 'sign_up_screen.dart';
@@ -26,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
                   fontSize: 52,
                   fontWeight: FontWeight.w700,
                   color: AppColors.emerald500,
-                  letterSpacing: 2,
+                  letterSpacing: 4,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -39,10 +40,16 @@ class WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 3),
-              AppButton(
-                label: 'Sign In',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SignInScreen()),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  boxShadow: Premium.emeraldGlow(intensity: 0.7),
+                ),
+                child: AppButton(
+                  label: 'Sign In',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

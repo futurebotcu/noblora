@@ -76,7 +76,7 @@ void showGatingPopup(BuildContext context, String title, String message, {GatePo
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: const Color(0xFF111113),
+    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -85,27 +85,27 @@ void showGatingPopup(BuildContext context, String title, String message, {GatePo
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 36, height: 3, decoration: BoxDecoration(
-              color: const Color(0xFF222225), borderRadius: BorderRadius.circular(999))),
+          Container(width: 36, height: 4, decoration: BoxDecoration(
+              color: AppColors.border, borderRadius: BorderRadius.circular(999))),
           const SizedBox(height: 32),
           Container(
             width: 64, height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.gold.withValues(alpha: 0.06),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+              color: AppColors.emerald600.withValues(alpha: 0.08),
+              border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
             ),
-            child: Icon(icon, color: AppColors.gold, size: 28),
+            child: Icon(icon, color: AppColors.emerald600, size: 28),
           ),
           const SizedBox(height: 20),
-          Text(title, style: const TextStyle(color: Color(0xFFF2F2F2), fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+          Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.gold, fontSize: 14, height: 1.5)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 14, height: 1.5)),
           const SizedBox(height: 28),
           SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF080808),
-                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.emerald600, foregroundColor: AppColors.textOnEmerald,
+                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

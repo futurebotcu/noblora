@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/posts_provider.dart';
@@ -35,6 +37,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
   late Animation<Offset> _animation;
   Offset _offset = Offset.zero;
   bool _isDragging = false;
+  bool _hasTriggeredHaptic = false;
 
   @override
   void initState() {
@@ -53,21 +56,37 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (!widget.isTop) return;
+    final screenW = MediaQuery.of(context).size.width;
+    final threshold = screenW * 0.3;
+    final wasOverThreshold = _offset.dx.abs() > threshold;
+
     setState(() {
       _offset += details.delta;
       _isDragging = true;
     });
+
+    // Haptic tick when crossing the swipe threshold
+    final isOverThreshold = _offset.dx.abs() > threshold;
+    if (isOverThreshold && !wasOverThreshold && !_hasTriggeredHaptic) {
+      HapticFeedback.mediumImpact();
+      _hasTriggeredHaptic = true;
+    } else if (!isOverThreshold) {
+      _hasTriggeredHaptic = false;
+    }
   }
 
   void _onPanEnd(DragEndDetails details) {
     if (!widget.isTop) return;
     final screenW = MediaQuery.of(context).size.width;
     final threshold = screenW * 0.3;
+    _hasTriggeredHaptic = false;
 
     if (_offset.dx > threshold) {
+      HapticFeedback.lightImpact();
       _flyOff(Offset(screenW * 2.5, _offset.dy));
       widget.onSwipeRight();
     } else if (_offset.dx < -threshold) {
+      HapticFeedback.lightImpact();
       _flyOff(Offset(-screenW * 2.5, _offset.dy));
       widget.onSwipeLeft();
     } else {
@@ -101,6 +120,13 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
     return (_offset.dx / (screenW * 0.4)).clamp(-1.0, 1.0);
   }
 
+  /// Subtle scale-down while dragging (max 3% shrink at full swipe)
+  double get _dragScale {
+    if (!_isDragging) return 1.0;
+    final progress = _swipeProgress.abs();
+    return 1.0 - (progress * 0.03);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -110,51 +136,54 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
         offset: _offset,
         child: Transform.rotate(
           angle: widget.isTop ? _rotationAngle : 0,
-          child: Stack(
-            children: [
-              _CardBody(card: widget.card, mode: widget.mode),
-              if (widget.isTop && _isDragging) ...[
-                // SELECT overlay
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: _swipeProgress.clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.selectOverlay,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Align(
-                        alignment: const Alignment(0.85, -0.8),
-                        child: _SwipeLabel(
-                          text: widget.mode == NobleMode.date
-                              ? 'LIKE'
-                              : widget.mode == NobleMode.bff
-                                  ? 'CONNECT'
-                                  : 'JOIN',
-                          color: AppColors.success,
+          child: Transform.scale(
+            scale: widget.isTop ? _dragScale : 1.0,
+            child: Stack(
+              children: [
+                _CardBody(card: widget.card, mode: widget.mode),
+                if (widget.isTop && _isDragging) ...[
+                  // SELECT overlay
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: _swipeProgress.clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.selectOverlay,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Align(
+                          alignment: const Alignment(0.85, -0.8),
+                          child: _SwipeLabel(
+                            text: widget.mode == NobleMode.date
+                                ? 'LIKE'
+                                : widget.mode == NobleMode.bff
+                                    ? 'CONNECT'
+                                    : 'JOIN',
+                            color: AppColors.success,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                // PASS overlay
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: (-_swipeProgress).clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.passOverlay,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Align(
-                        alignment: Alignment(-0.85, -0.8),
-                        child: _SwipeLabel(text: 'PASS', color: Colors.red),
+                  // PASS overlay
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: (-_swipeProgress).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.passOverlay,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Align(
+                          alignment: Alignment(-0.85, -0.8),
+                          child: _SwipeLabel(text: 'PASS', color: AppColors.textMuted),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -184,14 +213,11 @@ class _CardBody extends StatelessWidget {
       height: cardH,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.borderSubtleColor, width: 0.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        border: Border.all(
+          color: AppColors.emerald600.withValues(alpha: 0.06),
+          width: 0.5,
+        ),
+        boxShadow: Premium.shadowLg,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -203,73 +229,98 @@ class _CardBody extends StatelessWidget {
               imageUrl: card.photoUrl,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
-                color: context.surfaceColor,
-                child: Center(child: CircularProgressIndicator(color: mode.accentColor, strokeWidth: 1.5)),
+                decoration: BoxDecoration(gradient: Premium.cardGradient),
+                child: Center(
+                  child: SizedBox(
+                    width: 32, height: 32,
+                    child: CircularProgressIndicator(
+                      color: mode.accentColor.withValues(alpha: 0.4),
+                      strokeWidth: 1.5,
+                    ),
+                  ),
+                ),
               ),
               errorWidget: (_, __, ___) => Container(
-                color: context.surfaceColor,
+                decoration: BoxDecoration(gradient: Premium.cardGradient),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.person_rounded, color: context.textDisabled, size: 48),
-                  const SizedBox(height: 8),
+                  Container(
+                    width: 64, height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.emerald600.withValues(alpha: 0.06),
+                    ),
+                    child: Icon(Icons.person_rounded, color: context.textDisabled, size: 32),
+                  ),
+                  const SizedBox(height: 12),
                   Text('No photo', style: TextStyle(color: context.textDisabled, fontSize: 12)),
                 ]),
               ),
             ),
-            // Bottom gradient overlay — cinematic bg-tinted fade
+            // Cinematic gradient overlay — rich 4-stop fade
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: Premium.photoOverlay),
+              ),
+            ),
+            // Subtle top vignette for depth
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.4, 1.0],
-                    colors: const [
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 1.2,
+                    colors: [
                       Colors.transparent,
-                      Color(0x400B0D0C),
-                      Color(0xCC0B0D0C),
+                      Colors.black.withValues(alpha: 0.15),
                     ],
+                    stops: const [0.6, 1.0],
                   ),
                 ),
               ),
             ),
-            // Verified badge (respects showStatusBadge setting)
+            // Verified badge — premium glass pill
             if (card.isVerified && card.showStatusBadge)
               Positioned(
                 top: AppSpacing.lg,
                 right: AppSpacing.lg,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
+                    horizontal: 10,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: mode.accentColor,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusCircle),
+                    color: Colors.black.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                    border: Border.all(
+                      color: mode.accentColor.withValues(alpha: 0.5),
+                      width: 0.5,
+                    ),
+                    boxShadow: Premium.shadowSm,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.verified_rounded,
-                          color: context.bgColor, size: 12),
-                      const SizedBox(width: 3),
+                          color: mode.accentColor, size: 13),
+                      const SizedBox(width: 4),
                       Text(
                         'Verified',
                         style: TextStyle(
-                          color: context.bgColor,
+                          color: Colors.white.withValues(alpha: 0.95),
                           fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            // Info overlay
+            // Info overlay — bottom aligned
             Positioned(
               left: 20,
               right: 20,
-              bottom: 24,
+              bottom: 20,
               child: _CardInfo(card: card, mode: mode),
             ),
           ],
@@ -293,35 +344,39 @@ class _CardInfo extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Name + age
+        // Name + age — hero text
         Text(
           '${card.name}, ${card.age}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            height: 1.1,
-          ),
+          style: Premium.cardName,
         ),
-        const SizedBox(height: AppSpacing.xs),
-        // Location
+        const SizedBox(height: 6),
+        // Location + profession — refined secondary line
         Row(
           children: [
-            const Icon(Icons.location_on_rounded, color: AppColors.gold, size: 14),
-            const SizedBox(width: AppSpacing.xxs),
+            Icon(Icons.location_on_rounded,
+                color: AppColors.emerald500.withValues(alpha: 0.9), size: 13),
+            const SizedBox(width: 3),
             Text(
               card.city,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             if (card.profession != null) ...[
-              const SizedBox(width: AppSpacing.sm),
-              const Text('·', style: TextStyle(color: Colors.white54)),
-              const SizedBox(width: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text('·', style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35), fontSize: 13)),
+              ),
               Flexible(
                 child: Text(
                   card.profession!,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontSize: 13,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -329,33 +384,41 @@ class _CardInfo extends ConsumerWidget {
           ],
         ),
         if (card.bio != null) ...[
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 8),
           Text(
             card.bio!,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 13,
+              height: 1.4,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],
         if (card.interests.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 10),
           SizedBox(
-            height: 28,
+            height: 30,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: card.interests.length > 5 ? 5 : card.interests.length,
               separatorBuilder: (_, __) => const SizedBox(width: 6),
               itemBuilder: (_, i) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 0.5,
+                  ),
                 ),
                 child: Center(
                   child: Text(
                     card.interests[i],
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
@@ -389,7 +452,7 @@ class _CardInfo extends ConsumerWidget {
                           bottomRight: Radius.circular(6),
                         ),
                         border: Border(
-                          left: BorderSide(color: AppColors.gold, width: 2),
+                          left: BorderSide(color: AppColors.emerald600, width: 2),
                         ),
                       ),
                       child: Text(
@@ -436,11 +499,11 @@ void _showNobDetail(BuildContext context, Post nob) {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withValues(alpha: 0.1),
+                  color: AppColors.emerald600.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(nob.isThought ? 'Thought' : 'Moment',
-                    style: TextStyle(color: AppColors.gold, fontSize: 10, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: AppColors.emerald600, fontSize: 10, fontWeight: FontWeight.w600)),
               ),
               const Spacer(),
               Text(nob.authorName ?? '',
@@ -475,20 +538,28 @@ class _SwipeLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
+        horizontal: 14,
+        vertical: 6,
       ),
       decoration: BoxDecoration(
-        border: Border.all(color: color, width: 3),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color, width: 2.5),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 16,
+            spreadRadius: -2,
+          ),
+        ],
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w800,
-          letterSpacing: 2,
+          letterSpacing: 3,
         ),
       ),
     );
@@ -517,16 +588,16 @@ class _BffCardBody extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.bgColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(
+          color: _mode.accentColor.withValues(alpha: 0.08),
+          width: 0.5,
+        ),
         boxShadow: [
+          ...Premium.shadowLg,
           BoxShadow(
-            color: _mode.accentColor.withValues(alpha: 0.08),
-            blurRadius: 24,
+            color: _mode.accentColor.withValues(alpha: 0.06),
+            blurRadius: 32,
             offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -626,7 +697,7 @@ class _NetworkingPanel extends StatelessWidget {
 
   const _NetworkingPanel({required this.card});
 
-  static const _teal = Color(0xFF1BA3B0);
+  static const _accent = AppColors.emerald500;
 
   @override
   Widget build(BuildContext context) {
@@ -636,12 +707,12 @@ class _NetworkingPanel extends StatelessWidget {
         // Section label
         Row(
           children: [
-            const Icon(Icons.business_center_rounded, color: _teal, size: 10),
+            const Icon(Icons.business_center_rounded, color: _accent, size: 10),
             const SizedBox(width: 4),
             Text(
               'NETWORKING PROFILE',
               style: TextStyle(
-                color: _teal,
+                color: _accent,
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2.5,
@@ -667,7 +738,7 @@ class _NetworkingPanel extends StatelessWidget {
           runSpacing: AppSpacing.xs,
           children: [
             if (card.industry != null)
-              _ProfessionalPill(label: card.industry!, color: _teal),
+              _ProfessionalPill(label: card.industry!, color: _accent),
             _ProfessionalPill(
               label: card.city,
               color: context.textMuted,
@@ -681,7 +752,7 @@ class _NetworkingPanel extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.star_outline_rounded,
-                  color: _teal.withValues(alpha: 0.7), size: 12),
+                  color: _accent.withValues(alpha: 0.7), size: 12),
               const SizedBox(width: AppSpacing.xs),
               Flexible(
                 child: Text(
@@ -704,20 +775,20 @@ class _NetworkingPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: _teal.withValues(alpha: 0.08),
+              color: _accent.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               border:
-                  Border.all(color: _teal.withValues(alpha: 0.22), width: 1),
+                  Border.all(color: _accent.withValues(alpha: 0.22), width: 1),
             ),
             child: Row(
               children: [
-                const Icon(Icons.handshake_outlined, color: _teal, size: 14),
+                const Icon(Icons.handshake_outlined, color: _accent, size: 14),
                 const SizedBox(width: AppSpacing.xs),
                 Flexible(
                   child: Text(
                     card.connectionGoal!,
                     style: const TextStyle(
-                      color: _teal,
+                      color: _accent,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),

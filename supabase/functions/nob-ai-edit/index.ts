@@ -20,7 +20,11 @@ const BASE_PROMPT =
 
 function validateApiKey(req: Request): boolean {
   const key = req.headers.get("apikey") ?? "";
-  return key.length > 20;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  if (!key || (anonKey && key !== anonKey) || key.length < 20) {
+    return false;
+  }
+  return true;
 }
 
 const PROMPTS: Record<string, string> = {

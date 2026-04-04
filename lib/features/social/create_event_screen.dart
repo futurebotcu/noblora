@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/event_provider.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
@@ -142,7 +143,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                           initialDate: _eventDate,
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 30)),
-                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _violet, surface: AppColors.surface)), child: child!),
+                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _accent, surface: AppColors.surface)), child: child!),
                         );
                         if (d != null) setState(() => _eventDate = d);
                       },
@@ -156,7 +157,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                         final t = await showTimePicker(
                           context: context,
                           initialTime: _eventTime,
-                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _violet, surface: AppColors.surface)), child: child!),
+                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _accent, surface: AppColors.surface)), child: child!),
                         );
                         if (t != null) setState(() => _eventTime = t);
                       },
@@ -183,7 +184,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 min: 2,
                 max: 50,
                 divisions: 48,
-                activeColor: _violet,
+                activeColor: _accent,
                 onChanged: (v) => setState(() => _maxAttendees = v.round()),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -192,23 +193,27 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               SwitchListTile(
                 title: const Text('Allow companions (+1/+2)', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
                 value: _companionEnabled,
-                activeTrackColor: _violet.withValues(alpha: 0.5),
+                activeTrackColor: _accent.withValues(alpha: 0.5),
                 onChanged: (v) => setState(() => _companionEnabled = v),
               ),
               SwitchListTile(
                 title: const Text('Enable +3 mode (Triple Match)', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
                 value: _plus3Enabled,
-                activeTrackColor: _violet.withValues(alpha: 0.5),
+                activeTrackColor: _accent.withValues(alpha: 0.5),
                 onChanged: (v) => setState(() => _plus3Enabled = v),
               ),
               const SizedBox(height: AppSpacing.xxxl),
 
               // Submit
-              SizedBox(
+              Container(
                 width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  boxShadow: _submitting ? null : Premium.emeraldGlow(intensity: 0.6),
+                ),
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _violet,
+                    backgroundColor: _accent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
@@ -238,14 +243,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         fillColor: AppColors.surface,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.border)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: _violet)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: _accent)),
       );
 
   Widget _picker(IconData icon, String text) => Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppSpacing.radiusSm), border: Border.all(color: AppColors.border)),
         child: Row(children: [
-          Icon(icon, color: _violet, size: 18),
+          Icon(icon, color: _accent, size: 18),
           const SizedBox(width: AppSpacing.sm),
           Text(text, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
         ]),

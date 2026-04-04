@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/inbox_item.dart';
@@ -14,6 +17,7 @@ import '../../providers/check_in_provider.dart';
 import '../../providers/match_provider.dart';
 import '../match/check_in_screen.dart';
 import '../../core/services/toast_service.dart';
+import '../../navigation/main_tab_navigator.dart';
 import 'individual_chat_screen.dart';
 
 /// Reads message_preview setting for current user
@@ -29,7 +33,7 @@ final _messagePreviewProvider = FutureProvider<bool>((ref) async {
 });
 
 // ---------------------------------------------------------------------------
-// Grand Inbox — 3-tab unified messaging hub
+// Helpers
 // ---------------------------------------------------------------------------
 
 InboxItem _matchToInboxItem(NobleMatch match) {
@@ -41,34 +45,31 @@ InboxItem _matchToInboxItem(NobleMatch match) {
     id: match.id,
     name: match.otherUserName ?? 'Unknown',
     avatarSeed: match.otherUserId ?? match.id,
+    photoUrl: match.otherUserPhotoUrl,
     lastMessage: _statusLabel(match),
     ago: DateTime.now().difference(match.matchedAt),
     mode: mode,
     type: ConversationType.alliance,
-    isUnread: match.status == 'pending_intro' || match.status == 'pending_video',
+    isUnread: match.status == 'pending_intro' ||
+        match.status == 'pending_video' ||
+        match.status == 'video_completed',
   );
 }
 
-String _statusLabel(NobleMatch match) {
-  switch (match.status) {
-    case 'pending_intro':
-      return 'Send a mini intro';
-    case 'pending_video':
-      return 'Schedule Short Intro';
-    case 'video_scheduled':
-      return 'Short Intro scheduled';
-    case 'video_completed':
-      return 'Awaiting decision';
-    case 'chatting':
-      return 'Chat is open';
-    case 'expired':
-      return 'Expired';
-    case 'closed':
-      return 'Closed';
-    default:
-      return match.status;
-  }
-}
+String _statusLabel(NobleMatch match) => switch (match.status) {
+  'pending_intro' => 'Say hello — send a mini intro',
+  'pending_video' => 'Ready for a Short Intro?',
+  'video_scheduled' => 'Short Intro is on the calendar',
+  'video_completed' => 'How did it go?',
+  'chatting' => 'Conversation is open',
+  'expired' => 'This one slipped away',
+  'closed' => 'Connection ended',
+  _ => match.status,
+};
+
+// ---------------------------------------------------------------------------
+// Grand Inbox
+// ---------------------------------------------------------------------------
 
 class MatchesScreen extends ConsumerStatefulWidget {
   const MatchesScreen({super.key});
@@ -77,13 +78,23 @@ class MatchesScreen extends ConsumerStatefulWidget {
   ConsumerState<MatchesScreen> createState() => _MatchesScreenState();
 }
 
-class _MatchesScreenState extends ConsumerState<MatchesScreen> {
+class _MatchesScreenState extends ConsumerState<MatchesScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
+
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(matchProvider.notifier).load();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -102,131 +113,174 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen> {
         .map(_matchToInboxItem)
         .toList();
 
-    const requests = <InboxItem>[];
+    final totalUnread =
+        [...alliances, ...circles].where((i) => i.isUnread).length;
 
-    final totalUnread = [
-      ...alliances,
-      ...circles,
-    ].where((i) => i.isUnread).length;
-
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: context.bgColor,
-        appBar: AppBar(
-          backgroundColor: context.bgColor,
-          titleSpacing: AppSpacing.lg,
-          title: Row(
-            children: [
-              Text(
-                'Inbox',
-                style: TextStyle(
-                    color: context.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              if (totalUnread > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.15),
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusCircle),
-                    border: Border.all(
-                        color: AppColors.gold.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    '$totalUnread new',
-                    style: const TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+    return Scaffold(
+      backgroundColor: context.bgColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Inbox',
+                    style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                ),
-            ],
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(44),
-            child: Container(
-              color: context.surfaceColor,
+                  if (totalUnread > 0) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald600.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.emerald600.withValues(alpha: 0.15),
+                          width: 0.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.emerald600.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '$totalUnread new',
+                        style: const TextStyle(
+                          color: AppColors.emerald500,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  // Refresh
+                  PressEffect(
+                    onTap: () => ref.read(matchProvider.notifier).load(),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: context.surfaceColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.borderSubtleColor,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.refresh_rounded,
+                        color: context.textDisabled,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Tabs ──
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(3),
               child: TabBar(
-                indicatorColor: AppColors.gold,
-                indicatorWeight: 2,
+                controller: _tabCtrl,
+                indicator: BoxDecoration(
+                  color: context.elevatedColor,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: context.borderSubtleColor,
+                    width: 0.5,
+                  ),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
                 labelColor: context.textPrimary,
                 unselectedLabelColor: context.textMuted,
                 labelStyle: const TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w600),
                 unselectedLabelStyle:
                     const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+                splashBorderRadius: BorderRadius.circular(10),
                 tabs: [
                   Tab(
-                    child: _TabLabel(
+                    height: 36,
+                    child: _TabChip(
                       label: 'Alliances',
                       count: alliances.length,
-                      color: AppColors.gold,
                     ),
                   ),
                   Tab(
-                    child: _TabLabel(
+                    height: 36,
+                    child: _TabChip(
                       label: 'Circles',
                       count: circles.length,
-                      color: NobleMode.social.accentColor,
                     ),
                   ),
-                  Tab(
-                    child: _TabLabel(
-                      label: 'Requests',
-                      count: requests.length,
-                      color: AppColors.error,
-                    ),
-                  ),
+                  const Tab(height: 36, child: Text('Requests')),
                 ],
               ),
             ),
-          ),
+
+            const SizedBox(height: 4),
+
+            // ── Body ──
+            Expanded(
+              child: matchState.isLoading && allMatches.isEmpty
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.emerald600),
+                    )
+                  : TabBarView(
+                      controller: _tabCtrl,
+                      children: [
+                        _AlliancesTab(
+                          items: alliances,
+                          matchesByItemId: {
+                            for (final m in allMatches.where((m) =>
+                                (m.mode == 'date' || m.mode == 'bff') &&
+                                m.status != 'expired'))
+                              m.id: m,
+                          },
+                        ),
+                        _CirclesTab(circles: circles),
+                        const _RequestsTab(),
+                      ],
+                    ),
+            ),
+          ],
         ),
-        body: matchState.isLoading && allMatches.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
-              )
-            : TabBarView(
-                children: [
-                  _AlliancesTab(
-                    items: alliances,
-                    matchesByItemId: {
-                      for (final m in allMatches
-                          .where((m) =>
-                              (m.mode == 'date' || m.mode == 'bff') &&
-                              m.status != 'expired'))
-                        m.id: m,
-                    },
-                  ),
-                  _CirclesTab(circles: circles),
-                  _RequestsTab(requests: requests),
-                ],
-              ),
       ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Tab label with count badge
+// Tab chip (label + count)
 // ---------------------------------------------------------------------------
 
-class _TabLabel extends StatelessWidget {
+class _TabChip extends StatelessWidget {
   final String label;
   final int count;
-  final Color color;
 
-  const _TabLabel({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
+  const _TabChip({required this.label, required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -234,27 +288,31 @@ class _TabLabel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(label),
-        const SizedBox(width: 5),
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.20),
-            borderRadius: BorderRadius.circular(99),
+        if (count > 0) ...[
+          const SizedBox(width: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppColors.emerald600.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: AppColors.emerald500,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          child: Text(
-            '$count',
-            style: TextStyle(
-                color: color, fontSize: 9, fontWeight: FontWeight.w700),
-          ),
-        ),
+        ],
       ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Alliances tab — Date & BFF 1-on-1 conversations
+// Alliances tab
 // ---------------------------------------------------------------------------
 
 class _AlliancesTab extends ConsumerStatefulWidget {
@@ -267,7 +325,7 @@ class _AlliancesTab extends ConsumerStatefulWidget {
 }
 
 class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
-  NobleMode? _filter; // null = All
+  NobleMode? _filter;
 
   List<InboxItem> get _filtered {
     if (_filter == null) return widget.items;
@@ -317,28 +375,39 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
                 onTap: () {
                   final meetingId = pending.first['id'] as String?;
                   if (meetingId != null) {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => CheckInScreen(meetingId: meetingId, otherUserName: 'your match'),
-                    ));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CheckInScreen(
+                            meetingId: meetingId,
+                            otherUserName: 'your match'),
+                      ),
+                    );
                   }
                 },
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  margin: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                  margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                   decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                    color: AppColors.emerald600.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppColors.emerald600.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.rate_review_rounded, color: AppColors.gold, size: 20),
-                      const SizedBox(width: AppSpacing.md),
+                      Icon(Icons.rate_review_rounded,
+                          color: AppColors.emerald500, size: 18),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text('You have a pending check-in. How did it go?',
-                            style: TextStyle(color: AppColors.gold, fontSize: 13)),
+                        child: Text(
+                          'You have a pending check-in',
+                          style: TextStyle(
+                              color: AppColors.emerald500, fontSize: 13),
+                        ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.gold, size: 18),
+                      Icon(Icons.chevron_right_rounded,
+                          color: AppColors.emerald500, size: 18),
                     ],
                   ),
                 ),
@@ -348,34 +417,58 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
           loading: () => <Widget>[],
           error: (_, __) => <Widget>[],
         ),
-        // Mode filter pills
-        _FilterRow(
-          selected: _filter,
-          onAll: () => setState(() => _filter = null),
-          onDate: () => setState(
-              () => _filter = _filter == NobleMode.date ? null : NobleMode.date),
-          onBff: () => setState(
-              () => _filter = _filter == NobleMode.bff ? null : NobleMode.bff),
+
+        // ── Filter chips ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+          child: Row(
+            children: [
+              _FilterChip(
+                label: 'All',
+                isActive: _filter == null,
+                onTap: () => setState(() => _filter = null),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'Date',
+                isActive: _filter == NobleMode.date,
+                dotColor: AppColors.emerald600,
+                onTap: () => setState(() =>
+                    _filter = _filter == NobleMode.date ? null : NobleMode.date),
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'BFF',
+                isActive: _filter == NobleMode.bff,
+                dotColor: AppColors.emerald500,
+                onTap: () => setState(() =>
+                    _filter = _filter == NobleMode.bff ? null : NobleMode.bff),
+              ),
+            ],
+          ),
         ),
-        Divider(height: 0, color: context.borderColor),
-        // Conversation list
+
+        // ── List ──
         Expanded(
           child: _filtered.isEmpty
               ? _EmptyInbox(
                   icon: Icons.favorite_outline_rounded,
-                  message:
-                      'No alliances yet.\nStart swiping to make connections.',
+                  title: 'Your world is quiet',
+                  subtitle: 'Meaningful connections will appear here',
                 )
-              : ListView.separated(
-                  itemCount: _filtered.length,
-                  separatorBuilder: (context, __) =>
-                      Divider(height: 0, color: context.borderColor),
+              : ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  itemCount: _filtered.length + 1, // +1 for footer
                   itemBuilder: (context, i) {
-                    final item = _filtered[i];
-                    return _InboxTile(
-                      item: item,
-                      onTap: () => _onTapItem(context, item),
-                    );
+                    if (i < _filtered.length) {
+                      final item = _filtered[i];
+                      return _InboxTile(
+                        item: item,
+                        onTap: () => _onTapItem(context, item),
+                      );
+                    }
+                    // Footer hint when list is short
+                    return _ListFooter(itemCount: _filtered.length);
                   },
                 ),
         ),
@@ -385,166 +478,62 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
 }
 
 // ---------------------------------------------------------------------------
-// Circles tab — Social group table conversations
+// Filter chip (premium pill)
 // ---------------------------------------------------------------------------
 
-class _CirclesTab extends StatelessWidget {
-  final List<InboxItem> circles;
-  const _CirclesTab({required this.circles});
-
-  @override
-  Widget build(BuildContext context) {
-    if (circles.isEmpty) {
-      return _EmptyInbox(
-        icon: Icons.explore_outlined,
-        message: 'No circles yet.\nJoin a table to start.',
-      );
-    }
-    return ListView.separated(
-      itemCount: circles.length,
-      separatorBuilder: (context, __) =>
-          Divider(height: 0, color: context.borderColor),
-      itemBuilder: (context, i) {
-        final circle = circles[i];
-        return _CircleTile(
-          circle: circle,
-          onTap: () {
-            // TODO: fetch real table from DB by circle.tableId
-            ToastService.show(context, message: 'Group chat — coming soon', type: ToastType.system);
-          },
-        );
-      },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Requests tab — pending connection requests
-// ---------------------------------------------------------------------------
-
-class _RequestsTab extends StatelessWidget {
-  final List<InboxItem> requests;
-  const _RequestsTab({required this.requests});
-
-  @override
-  Widget build(BuildContext context) {
-    if (requests.isEmpty) {
-      return _EmptyInbox(
-        icon: Icons.inbox_outlined,
-        message: "No pending requests.\nYou're all caught up!",
-      );
-    }
-    return ListView.separated(
-      itemCount: requests.length,
-      separatorBuilder: (context, __) =>
-          Divider(height: 0, color: context.borderColor),
-      itemBuilder: (context, i) => _RequestTile(item: requests[i]),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Mode filter row (Alliances tab)
-// ---------------------------------------------------------------------------
-
-class _FilterRow extends StatelessWidget {
-  final NobleMode? selected;
-  final VoidCallback onAll;
-  final VoidCallback onDate;
-  final VoidCallback onBff;
-
-  const _FilterRow({
-    required this.selected,
-    required this.onAll,
-    required this.onDate,
-    required this.onBff,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          _FilterPill(
-              label: 'All',
-              isActive: selected == null,
-              color: context.textPrimary,
-              onTap: onAll),
-          const SizedBox(width: AppSpacing.sm),
-          _FilterPill(
-              label: 'Date',
-              isActive: selected == NobleMode.date,
-              color: AppColors.gold,
-              dot: true,
-              onTap: onDate),
-          const SizedBox(width: AppSpacing.sm),
-          _FilterPill(
-              label: 'BFF',
-              isActive: selected == NobleMode.bff,
-              color: AppColors.teal,
-              dot: true,
-              onTap: onBff),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterPill extends StatelessWidget {
+class _FilterChip extends StatelessWidget {
   final String label;
   final bool isActive;
-  final Color color;
-  final bool dot;
+  final Color? dotColor;
   final VoidCallback onTap;
 
-  const _FilterPill({
+  const _FilterChip({
     required this.label,
     required this.isActive,
-    required this.color,
-    this.dot = false,
+    this.dotColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isActive
-              ? color.withValues(alpha: 0.18)
-              : context.surfaceAltColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+              ? AppColors.emerald600.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: isActive
-                  ? color.withValues(alpha: 0.55)
-                  : context.borderColor),
+            color: isActive
+                ? AppColors.emerald600.withValues(alpha: 0.35)
+                : context.borderSubtleColor,
+            width: 0.5,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (dot) ...[
+            if (dotColor != null) ...[
               Container(
                 width: 6,
                 height: 6,
                 decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle),
+                    BoxDecoration(color: dotColor, shape: BoxShape.circle),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 5),
             ],
             Text(
               label,
               style: TextStyle(
-                color: isActive ? color : context.textMuted,
-                fontSize: 12,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? AppColors.emerald500 : context.textMuted,
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
@@ -555,7 +544,7 @@ class _FilterPill extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Inbox conversation tile (alliances)
+// Inbox tile (alliance row)
 // ---------------------------------------------------------------------------
 
 class _InboxTile extends StatelessWidget {
@@ -570,34 +559,48 @@ class _InboxTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
-            // Avatar + mode dot
+            // ── Avatar ──
             Stack(
               clipBehavior: Clip.none,
               children: [
-                ClipOval(
-                  child: Image.network(
-                    'https://picsum.photos/seed/${item.avatarSeed}/80/80',
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => CircleAvatar(
-                      radius: 26,
-                      backgroundColor: accent.withValues(alpha: 0.2),
-                      child: Text(
-                        item.name[0],
-                        style: TextStyle(
-                            color: accent,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18),
-                      ),
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: item.isUnread
+                          ? accent.withValues(alpha: 0.6)
+                          : context.borderSubtleColor.withValues(alpha: 0.4),
+                      width: item.isUnread ? 2 : 0.5,
                     ),
+                    boxShadow: item.isUnread
+                        ? [BoxShadow(
+                            color: accent.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          )]
+                        : null,
+                  ),
+                  child: ClipOval(
+                    child: item.photoUrl != null && item.photoUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: item.photoUrl!,
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _AvatarFallback(
+                                initial: item.name[0], color: accent),
+                          )
+                        : _AvatarFallback(
+                            initial: item.name[0], color: accent),
                   ),
                 ),
+                // Mode dot
                 Positioned(
                   right: 0,
                   bottom: 0,
@@ -607,19 +610,21 @@ class _InboxTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: accent,
                       shape: BoxShape.circle,
-                      border:
-                          Border.all(color: context.bgColor, width: 2),
+                      border: Border.all(color: context.bgColor, width: 2.5),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: AppSpacing.md),
-            // Text content
+
+            const SizedBox(width: 14),
+
+            // ── Content ──
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Name + time row
                   Row(
                     children: [
                       Expanded(
@@ -628,38 +633,31 @@ class _InboxTile extends StatelessWidget {
                           style: TextStyle(
                             color: context.textPrimary,
                             fontSize: 15,
-                            fontWeight: item.isUnread
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                            fontWeight:
+                                item.isUnread ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                       ),
                       Text(
                         item.timeLabel,
                         style: TextStyle(
-                          color: item.isUnread
-                              ? accent
-                              : context.textMuted,
+                          color: item.isUnread ? accent : context.textDisabled,
                           fontSize: 11,
-                          fontWeight: item.isUnread
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                          fontWeight:
+                              item.isUnread ? FontWeight.w600 : FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
-                  if (item.profession != null)
-                    Text(
-                      item.profession!,
-                      style: TextStyle(
-                          color: context.textMuted, fontSize: 11),
-                    ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
+                  // Status + unread dot
                   Row(
                     children: [
                       Expanded(
                         child: Consumer(builder: (context, cRef, __) {
-                          final preview = cRef.watch(_messagePreviewProvider).valueOrNull ?? true;
+                          final preview =
+                              cRef.watch(_messagePreviewProvider).valueOrNull ??
+                                  true;
                           return Text(
                             preview ? item.lastMessage : 'New activity',
                             style: TextStyle(
@@ -667,19 +665,24 @@ class _InboxTile extends StatelessWidget {
                                   ? context.textSecondary
                                   : context.textMuted,
                               fontSize: 13,
+                              height: 1.3,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           );
                         }),
                       ),
-                      if (item.isUnread)
+                      if (item.isUnread) ...[
+                        const SizedBox(width: 8),
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: 9,
+                          height: 9,
                           decoration: BoxDecoration(
-                              color: accent, shape: BoxShape.circle),
+                            color: accent,
+                            shape: BoxShape.circle,
+                          ),
                         ),
+                      ],
                     ],
                   ),
                 ],
@@ -693,7 +696,70 @@ class _InboxTile extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Circle tile (group tables)
+// Avatar fallback
+// ---------------------------------------------------------------------------
+
+class _AvatarFallback extends StatelessWidget {
+  final String initial;
+  final Color color;
+  const _AvatarFallback({required this.initial, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      color: color.withValues(alpha: 0.15),
+      child: Center(
+        child: Text(
+          initial.toUpperCase(),
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Circles tab
+// ---------------------------------------------------------------------------
+
+class _CirclesTab extends StatelessWidget {
+  final List<InboxItem> circles;
+  const _CirclesTab({required this.circles});
+
+  @override
+  Widget build(BuildContext context) {
+    if (circles.isEmpty) {
+      return _EmptyInbox(
+        icon: Icons.forum_outlined,
+        title: 'No circles yet',
+        subtitle: 'Event and room chats will show up here',
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100),
+      itemCount: circles.length,
+      itemBuilder: (context, i) {
+        final circle = circles[i];
+        return _CircleTile(
+          circle: circle,
+          onTap: () {
+            ToastService.show(context,
+                message: 'Group chat — coming soon', type: ToastType.system);
+          },
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Circle tile
 // ---------------------------------------------------------------------------
 
 class _CircleTile extends StatelessWidget {
@@ -708,49 +774,24 @@ class _CircleTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
-            // Cover thumbnail + mode dot
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusSm),
-                  child: Image.network(
-                    'https://picsum.photos/seed/${circle.avatarSeed}/80/80',
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+            // Thumbnail
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: circle.photoUrl != null && circle.photoUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: circle.photoUrl!,
                       width: 52,
                       height: 52,
-                      color: context.surfaceAltColor,
-                      child:
-                          Icon(Icons.table_bar_rounded, color: accent),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: accent,
-                      shape: BoxShape.circle,
-                      border:
-                          Border.all(color: context.bgColor, width: 2),
-                    ),
-                  ),
-                ),
-              ],
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _CircleFallback(color: accent),
+                    )
+                  : _CircleFallback(color: accent),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -763,55 +804,28 @@ class _CircleTile extends StatelessWidget {
                           style: TextStyle(
                             color: context.textPrimary,
                             fontSize: 15,
-                            fontWeight: circle.isUnread
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                       Text(
                         circle.timeLabel,
                         style: TextStyle(
-                          color: circle.isUnread
-                              ? accent
-                              : context.textMuted,
+                          color: context.textDisabled,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  if (circle.participantCount != null &&
-                      circle.maxParticipants != null)
-                    Text(
-                      '${circle.participantCount}/${circle.maxParticipants} members',
-                      style: TextStyle(
-                          color: accent.withValues(alpha: 0.7),
-                          fontSize: 11),
+                  const SizedBox(height: 4),
+                  Text(
+                    circle.lastMessage,
+                    style: TextStyle(
+                      color: context.textMuted,
+                      fontSize: 13,
                     ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          circle.lastMessage,
-                          style: TextStyle(
-                            color: circle.isUnread
-                                ? context.textSecondary
-                                : context.textMuted,
-                            fontSize: 13,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (circle.isUnread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                              color: accent, shape: BoxShape.circle),
-                        ),
-                    ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -823,135 +837,113 @@ class _CircleTile extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Request tile (pending connections)
-// ---------------------------------------------------------------------------
-
-class _RequestTile extends StatelessWidget {
-  final InboxItem item;
-
-  const _RequestTile({required this.item});
+class _CircleFallback extends StatelessWidget {
+  final Color color;
+  const _CircleFallback({required this.color});
 
   @override
   Widget build(BuildContext context) {
-    final accent = item.mode.accentColor;
-
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-      child: Row(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(Icons.forum_rounded, color: color.withValues(alpha: 0.5), size: 22),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// List footer — fills empty space when few conversations exist
+// ---------------------------------------------------------------------------
+
+class _ListFooter extends StatelessWidget {
+  final int itemCount;
+  const _ListFooter({required this.itemCount});
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show when list is short (< 5 items)
+    if (itemCount >= 5) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+      child: Column(
         children: [
-          // Avatar + mode dot
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ClipOval(
-                child: Image.network(
-                  'https://picsum.photos/seed/${item.avatarSeed}/80/80',
-                  width: 52,
-                  height: 52,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => CircleAvatar(
-                    radius: 26,
-                    backgroundColor: accent.withValues(alpha: 0.2),
+          // Subtle divider
+          Container(
+            width: 40,
+            height: 1,
+            color: context.borderSubtleColor,
+          ),
+          const SizedBox(height: 24),
+          // Hint card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Premium.cardDecoration(radius: 16, withGlow: true),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.emerald600.withValues(alpha: 0.08),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome_outlined,
+                    color: AppColors.emerald600.withValues(alpha: 0.5),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'That\u2019s everyone for now',
+                        style: TextStyle(
+                          color: context.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'New people appear as you connect',
+                        style: TextStyle(
+                          color: context.textDisabled,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => MainTabNavigator.switchTab(0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: AppColors.emerald600.withValues(alpha: 0.25)),
+                    ),
                     child: Text(
-                      item.name[0],
+                      'Discover',
                       style: TextStyle(
-                          color: accent,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18),
+                        color: AppColors.emerald500,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: context.bgColor, width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: AppSpacing.md),
-          // Name + message
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: TextStyle(
-                      color: context.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600),
-                ),
-                if (item.profession != null)
-                  Text(
-                    item.profession!,
-                    style: TextStyle(
-                        color: context.textMuted, fontSize: 11),
-                  ),
-                const SizedBox(height: 2),
-                Text(
-                  item.lastMessage,
-                  style: TextStyle(
-                      color: accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500),
-                ),
               ],
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // Accept / Decline
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () => ToastService.show(context, message: '${item.name} accepted!', type: ToastType.match),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusCircle),
-                  ),
-                  child: Text(
-                    'Accept',
-                    style: TextStyle(
-                        color: context.bgColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: context.borderColor),
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusCircle),
-                  ),
-                  child: Text(
-                    'Decline',
-                    style: TextStyle(
-                        color: context.textMuted, fontSize: 11),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -960,30 +952,122 @@ class _RequestTile extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Empty state
+// Requests tab
+// ---------------------------------------------------------------------------
+
+class _RequestsTab extends StatelessWidget {
+  const _RequestsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return _EmptyInbox(
+      icon: Icons.mail_outline_rounded,
+      title: 'Nothing pending',
+      subtitle: 'Incoming requests will land here',
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Empty state (shared)
 // ---------------------------------------------------------------------------
 
 class _EmptyInbox extends StatelessWidget {
   final IconData icon;
-  final String message;
+  final String title;
+  final String subtitle;
 
-  const _EmptyInbox({required this.icon, required this.message});
+  const _EmptyInbox({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: context.textDisabled, size: 48),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            message,
-            style: TextStyle(
-                color: context.textMuted, fontSize: 14),
-            textAlign: TextAlign.center,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+          decoration: Premium.emptyStateDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.emerald600.withValues(alpha: 0.10),
+                      AppColors.emerald600.withValues(alpha: 0.04),
+                    ],
+                  ),
+                  border: Border.all(
+                      color: AppColors.emerald600.withValues(alpha: 0.12),
+                      width: 0.5),
+                ),
+                child: Icon(icon,
+                    color: AppColors.emerald600.withValues(alpha: 0.45), size: 24),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: context.textMuted,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              PressEffect(
+                onTap: () => MainTabNavigator.switchTab(0),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald600.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.emerald600.withValues(alpha: 0.20),
+                        width: 0.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.explore_outlined,
+                          color: AppColors.emerald500, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Explore',
+                        style: TextStyle(
+                          color: AppColors.emerald500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

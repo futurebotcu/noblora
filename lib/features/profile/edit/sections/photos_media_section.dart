@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 import '../../../../core/utils/mock_mode.dart';
 import '../../../../providers/auth_provider.dart';
 import '../edit_profile_provider.dart';
@@ -45,8 +47,18 @@ class PhotosMediaSection extends ConsumerWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      child: Image.network(draft.photoUrls[i], fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: context.surfaceColor, child: Icon(Icons.broken_image, color: context.textDisabled))),
+                      child: CachedNetworkImage(
+                        imageUrl: draft.photoUrls[i],
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(
+                          color: context.surfaceColor,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: context.surfaceColor,
+                          child: Icon(Icons.broken_image, color: context.textDisabled),
+                        ),
+                      ),
                     ),
                     if (i == 0)
                       Positioned(bottom: 4, left: 4, child: Container(
@@ -69,7 +81,8 @@ class PhotosMediaSection extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: context.surfaceColor,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: context.borderColor),
+                  border: Border.all(color: context.borderColor.withValues(alpha: 0.4), width: 0.5),
+                  boxShadow: Premium.shadowSm,
                 ),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.add_photo_alternate_outlined, color: context.textMuted, size: 28),

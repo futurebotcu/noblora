@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/bff_plan.dart';
 import '../../providers/bff_provider.dart';
 
-const _teal = AppColors.teal;
+const _accent = AppColors.emerald500;
 
 class BffPlanScreen extends ConsumerStatefulWidget {
   final String conversationId;
@@ -64,7 +65,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
             const SizedBox(height: AppSpacing.xxl),
             ...[
-              ('Great', Icons.sentiment_very_satisfied_rounded, _teal),
+              ('Great', Icons.sentiment_very_satisfied_rounded, _accent),
               ('It was okay', Icons.sentiment_neutral_rounded, AppColors.textMuted),
               ("I'd rather not say", Icons.sentiment_dissatisfied_rounded, AppColors.textMuted),
               ('Report an issue', Icons.flag_rounded, AppColors.error),
@@ -86,7 +87,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                     setState(() => _pendingCheckins.removeWhere((p) => p.id == plan.id));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _teal),
+                        const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _accent),
                       );
                     }
                   },
@@ -115,7 +116,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
       builder: (c, child) => Theme(
         data: ThemeData.light().copyWith(
           colorScheme: const ColorScheme.light(
-            primary: _teal,
+            primary: _accent,
             surface: AppColors.surface,
           ),
         ),
@@ -132,7 +133,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
       builder: (c, child) => Theme(
         data: ThemeData.light().copyWith(
           colorScheme: const ColorScheme.light(
-            primary: _teal,
+            primary: _accent,
             surface: AppColors.surface,
           ),
         ),
@@ -167,7 +168,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Plan sent!'),
-        backgroundColor: _teal,
+        backgroundColor: _accent,
       ),
     );
   }
@@ -194,13 +195,14 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                   margin: const EdgeInsets.only(bottom: AppSpacing.md),
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: _teal.withValues(alpha: 0.08),
+                    color: _accent.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: _teal.withValues(alpha: 0.3)),
+                    border: Border.all(color: _accent.withValues(alpha: 0.20), width: 0.5),
+                    boxShadow: Premium.shadowMd,
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.rate_review_rounded, color: _teal, size: 22),
+                      Icon(Icons.rate_review_rounded, color: _accent, size: 22),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
@@ -212,7 +214,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: _teal, size: 18),
+                      const Icon(Icons.chevron_right_rounded, color: _accent, size: 18),
                     ],
                   ),
                 ),
@@ -228,7 +230,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    border: Border.all(color: _teal.withValues(alpha: 0.2)),
+                    border: Border.all(color: _accent.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -242,18 +244,18 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                             if (p.location != null)
                               Text(p.location!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                             Text(DateFormat('EEE, d MMM · HH:mm').format(p.scheduledAt),
-                                style: TextStyle(color: _teal, fontSize: 12)),
+                                style: TextStyle(color: _accent, fontSize: 12)),
                           ],
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: p.isAccepted ? _teal.withValues(alpha: 0.15) : AppColors.bg,
+                          color: p.isAccepted ? _accent.withValues(alpha: 0.15) : AppColors.bg,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(p.status[0].toUpperCase() + p.status.substring(1),
-                            style: TextStyle(color: p.isAccepted ? _teal : AppColors.textMuted, fontSize: 11)),
+                            style: TextStyle(color: p.isAccepted ? _accent : AppColors.textMuted, fontSize: 11)),
                       ),
                     ],
                   ),
@@ -289,14 +291,14 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                   return ChoiceChip(
                     label: Text('${plan.typeEmoji} ${plan.typeLabel}'),
                     selected: selected,
-                    selectedColor: _teal.withValues(alpha: 0.2),
+                    selectedColor: _accent.withValues(alpha: 0.2),
                     backgroundColor: AppColors.surface,
                     labelStyle: TextStyle(
-                      color: selected ? _teal : AppColors.textMuted,
+                      color: selected ? _accent : AppColors.textMuted,
                     ),
                     side: BorderSide(
                       color: selected
-                          ? _teal.withValues(alpha: 0.5)
+                          ? _accent.withValues(alpha: 0.5)
                           : AppColors.border,
                     ),
                     onSelected: (_) => setState(() => _selectedType = type),
@@ -335,7 +337,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusSm),
-                    borderSide: const BorderSide(color: _teal),
+                    borderSide: const BorderSide(color: _accent),
                   ),
                 ),
               ),
@@ -369,7 +371,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.calendar_today_rounded,
-                                color: _teal, size: 18),
+                                color: _accent, size: 18),
                             const SizedBox(width: AppSpacing.sm),
                             Text(
                               DateFormat('EEE, d MMM').format(_selectedDate),
@@ -401,7 +403,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.schedule_rounded,
-                                color: _teal, size: 18),
+                                color: _accent, size: 18),
                             const SizedBox(width: AppSpacing.sm),
                             Text(
                               _selectedTime.format(context),
@@ -425,7 +427,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _teal,
+                    backgroundColor: _accent,
                     foregroundColor: AppColors.bg,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(

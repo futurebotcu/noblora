@@ -4,11 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/event.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class EditEventScreen extends ConsumerStatefulWidget {
   final NobEvent event;
@@ -139,7 +140,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                   onPressed: _pickDate,
                   icon: const Icon(Icons.calendar_today_rounded, size: 16),
                   label: Text(DateFormat('d MMM yyyy').format(_eventDate)),
-                  style: OutlinedButton.styleFrom(foregroundColor: _violet),
+                  style: OutlinedButton.styleFrom(foregroundColor: _accent),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -148,7 +149,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
                   onPressed: _pickTime,
                   icon: const Icon(Icons.access_time_rounded, size: 16),
                   label: Text(_eventTime.format(context)),
-                  style: OutlinedButton.styleFrom(foregroundColor: _violet),
+                  style: OutlinedButton.styleFrom(foregroundColor: _accent),
                 ),
               ),
             ]),
@@ -158,10 +159,10 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
             Row(children: [
               const Text('Max attendees', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               const Spacer(),
-              Text('$_maxAttendees', style: const TextStyle(color: _violet, fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('$_maxAttendees', style: const TextStyle(color: _accent, fontSize: 16, fontWeight: FontWeight.w700)),
             ]),
             SliderTheme(
-              data: SliderThemeData(activeTrackColor: _violet, inactiveTrackColor: AppColors.border, thumbColor: _violet),
+              data: SliderThemeData(activeTrackColor: _accent, inactiveTrackColor: AppColors.border, thumbColor: _accent),
               child: Slider(value: _maxAttendees.toDouble(), min: 2, max: 50, divisions: 48, onChanged: (v) => setState(() => _maxAttendees = v.round())),
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -175,11 +176,15 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
               const SizedBox(height: AppSpacing.xxl),
             ],
 
-            SizedBox(
+            Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                boxShadow: _submitting ? null : Premium.emeraldGlow(intensity: 0.5),
+              ),
               child: ElevatedButton(
                 onPressed: _submitting ? null : _save,
-                style: ElevatedButton.styleFrom(backgroundColor: _violet, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
+                style: ElevatedButton.styleFrom(backgroundColor: _accent, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
                 child: _submitting
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),

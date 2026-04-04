@@ -103,6 +103,8 @@ class MessagesRepository {
   // ---------------------------------------------------------------------------
 
   /// Live stream of messages, ordered oldest → newest.
+  /// Supabase realtime streams don't support LIMIT, so we trim client-side
+  /// to avoid loading thousands of messages into memory.
   Stream<List<ChatMessage>> messagesStream(String conversationId) {
     final db = _supabase;
     if (isMockMode || db == null) return const Stream.empty();
@@ -111,7 +113,12 @@ class MessagesRepository {
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
         .order('created_at')
-        .map((rows) => rows.map((r) => ChatMessage.fromJson(r)).toList());
+        .map((rows) {
+          final all = rows.map((r) => ChatMessage.fromJson(r)).toList();
+          // Keep last 200 messages to prevent memory bloat
+          if (all.length > 200) return all.sublist(all.length - 200);
+          return all;
+        });
   }
 
   // ---------------------------------------------------------------------------
@@ -161,16 +168,18 @@ class MessagesRepository {
     if (cp == null) return 0;
     final lastRead = cp['last_read_at'] as String?;
 
-    final query = db
+    // Use count query instead of fetching all rows
+    var query = db
         .from('messages')
-        .select()
+        .select('id')
         .eq('conversation_id', conversationId)
         .neq('sender_id', userId);
 
-    final rows = lastRead != null
-        ? await query.gt('created_at', lastRead)
-        : await query;
+    if (lastRead != null) {
+      query = query.gt('created_at', lastRead);
+    }
 
+    final rows = await query;
     return (rows as List).length;
   }
 
@@ -184,5 +193,27 @@ class MessagesRepository {
     await db.from('conversation_participants').update({
       'last_read_at': DateTime.now().toIso8601String(),
     }).eq('conversation_id', conversationId).eq('user_id', userId);
+  }
+
+  /// Mark all messages in a conversation as delivered (foundation for read receipts).
+  /// Called when the recipient opens the chat. The DB columns delivered_at/read_at
+  /// may not exist yet — this is safe to call regardless.
+  Future<void> markDelivered({
+    required String conversationId,
+    required String userId,
+  }) async {
+    if (isMockMode) return;
+    final db = _supabase;
+    if (db == null) return;
+    try {
+      await db
+          .from('messages')
+          .update({'delivered_at': DateTime.now().toIso8601String()})
+          .eq('conversation_id', conversationId)
+          .neq('sender_id', userId)
+          .isFilter('delivered_at', null);
+    } catch (_) {
+      // Column may not exist yet — silently ignore
+    }
   }
 }

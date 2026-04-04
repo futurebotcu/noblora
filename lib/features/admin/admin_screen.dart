@@ -230,7 +230,7 @@ class _OverviewTab extends ConsumerWidget {
                     label: 'Active Matches',
                     value: stats.activeMatches,
                     icon: Icons.favorite_rounded,
-                    color: AppColors.info),
+                    color: AppColors.emerald500),
                 _StatCard(
                     label: 'Posts Today',
                     value: stats.postsToday,

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 
 enum AppButtonVariant { primary, outline, ghost }
 
-class AppButton extends StatelessWidget {
+class AppButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
@@ -20,8 +21,50 @@ class AppButton extends StatelessWidget {
   });
 
   @override
+  State<AppButton> createState() => _AppButtonState();
+}
+
+class _AppButtonState extends State<AppButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleCtrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 120),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
+      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (widget.isLoading || widget.onPressed == null) return;
+    HapticFeedback.lightImpact();
+    widget.onPressed!();
+  }
+
+  void _onTapDown(TapDownDetails _) {
+    if (widget.isLoading || widget.onPressed == null) return;
+    _scaleCtrl.forward();
+  }
+
+  void _onTapUp(TapUpDetails _) => _scaleCtrl.reverse();
+  void _onTapCancel() => _scaleCtrl.reverse();
+
+  @override
   Widget build(BuildContext context) {
-    final child = isLoading
+    final child = widget.isLoading
         ? const SizedBox(
             width: 20,
             height: 20,
@@ -33,30 +76,34 @@ class AppButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18),
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 18),
                 const SizedBox(width: 8),
               ],
-              Text(label),
+              Text(widget.label),
             ],
           );
 
-    switch (variant) {
-      case AppButtonVariant.primary:
-        return ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
+    final button = switch (widget.variant) {
+      AppButtonVariant.primary => ElevatedButton(
+          onPressed: widget.isLoading ? null : _handleTap,
           child: child,
-        );
-      case AppButtonVariant.outline:
-        return OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
+        ),
+      AppButtonVariant.outline => OutlinedButton(
+          onPressed: widget.isLoading ? null : _handleTap,
           child: child,
-        );
-      case AppButtonVariant.ghost:
-        return TextButton(
-          onPressed: isLoading ? null : onPressed,
+        ),
+      AppButtonVariant.ghost => TextButton(
+          onPressed: widget.isLoading ? null : _handleTap,
           child: child,
-        );
-    }
+        ),
+    };
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: ScaleTransition(scale: _scale, child: button),
+    );
   }
 }

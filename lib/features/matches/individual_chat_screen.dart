@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,10 +7,12 @@ import '../../core/utils/mock_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/inbox_item.dart';
 import '../../data/models/match.dart';
 import '../../data/models/message.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/messages_provider.dart';
 import '../../services/gemini_service.dart';
@@ -44,10 +46,10 @@ class IndividualChatScreen extends ConsumerStatefulWidget {
 class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  Timer? _typingTimer;
-  final bool _showTyping = false;
   String? _chatNudge;
   bool _nudgeDismissed = false;
+  int _lastMessageCount = 0;
+  final List<ChatMessage> _pendingMessages = [];
 
   InboxItem get _item => widget.item;
   Color get _accent => _item.mode.accentColor;
@@ -59,10 +61,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authProvider).userId;
       if (userId != null) {
-        ref.read(messagesRepositoryProvider).markRead(
-              conversationId: widget.conversationId,
-              userId: userId,
-            );
+        final repo = ref.read(messagesRepositoryProvider);
+        repo.markRead(conversationId: widget.conversationId, userId: userId);
+        repo.markDelivered(conversationId: widget.conversationId, userId: userId);
       }
     });
   }
@@ -71,7 +72,6 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   void dispose() {
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
-    _typingTimer?.cancel();
     super.dispose();
   }
 
@@ -118,14 +118,39 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     final userId = authState.userId;
     if (userId == null) return;
 
-    await ref.read(messagesRepositoryProvider).sendMessage(
-          conversationId: widget.conversationId,
-          senderId: userId,
-          senderDisplayName: 'You',
-          content: text,
-          mode: _item.mode.name,
-        );
+    final displayName = ref.read(profileProvider).profile?.displayName ?? 'User';
+
+    // Optimistic insert — show message immediately before server confirms
+    final optimistic = ChatMessage(
+      id: 'pending-${DateTime.now().millisecondsSinceEpoch}',
+      conversationId: widget.conversationId,
+      senderId: userId,
+      senderDisplayName: displayName,
+      content: text,
+      mode: _item.mode.name,
+      createdAt: DateTime.now(),
+    );
+    setState(() => _pendingMessages.add(optimistic));
     _scrollToBottom();
+
+    try {
+      await ref.read(messagesRepositoryProvider).sendMessage(
+            conversationId: widget.conversationId,
+            senderId: userId,
+            senderDisplayName: displayName,
+            content: text,
+            mode: _item.mode.name,
+          );
+      // Server confirmed — pending message will be replaced by stream
+      if (mounted) setState(() => _pendingMessages.remove(optimistic));
+    } catch (e) {
+      // Remove optimistic message and restore text for retry
+      if (mounted) {
+        setState(() => _pendingMessages.remove(optimistic));
+        _msgCtrl.text = text;
+        ToastService.show(context, message: 'Message failed to send', type: ToastType.error);
+      }
+    }
   }
 
   /// Check if conversation is silent for 24h+ and show AI nudge
@@ -159,14 +184,18 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   }
 
   List<_Msg> _buildMessages(List<ChatMessage> chatMessages, String? currentUserId) {
-    return chatMessages.map((m) => _Msg(
-          sender: m.senderDisplayName,
-          avatarSeed: m.senderId ?? '',
-          text: m.content,
-          time: m.createdAt,
-          isSelf: m.senderId != null && m.senderId == currentUserId,
-          isSystem: m.isSystem,
-        )).toList();
+    return chatMessages.map((m) {
+      final isSelf = m.senderId != null && m.senderId == currentUserId;
+      return _Msg(
+        sender: m.senderDisplayName,
+        avatarSeed: m.senderId ?? '',
+        photoUrl: isSelf ? null : _item.photoUrl,
+        text: m.content,
+        time: m.createdAt,
+        isSelf: isSelf,
+        isSystem: m.isSystem,
+      );
+    }).toList();
   }
 
   void _showQuickIntroSheet(BuildContext context, List<NobleMatch> matches) {
@@ -189,10 +218,10 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           children: [
             Container(
               width: 36,
-              height: 3,
+              height: 4,
               decoration: BoxDecoration(
                 color: context.surfaceAltColor,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -268,14 +297,23 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
 
     final isLoadingMessages = messagesAsync.isLoading;
     final rawMsgs = messagesAsync.valueOrNull ?? [];
-    // Check for AI unblock nudge
-    if (rawMsgs.isNotEmpty) _checkForNudge(rawMsgs);
-    final messages = _buildMessages(rawMsgs, currentUserId);
+    // Check for AI nudge after frame builds (avoid setState during build)
+    if (rawMsgs.isNotEmpty && !_nudgeDismissed && _chatNudge == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _checkForNudge(rawMsgs);
+      });
+    }
+    // Merge server messages with pending optimistic messages
+    final allMsgs = [...rawMsgs, ..._pendingMessages.where(
+      (p) => !rawMsgs.any((r) => r.content == p.content && r.senderId == p.senderId),
+    )];
+    final messages = _buildMessages(allMsgs, currentUserId);
 
-    // Auto-scroll when new messages arrive
-    if (messages.isNotEmpty) {
+    // Auto-scroll only when new messages arrive (not on every rebuild)
+    if (messages.length > _lastMessageCount && messages.isNotEmpty) {
       _scrollToBottom();
     }
+    _lastMessageCount = messages.length;
 
     return Scaffold(
       backgroundColor: _item.mode.bgTint,
@@ -295,10 +333,18 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                     Border.all(color: accent.withValues(alpha: 0.5), width: 1.5),
               ),
               child: ClipOval(
-                child: Image.network(
-                  'https://picsum.photos/seed/${_item.avatarSeed}/80/80',
+                child: CachedNetworkImage(
+                  imageUrl: _item.photoUrl ?? 'https://picsum.photos/seed/${_item.avatarSeed}/80/80',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => CircleAvatar(
+                  placeholder: (_, __) => CircleAvatar(
+                    backgroundColor: accent.withValues(alpha: 0.2),
+                    child: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => CircleAvatar(
                     backgroundColor: accent.withValues(alpha: 0.2),
                     child: Text(
                       _item.name[0],
@@ -406,7 +452,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                       color: AppColors.error, size: 14),
                   SizedBox(width: AppSpacing.xs),
                   Text(
-                    'Bu sohbet sona erdi',
+                    'This chat has ended',
                     style: TextStyle(
                         color: AppColors.error,
                         fontSize: 12,
@@ -426,14 +472,14 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.08),
+                color: AppColors.emerald600.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.auto_awesome,
-                      color: AppColors.gold, size: 16),
+                      color: AppColors.emerald600, size: 16),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: GestureDetector(
@@ -444,7 +490,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                       child: Text(
                         'Pick a direction? "$_chatNudge"',
                         style: TextStyle(
-                          color: AppColors.gold.withValues(alpha: 0.9),
+                          color: AppColors.emerald600.withValues(alpha: 0.9),
                           fontSize: 13,
                         ),
                       ),
@@ -466,44 +512,53 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   )
                 : messages.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 64, height: 64,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.gold.withValues(alpha: 0.06),
-                                border: Border.all(color: AppColors.gold.withValues(alpha: 0.20)),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                          decoration: Premium.emptyStateDecoration(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 56, height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      accent.withValues(alpha: 0.12),
+                                      accent.withValues(alpha: 0.04),
+                                    ],
+                                  ),
+                                  border: Border.all(
+                                    color: accent.withValues(alpha: 0.15),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  _isBff ? Icons.handshake_outlined : Icons.chat_bubble_outline_rounded,
+                                  color: accent.withValues(alpha: 0.6), size: 24,
+                                ),
                               ),
-                              child: Icon(
-                                _isBff ? Icons.handshake_outlined : Icons.chat_bubble_outline_rounded,
-                                color: AppColors.gold.withValues(alpha: 0.7), size: 28,
+                              const SizedBox(height: AppSpacing.lg),
+                              Text('Say hello',
+                                  style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                              const SizedBox(height: 6),
+                              Text(
+                                _isBff ? 'Good friendships start with a single message' : 'The best conversations start simply',
+                                style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.4),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                            const SizedBox(height: AppSpacing.lg),
-                            Text('No messages yet',
-                                style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              _isBff ? 'Break the ice — say something friendly' : 'Start the conversation',
-                              style: TextStyle(color: context.textMuted, fontSize: 13),
-                            ),
-                            if (!_isBff) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              Icon(Icons.favorite_outline_rounded, color: AppColors.gold.withValues(alpha: 0.25), size: 16),
                             ],
-                          ],
+                          ),
                         ),
                       )
                     : ListView.builder(
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.all(AppSpacing.lg),
-                        itemCount: messages.length + (_showTyping ? 1 : 0),
+                        itemCount: messages.length,
                         itemBuilder: (context, i) {
-                          if (_showTyping && i == messages.length) {
-                            return _TypingIndicator(accentColor: accent);
-                          }
                           return _MsgBubble(msg: messages[i], accentColor: accent);
                         },
                       ),
@@ -526,7 +581,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                       Icon(Icons.auto_awesome_rounded, color: accent, size: 16),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: Text('Need an opener? Tap for a friendly suggestion.',
+                        child: Text('Stuck? Tap for a conversation starter.',
                             style: TextStyle(color: accent, fontSize: 12)),
                       ),
                     ],
@@ -538,7 +593,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           _ChatInputBar(
             controller: _msgCtrl,
             accentColor: accent,
-            hint: isClosed ? 'Bu sohbet sona erdi' : 'Speak your mind...',
+            hint: isClosed ? 'This conversation has closed' : 'Write something...',
             onSend: isClosed ? null : _send,
           ),
           // Encrypted connection footer
@@ -672,6 +727,12 @@ class _IntroOption extends StatelessWidget {
 // Message bubble
 // ---------------------------------------------------------------------------
 
+String _formatTime(DateTime time) {
+  final h = time.hour.toString().padLeft(2, '0');
+  final m = time.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
+
 class _MsgBubble extends StatelessWidget {
   final _Msg msg;
   final Color accentColor;
@@ -702,18 +763,31 @@ class _MsgBubble extends StatelessWidget {
         children: [
           if (!msg.isSelf) ...[
             ClipOval(
-              child: Image.network(
-                'https://picsum.photos/seed/${msg.avatarSeed}/40/40',
+              child: SizedBox(
                 width: 32,
                 height: 32,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => CircleAvatar(
-                  radius: 16,
-                  backgroundColor: accentColor.withValues(alpha: 0.25),
-                  child: Text(
-                    msg.sender.isNotEmpty ? msg.sender[0] : '?',
-                    style: TextStyle(
-                        color: accentColor, fontWeight: FontWeight.w700),
+                child: CachedNetworkImage(
+                  imageUrl: msg.photoUrl ?? 'https://picsum.photos/seed/${msg.avatarSeed}/40/40',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => CircleAvatar(
+                    radius: 16,
+                    backgroundColor: accentColor.withValues(alpha: 0.25),
+                    child: const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => CircleAvatar(
+                    radius: 16,
+                    backgroundColor: accentColor.withValues(alpha: 0.25),
+                    child: Text(
+                      msg.sender.isNotEmpty ? msg.sender[0] : '?',
+                      style: TextStyle(
+                          color: accentColor, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ),
@@ -725,112 +799,56 @@ class _MsgBubble extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg, vertical: AppSpacing.md),
               decoration: BoxDecoration(
-                color: msg.isSelf
-                    ? AppColors.gold
-                    : context.surfaceColor,
+                gradient: msg.isSelf
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [accentColor, accentColor.withValues(alpha: 0.85)],
+                      )
+                    : null,
+                color: msg.isSelf ? null : context.surfaceColor,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(AppSpacing.radiusLg),
                   topRight: const Radius.circular(AppSpacing.radiusLg),
                   bottomLeft:
-                      Radius.circular(msg.isSelf ? AppSpacing.radiusLg : 4),
+                      Radius.circular(msg.isSelf ? AppSpacing.radiusLg : 6),
                   bottomRight:
-                      Radius.circular(msg.isSelf ? 4 : AppSpacing.radiusLg),
+                      Radius.circular(msg.isSelf ? 6 : AppSpacing.radiusLg),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (msg.isSelf ? accentColor : Colors.black)
+                        .withValues(alpha: msg.isSelf ? 0.12 : 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
-                msg.text,
-                style: TextStyle(
-                  color: msg.isSelf ? context.bgColor : context.textPrimary,
-                  fontSize: 14,
-                ),
+              child: Column(
+                crossAxisAlignment: msg.isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    msg.text,
+                    style: TextStyle(
+                      color: msg.isSelf ? AppColors.textOnEmerald : context.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatTime(msg.time),
+                    style: TextStyle(
+                      color: msg.isSelf
+                          ? AppColors.textOnEmerald.withValues(alpha: 0.6)
+                          : context.textDisabled,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Typing indicator (animated dots)
-// ---------------------------------------------------------------------------
-
-class _TypingIndicator extends StatelessWidget {
-  final Color accentColor;
-  const _TypingIndicator({required this.accentColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-            decoration: BoxDecoration(
-              color: context.surfaceAltColor,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _Dot(delay: 0),
-                SizedBox(width: 4),
-                _Dot(delay: 150),
-                SizedBox(width: 4),
-                _Dot(delay: 300),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Dot extends StatefulWidget {
-  final int delay;
-  const _Dot({required this.delay});
-
-  @override
-  State<_Dot> createState() => _DotState();
-}
-
-class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
-  late AnimationController _c;
-  late Animation<double> _a;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _c.repeat(reverse: true);
-    });
-    _a = Tween<double>(begin: 0.3, end: 1.0).animate(_c);
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _a,
-      builder: (_, __) => Opacity(
-        opacity: _a.value,
-        child: Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-              shape: BoxShape.circle, color: context.textMuted),
-        ),
       ),
     );
   }
@@ -864,7 +882,7 @@ class _ChatInputBar extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: context.elevatedColor,
-        border: Border(top: BorderSide(color: context.borderSubtleColor, width: 0.5)),
+        border: Border(top: BorderSide(color: context.borderSubtleColor.withValues(alpha: 0.3), width: 0.5)),
       ),
       child: Row(
         children: [
@@ -891,14 +909,24 @@ class _ChatInputBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          GestureDetector(
+          PressEffect(
             onTap: onSend,
             child: Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: onSend != null ? accentColor : context.surfaceAltColor,
+                gradient: onSend != null
+                    ? LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [accentColor, accentColor.withValues(alpha: 0.85)],
+                      )
+                    : null,
+                color: onSend != null ? null : context.surfaceAltColor,
                 shape: BoxShape.circle,
+                boxShadow: onSend != null
+                    ? Premium.accentGlow(accentColor, intensity: 0.6)
+                    : null,
               ),
               child: Icon(Icons.send_rounded,
                   color: onSend != null ? context.bgColor : context.textDisabled,
@@ -918,6 +946,7 @@ class _ChatInputBar extends StatelessWidget {
 class _Msg {
   final String sender;
   final String avatarSeed;
+  final String? photoUrl;
   final String text;
   final DateTime time;
   final bool isSelf;
@@ -926,6 +955,7 @@ class _Msg {
   _Msg({
     required this.sender,
     required this.avatarSeed,
+    this.photoUrl,
     required this.text,
     required this.time,
     this.isSelf = false,

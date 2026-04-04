@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 
 class TierPromotionScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _TierPromotionScreenState extends State<TierPromotionScreen>
   @override
   Widget build(BuildContext context) {
     final isNoble = widget.newTier == NobTier.noble;
-    final color = isNoble ? AppColors.emerald500 : AppColors.info;
+    final color = isNoble ? AppColors.emerald500 : AppColors.emerald500;
     final icon = isNoble ? Icons.workspace_premium_rounded : Icons.explore_rounded;
     final title = isNoble ? 'You\'re now Noble' : 'You\'ve reached Explorer';
     final subtitle = isNoble
@@ -56,12 +57,19 @@ class _TierPromotionScreenState extends State<TierPromotionScreen>
                   Transform.scale(
                     scale: _scale.value,
                     child: Container(
-                      width: 100,
-                      height: 100,
+                      width: 110,
+                      height: 110,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: color.withValues(alpha: 0.1),
-                        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          colors: [color.withValues(alpha: 0.15), color.withValues(alpha: 0.04)],
+                        ),
+                        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
+                        boxShadow: [
+                          ...Premium.accentGlow(color, intensity: 1.5),
+                          ...Premium.shadowLg,
+                        ],
                       ),
                       child: Icon(icon, color: color, size: 48),
                     ),
@@ -84,15 +92,21 @@ class _TierPromotionScreenState extends State<TierPromotionScreen>
                         ),
                   ),
                   const SizedBox(height: AppSpacing.xxxxl),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: AppColors.bg,
-                      minimumSize: const Size(200, 52),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      boxShadow: Premium.accentGlow(color, intensity: 0.8),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(200, 52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    ),
                   ),
                 ],
               ),

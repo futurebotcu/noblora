@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/filter_state.dart';
 import '../../providers/auth_provider.dart';
@@ -70,13 +71,14 @@ class _State extends ConsumerState<FilterBottomSheet> {
         decoration: BoxDecoration(
           color: context.surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: accent.withValues(alpha: 0.08))),
+          border: Border(top: BorderSide(color: accent.withValues(alpha: 0.12))),
+          boxShadow: Premium.shadowLg,
         ),
         child: Column(children: [
           // Header
           Padding(padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, 0),
             child: Column(children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999))),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999))),
               const SizedBox(height: AppSpacing.lg),
               Row(children: [
                 Text('Filter', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
@@ -240,12 +242,19 @@ class _State extends ConsumerState<FilterBottomSheet> {
                   const SizedBox(width: 6),
                   Text('$_count profiles match', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
                 ])),
-              SizedBox(width: double.infinity, child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: context.bgColor,
-                    minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
-                onPressed: _apply,
-                child: Text(count > 0 ? 'Apply ($count active)' : 'Apply', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              )),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  boxShadow: Premium.accentGlow(accent, intensity: 0.6),
+                ),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
+                  onPressed: _apply,
+                  child: Text(count > 0 ? 'Apply ($count active)' : 'Apply', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
             ]),
           ),
         ]),
@@ -278,12 +287,13 @@ class _Chip extends StatelessWidget {
   const _Chip(this.label, this.active, this.onTap, this.accent);
   @override
   Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: AnimatedContainer(
-    duration: const Duration(milliseconds: 180),
+    duration: Premium.dFast,
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-    decoration: BoxDecoration(
-      color: active ? accent.withValues(alpha: 0.08) : context.elevatedColor,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-      border: Border.all(color: active ? accent.withValues(alpha: 0.3) : context.borderSubtleColor, width: 0.5)),
+    decoration: Premium.chipDecoration(
+      bgColor: active ? accent.withValues(alpha: 0.08) : context.elevatedColor,
+      borderColor: active ? accent.withValues(alpha: 0.3) : context.borderSubtleColor,
+      selected: active,
+    ),
     child: Text(label, style: TextStyle(color: active ? accent : context.textMuted, fontSize: 12,
         fontWeight: active ? FontWeight.w600 : FontWeight.w400, letterSpacing: 0.1))));
 }

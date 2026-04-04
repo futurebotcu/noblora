@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
 import 'video_call_screen.dart';
@@ -109,7 +110,7 @@ class _ShortIntroRulesScreenState extends State<ShortIntroRulesScreen>
                 children: [
                   const Icon(
                     Icons.favorite_rounded,
-                    color: AppColors.gold,
+                    color: AppColors.emerald600,
                     size: 40,
                   ),
                   const SizedBox(height: AppSpacing.xxl),
@@ -142,7 +143,7 @@ class _ShortIntroRulesScreenState extends State<ShortIntroRulesScreen>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
+                        backgroundColor: AppColors.emerald600,
                         foregroundColor: AppColors.bg,
                         minimumSize: const Size.fromHeight(52),
                         shape: RoundedRectangleBorder(
@@ -210,12 +211,13 @@ class _RuleCard extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
+          boxShadow: Premium.shadowSm,
         ),
         child: Row(
           children: [
-            Icon(rule.icon, color: AppColors.gold, size: 22),
+            Icon(rule.icon, color: AppColors.emerald600, size: 22),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(

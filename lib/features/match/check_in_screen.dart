@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/check_in_provider.dart';
 
@@ -32,7 +33,7 @@ class CheckInScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.check_circle_outline_rounded,
-                      color: AppColors.gold, size: 64),
+                      color: AppColors.emerald600, size: 64),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     'Thanks for checking in!',
@@ -50,7 +51,7 @@ class CheckInScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xxl),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
+                      backgroundColor: AppColors.emerald600,
                       foregroundColor: AppColors.bg,
                     ),
                     onPressed: () => Navigator.pop(context),
@@ -77,7 +78,7 @@ class CheckInScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.health_and_safety_outlined,
-                  color: AppColors.gold, size: 64),
+                  color: AppColors.emerald600, size: 64),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 'How did it go?',
@@ -94,12 +95,12 @@ class CheckInScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xxxl),
               if (state.isLoading)
-                const CircularProgressIndicator(color: AppColors.gold)
+                const CircularProgressIndicator(color: AppColors.emerald600)
               else ...[
                 _ResponseButton(
                   label: 'Great!',
                   icon: Icons.sentiment_very_satisfied_rounded,
-                  color: AppColors.gold,
+                  color: AppColors.emerald600,
                   onTap: () => _submit(ref, userId, 'great'),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -162,15 +163,16 @@ class _ResponseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressEffect(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.20), width: 0.5),
+          boxShadow: Premium.shadowMd,
         ),
         child: Row(
           children: [

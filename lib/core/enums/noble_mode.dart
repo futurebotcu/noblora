@@ -56,16 +56,17 @@ extension NobleModeX on NobleMode {
     }
   }
 
+  /// Date = primary emerald, BFF = brighter emerald, Social = deeper emerald
   Color get accentColor {
     switch (this) {
       case NobleMode.date:
-        return AppColors.emerald500;
+        return AppColors.emerald600;
       case NobleMode.bff:
-        return AppColors.teal;
-      case NobleMode.social:
-        return AppColors.violet;
-      case NobleMode.noblara:
         return AppColors.emerald500;
+      case NobleMode.social:
+        return AppColors.emerald700;
+      case NobleMode.noblara:
+        return AppColors.emerald600;
     }
   }
 
@@ -74,9 +75,9 @@ extension NobleModeX on NobleMode {
       case NobleMode.date:
         return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.bff:
-        return AppColors.teal.withValues(alpha: 0.14);
+        return AppColors.emerald500.withValues(alpha: 0.14);
       case NobleMode.social:
-        return AppColors.violet.withValues(alpha: 0.14);
+        return AppColors.emerald700.withValues(alpha: 0.14);
       case NobleMode.noblara:
         return AppColors.emerald600.withValues(alpha: 0.14);
     }
@@ -87,9 +88,9 @@ extension NobleModeX on NobleMode {
       case NobleMode.date:
         return AppColors.bg;
       case NobleMode.bff:
-        return const Color(0xFF0A0E0D);
+        return const Color(0xFF0B0E0C);
       case NobleMode.social:
-        return const Color(0xFF0C0B0F);
+        return const Color(0xFF0A0D0C);
       case NobleMode.noblara:
         return AppColors.bg;
     }

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 
@@ -79,10 +80,21 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.lock_outline,
-                  color: context.accent,
-                  size: 72,
+                Container(
+                  width: 90, height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      colors: [context.accent.withValues(alpha: 0.12), context.accent.withValues(alpha: 0.04)],
+                    ),
+                    border: Border.all(color: context.accent.withValues(alpha: 0.20), width: 0.5),
+                    boxShadow: [
+                      ...Premium.emeraldGlow(intensity: 0.6),
+                      ...Premium.shadowMd,
+                    ],
+                  ),
+                  child: Icon(Icons.lock_outline, color: context.accent, size: 38),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 Text(
@@ -239,11 +251,12 @@ class _WaitingPulseState extends State<_WaitingPulse>
     return FadeTransition(
       opacity: _anim,
       child: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: AppColors.emerald500,
+          boxShadow: Premium.emeraldGlow(intensity: 0.8),
         ),
       ),
     );

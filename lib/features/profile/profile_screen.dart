@@ -4,14 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/mode_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../providers/posts_provider.dart';
+import '../../navigation/main_tab_navigator.dart';
 import '../noblara_feed/nob_drafts_screen.dart';
 import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
@@ -28,13 +29,11 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final profile = ref.watch(profileProvider);
-    final activeMode = ref.watch(modeProvider);
-
     final displayName =
         profile.profile?.fullName.isNotEmpty == true
             ? profile.profile!.fullName
             : (auth.email?.split('@').first ?? 'Noblara User');
-    const city = '';
+    final city = profile.profile?.city ?? '';
 
     return Scaffold(
       backgroundColor: context.bgColor,
@@ -65,7 +64,7 @@ class ProfileScreen extends ConsumerWidget {
               background: _ProfileHeader(
                 displayName: displayName,
                 city: city,
-                activeMode: activeMode,
+                tierLabel: profile.profile?.nobTier.label ?? 'Observer',
                 avatarUrl: profile.profile?.dateAvatarUrl ?? profile.profile?.bffAvatarUrl,
                 userId: auth.userId,
               ),
@@ -113,8 +112,6 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xxxl),
                 const _PersonaSection(),
                 const SizedBox(height: AppSpacing.xxxl),
-                const _NobleScorecardSection(),
-                const SizedBox(height: AppSpacing.xxxl),
                 const _GallerySection(),
                 const SizedBox(height: AppSpacing.xxxl),
                 const _BadgesSection(),
@@ -150,14 +147,14 @@ class ProfileScreen extends ConsumerWidget {
 class _ProfileHeader extends StatelessWidget {
   final String displayName;
   final String city;
-  final NobleMode activeMode;
+  final String tierLabel;
   final String? avatarUrl;
   final String? userId;
 
   const _ProfileHeader({
     required this.displayName,
     required this.city,
-    required this.activeMode,
+    required this.tierLabel,
     this.avatarUrl,
     this.userId,
   });
@@ -167,19 +164,10 @@ class _ProfileHeader extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Cinematic gradient cover
+        // Cinematic gradient cover — premium depth
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              stops: const [0.0, 0.35, 1.0],
-              colors: [
-                AppColors.emerald900.withValues(alpha: 0.15),
-                AppColors.emerald900.withValues(alpha: 0.06),
-                Colors.transparent,
-              ],
-            ),
+            gradient: Premium.heroGradient(),
           ),
         ),
         // Avatar + info block
@@ -194,16 +182,23 @@ class _ProfileHeader extends StatelessWidget {
                 height: 96,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4))],
+                  boxShadow: [
+                    ...Premium.shadowMd,
+                    BoxShadow(
+                      color: AppColors.emerald600.withValues(alpha: 0.15),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
                   border:
-                      Border.all(color: activeMode.accentColor, width: 2.5),
+                      Border.all(color: AppColors.emerald600, width: 2.5),
                 ),
                 child: ClipOval(
                   child: Image.network(
                     avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      color: activeMode.accentColor.withValues(alpha: 0.2),
+                      color: AppColors.emerald600.withValues(alpha: 0.2),
                       child: Center(
                         child: Text(
                           displayName.isNotEmpty
@@ -211,7 +206,7 @@ class _ProfileHeader extends StatelessWidget {
                               : 'N',
                           style: TextStyle(
                             fontSize: 36,
-                            color: activeMode.accentColor,
+                            color: AppColors.emerald600,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -234,36 +229,38 @@ class _ProfileHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.location_on,
-                      size: 13, color: context.textMuted),
-                  const SizedBox(width: 3),
-                  Text(
-                    city,
-                    style: TextStyle(
-                        color: context.textMuted, fontSize: 13),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  // Active mode badge
+                  if (city.isNotEmpty) ...[
+                    Icon(Icons.location_on,
+                        size: 13, color: context.textMuted),
+                    const SizedBox(width: 3),
+                    Text(
+                      city,
+                      style: TextStyle(
+                          color: context.textMuted, fontSize: 13),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                  ],
+                  // Tier badge (Noble / Explorer / Observer)
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.sm, vertical: 2),
                     decoration: BoxDecoration(
-                      color: activeMode.accentColor.withValues(alpha: 0.15),
+                      color: AppColors.emerald600.withValues(alpha: 0.15),
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusCircle),
                       border: Border.all(
-                          color: activeMode.accentColor.withValues(alpha: 0.5)),
+                          color: AppColors.emerald600.withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(activeMode.icon,
-                            size: 10, color: activeMode.accentColor),
+                        Icon(Icons.verified_outlined,
+                            size: 10, color: AppColors.emerald500),
                         const SizedBox(width: 4),
                         Text(
-                          activeMode.label,
+                          tierLabel,
                           style: TextStyle(
-                            color: activeMode.accentColor,
+                            color: AppColors.emerald500,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
@@ -292,7 +289,7 @@ class _ActiveModesSection extends ConsumerWidget {
 
   static const _modeInfo = [
     (mode: 'date', label: 'Dating', icon: Icons.favorite_rounded, color: AppColors.emerald500),
-    (mode: 'bff', label: 'BFF', icon: Icons.people_rounded, color: AppColors.info),
+    (mode: 'bff', label: 'BFF', icon: Icons.people_rounded, color: AppColors.emerald500),
   ];
 
   @override
@@ -305,7 +302,7 @@ class _ActiveModesSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'MOD SEÇİMİ',
+            'MODE SELECTION',
             style: TextStyle(
               color: context.textMuted,
               fontSize: 11,
@@ -315,7 +312,7 @@ class _ActiveModesSection extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Hangi modlarda görünmek istediğini seç.',
+            'Choose which modes you appear in.',
             style: TextStyle(color: context.textDisabled, fontSize: 12),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -454,25 +451,6 @@ class _PersonaSectionState extends State<_PersonaSection> {
     ),
   };
 
-  void _openEdit(BuildContext context) {
-    final current = _personas[_selectedMode]!;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _EditPersonaSheet(
-        mode: _selectedMode,
-        initialBio: current.bio,
-        initialSeed: current.avatarSeed,
-        onSave: (bio, seed) {
-          setState(() {
-            _personas[_selectedMode] = _PersonaData(bio: bio, avatarSeed: seed);
-          });
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final persona = _personas[_selectedMode]!;
@@ -493,30 +471,6 @@ class _PersonaSectionState extends State<_PersonaSection> {
                 ),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () => _openEdit(context),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: context.surfaceColor,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusCircle),
-                    border: Border.all(color: context.borderColor),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.edit_outlined,
-                          size: 12, color: context.textMuted),
-                      const SizedBox(width: 4),
-                      Text('Edit',
-                          style: TextStyle(
-                              color: context.textMuted, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -1152,7 +1106,7 @@ class _GallerySectionState extends State<_GallerySection> {
       case NobleMode.social:
         return const _SocialGallery(key: ValueKey('social'));
       case NobleMode.noblara:
-        return const _DateGallery(key: ValueKey('noblara'));
+        return const _NoblaraGallery(key: ValueKey('noblara'));
     }
   }
 }
@@ -1312,7 +1266,7 @@ class _BffGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const teal = AppColors.info;
+    const teal = AppColors.emerald500;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1381,6 +1335,79 @@ class _BffGallery extends StatelessWidget {
 }
 
 // Social Scene — Social mode
+// Noblara Gallery — shows user's own nobs or redirect
+class _NoblaraGallery extends ConsumerWidget {
+  const _NoblaraGallery({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsState = ref.watch(postsProvider);
+    final uid = ref.watch(authProvider).userId;
+    final myPosts = postsState.posts.where((p) => p.userId == uid).toList();
+
+    if (myPosts.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.auto_awesome_outlined,
+                color: AppColors.emerald600.withValues(alpha: 0.4), size: 32),
+            const SizedBox(height: 12),
+            Text('No nobs yet',
+                style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Share your thoughts with the community',
+                style: TextStyle(color: context.textMuted, fontSize: 13),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => MainTabNavigator.switchTab(1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.3)),
+                ),
+                child: Text('Go to Gallery',
+                    style: TextStyle(
+                        color: AppColors.emerald500,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: myPosts.take(3).map((post) => Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
+        ),
+        child: Text(
+          post.content,
+          style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.4),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+      )).toList(),
+    );
+  }
+}
+
 class _SocialGallery extends StatelessWidget {
   const _SocialGallery({super.key});
 
@@ -1394,7 +1421,7 @@ class _SocialGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const violet = Color(0xFFAB47BC);
+    const accent = AppColors.emerald700;
     return Column(
       children: [
         // Wide event cover
@@ -1403,7 +1430,7 @@ class _SocialGallery extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(
-                color: violet.withValues(alpha: 0.4), width: 1.5),
+                color: accent.withValues(alpha: 0.4), width: 1.5),
           ),
           child: Stack(
             fit: StackFit.expand,
@@ -1446,7 +1473,7 @@ class _SocialGallery extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: violet.withValues(alpha: 0.85),
+                            color: accent.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -1491,7 +1518,7 @@ class _SocialGallery extends StatelessWidget {
                 borderRadius:
                     BorderRadius.circular(AppSpacing.radiusSm),
                 border: Border.all(
-                    color: violet.withValues(alpha: 0.25)),
+                    color: accent.withValues(alpha: 0.25)),
               ),
               child: Stack(
                 fit: StackFit.expand,
@@ -1543,7 +1570,7 @@ class _BadgesSection extends StatelessWidget {
   static const _badges = [
     _Badge(Icons.verified_rounded, 'Verified', AppColors.emerald500),
     _Badge(
-        Icons.rocket_launch_rounded, 'Verified Founder', AppColors.info),
+        Icons.rocket_launch_rounded, 'Verified Founder', AppColors.emerald500),
     _Badge(Icons.flight_rounded, 'World Traveler', Color(0xFF7986CB)),
     _Badge(Icons.palette_rounded, 'Art Collector', Color(0xFFAB47BC)),
     _Badge(Icons.star_rounded, 'Early Member', AppColors.emerald500),
@@ -1667,7 +1694,7 @@ class _LastNobsSection extends ConsumerWidget {
                     child: const Text(
                       'Drafts',
                       style: TextStyle(
-                        color: AppColors.noblaraGold,
+                        color: AppColors.emerald600,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.2,
@@ -1682,7 +1709,7 @@ class _LastNobsSection extends ConsumerWidget {
                     child: const Text(
                       'Archive',
                       style: TextStyle(
-                        color: AppColors.noblaraGold,
+                        color: AppColors.emerald600,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.2,
@@ -1707,7 +1734,7 @@ class _LastNobsSection extends ConsumerWidget {
                           BorderRadius.circular(AppSpacing.radiusSm),
                       border: Border.all(
                         color: nob.isPinned
-                            ? AppColors.noblaraGold.withValues(alpha: 0.25)
+                            ? AppColors.emerald600.withValues(alpha: 0.25)
                             : context.borderColor,
                       ),
                     ),
@@ -1717,7 +1744,7 @@ class _LastNobsSection extends ConsumerWidget {
                           const Padding(
                             padding: EdgeInsets.only(right: AppSpacing.xs),
                             child: Icon(Icons.push_pin_rounded,
-                                color: AppColors.noblaraGold, size: 10),
+                                color: AppColors.emerald600, size: 10),
                           ),
                         Expanded(
                           child: Text(

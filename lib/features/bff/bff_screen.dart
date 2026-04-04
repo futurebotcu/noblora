@@ -4,6 +4,7 @@ import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/bff_suggestion.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/auth_provider.dart';
@@ -17,7 +18,7 @@ import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
 
-const _teal = AppColors.teal;
+const _accent = AppColors.emerald500;
 
 class BffScreen extends ConsumerStatefulWidget {
   const BffScreen({super.key});
@@ -63,15 +64,18 @@ class _BffScreenState extends ConsumerState<BffScreen>
         title: const ModeSwitcher(),
         actions: [
           _FilterButton(ref: ref),
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: context.textMuted),
-            onPressed: () => ref.read(bffProvider.notifier).load(),
+          PressEffect(
+            onTap: () => ref.read(bffProvider.notifier).load(),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.refresh_rounded, color: context.textMuted),
+            ),
           ),
         ],
         bottom: TabBar(
           controller: _tabCtrl,
-          indicatorColor: _teal,
-          labelColor: _teal,
+          indicatorColor: _accent,
+          labelColor: _accent,
           unselectedLabelColor: context.textMuted,
           dividerColor: Colors.transparent,
           tabs: [
@@ -103,12 +107,12 @@ class _SuggestionsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (state.isLoading && !timedOut) {
-      return const Center(child: CircularProgressIndicator(color: _teal));
+      return const Center(child: CircularProgressIndicator(color: _accent));
     }
     if (state.suggestions.isEmpty) return _EmptyState();
 
     return RefreshIndicator(
-      color: _teal,
+      color: _accent,
       onRefresh: () => ref.read(bffProvider.notifier).load(),
       child: ListView.builder(
         padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xxxxl),
@@ -172,7 +176,7 @@ class _SuggestionsTab extends ConsumerWidget {
               );
               ToastService.show(context, message: 'Note sent', type: ToastType.success);
             },
-            child: const Text('Send', style: TextStyle(color: _teal)),
+            child: const Text('Send', style: TextStyle(color: _accent)),
           ),
         ],
       ),
@@ -230,28 +234,38 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
     final feed = ref.watch(feedProvider);
 
     if (feed.isLoading && !_timedOut) {
-      return const Center(child: CircularProgressIndicator(color: _teal));
+      return const Center(child: CircularProgressIndicator(color: _accent));
     }
     if (feed.cards.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _teal.withValues(alpha: 0.04),
-                border: Border.all(color: _teal.withValues(alpha: 0.25), width: 0.5),
-              ),
-              child: Icon(Icons.explore_outlined, color: _teal.withValues(alpha: 0.4), size: 30),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+            decoration: Premium.emptyStateDecoration(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 60, height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      colors: [_accent.withValues(alpha: 0.10), _accent.withValues(alpha: 0.03)],
+                    ),
+                    border: Border.all(color: _accent.withValues(alpha: 0.12), width: 0.5),
+                  ),
+                  child: Icon(Icons.explore_outlined, color: _accent.withValues(alpha: 0.45), size: 26),
+                ),
+                const SizedBox(height: 24),
+                Text('Explore freely', style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                const SizedBox(height: 8),
+                Text('Browse profiles and connect\nwith people who get you',
+                    style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('Discover people', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
-            const SizedBox(height: AppSpacing.sm),
-            Text('Browse and connect with like-minded people nearby.',
-                style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5), textAlign: TextAlign.center),
-          ],
+          ),
         ),
       );
     }
@@ -286,84 +300,106 @@ class _BffDiscoveryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: _teal.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: _teal.withValues(alpha: 0.2),
-                  backgroundImage: card.photoUrl.startsWith('http') ? NetworkImage(card.photoUrl) : null,
-                  child: !card.photoUrl.startsWith('http')
-                      ? Text(card.name[0].toUpperCase(), style: const TextStyle(color: _teal, fontSize: 22, fontWeight: FontWeight.w600))
-                      : null,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${card.name}, ${card.age}',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary, fontWeight: FontWeight.w600)),
-                      if (card.city.isNotEmpty)
-                        Text(card.city, style: TextStyle(color: context.textMuted, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                if (card.isVerified)
-                  Icon(Icons.verified_rounded, color: _teal, size: 18),
-              ],
-            ),
-          ),
-          if (card.bio != null)
+    return PressEffect(
+      onTap: () {},
+      scale: 0.98,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        decoration: Premium.cardDecoration(radius: AppSpacing.radiusLg, withGlow: true),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Text(card.bio!, style: TextStyle(color: context.textMuted, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
-            ),
-          const SizedBox(height: AppSpacing.md),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: context.textMuted.withValues(alpha: 0.3)),
-                      foregroundColor: context.textMuted,
-                      minimumSize: const Size.fromHeight(40),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.15), blurRadius: 12, spreadRadius: 1)],
                     ),
-                    onPressed: onPass,
-                    child: const Text('Pass'),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.people_rounded, size: 16),
-                    label: const Text('Connect'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _teal,
-                      foregroundColor: context.bgColor,
-                      minimumSize: const Size.fromHeight(40),
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: _accent.withValues(alpha: 0.2),
+                      backgroundImage: card.photoUrl.startsWith('http') ? NetworkImage(card.photoUrl) : null,
+                      child: !card.photoUrl.startsWith('http')
+                          ? Text(card.name[0].toUpperCase(), style: const TextStyle(color: _accent, fontSize: 22, fontWeight: FontWeight.w600))
+                          : null,
                     ),
-                    onPressed: onConnect,
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${card.name}, ${card.age}',
+                            style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+                        if (card.city.isNotEmpty)
+                          Text(card.city, style: TextStyle(color: context.textMuted, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  if (card.isVerified)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _accent.withValues(alpha: 0.08),
+                        border: Border.all(color: _accent.withValues(alpha: 0.20), width: 0.5),
+                      ),
+                      child: Icon(Icons.verified_rounded, color: _accent, size: 14),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            if (card.bio != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Text(card.bio!, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ),
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: context.textMuted.withValues(alpha: 0.2)),
+                        foregroundColor: context.textMuted,
+                        minimumSize: const Size.fromHeight(42),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      ),
+                      onPressed: onPass,
+                      child: const Text('Pass'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        boxShadow: Premium.emeraldGlow(intensity: 0.5),
+                      ),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.people_rounded, size: 16),
+                        label: const Text('Connect'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(42),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                        ),
+                        onPressed: onConnect,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -379,16 +415,34 @@ class _ReachOutsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (reachOuts.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.waving_hand_rounded, color: _teal.withValues(alpha: 0.3), size: 56),
-            const SizedBox(height: AppSpacing.lg),
-            Text('No reach outs yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
-            const SizedBox(height: AppSpacing.sm),
-            Text('When someone reaches out, you\'ll see them here.',
-                style: TextStyle(color: context.textMuted, fontSize: 13), textAlign: TextAlign.center),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+            decoration: Premium.emptyStateDecoration(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 60, height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      colors: [_accent.withValues(alpha: 0.10), _accent.withValues(alpha: 0.03)],
+                    ),
+                    border: Border.all(color: _accent.withValues(alpha: 0.12), width: 0.5),
+                  ),
+                  child: Icon(Icons.waving_hand_rounded, color: _accent.withValues(alpha: 0.45), size: 26),
+                ),
+                const SizedBox(height: 24),
+                Text('No reach outs yet', style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                const SizedBox(height: 8),
+                Text('When someone wants to connect\nthey\'ll appear here',
+                    style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5), textAlign: TextAlign.center),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -404,17 +458,19 @@ class _ReachOutsTab extends ConsumerWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: AppSpacing.md),
           padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: _teal.withValues(alpha: 0.15)),
-          ),
+          decoration: Premium.cardDecoration(radius: AppSpacing.radiusMd),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: _teal.withValues(alpha: 0.2),
-                child: Text(name[0].toUpperCase(), style: const TextStyle(color: _teal, fontWeight: FontWeight.w600)),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.12), blurRadius: 10, spreadRadius: 1)],
+                ),
+                child: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: _accent.withValues(alpha: 0.2),
+                  child: Text(name[0].toUpperCase(), style: const TextStyle(color: _accent, fontWeight: FontWeight.w600)),
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -427,13 +483,18 @@ class _ReachOutsTab extends ConsumerWidget {
                   ],
                 ),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _teal,
-                  foregroundColor: context.bgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  boxShadow: Premium.emeraldGlow(intensity: 0.4),
                 ),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                  ),
                 onPressed: () async {
                   final roId = ro['id'] as String;
                   final repo = ref.read(bffRepositoryProvider);
@@ -445,7 +506,8 @@ class _ReachOutsTab extends ConsumerWidget {
                   ToastService.show(context, message: msg, type: result['result'] == 'connected' ? ToastType.match : ToastType.error);
                   ref.read(bffProvider.notifier).load();
                 },
-                child: const Text('Connect'),
+                  child: const Text('Connect'),
+                ),
               ),
             ],
           ),
@@ -465,13 +527,25 @@ class _HeaderBanner extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: _teal.withValues(alpha: 0.08),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [_accent.withValues(alpha: 0.06), _accent.withValues(alpha: 0.02)],
+          ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: _teal.withValues(alpha: 0.15)),
+          border: Border.all(color: _accent.withValues(alpha: 0.12), width: 0.5),
+          boxShadow: Premium.shadowSm,
         ),
         child: Row(
           children: [
-            Icon(Icons.auto_awesome_rounded, color: _teal.withValues(alpha: 0.7), size: 20),
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _accent.withValues(alpha: 0.08),
+                border: Border.all(color: _accent.withValues(alpha: 0.15), width: 0.5),
+              ),
+              child: Icon(Icons.auto_awesome_rounded, color: _accent.withValues(alpha: 0.7), size: 16),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
@@ -491,25 +565,32 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _teal.withValues(alpha: 0.04),
-                border: Border.all(color: _teal.withValues(alpha: 0.25), width: 0.5),
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+          decoration: Premium.emptyStateDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60, height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    colors: [_accent.withValues(alpha: 0.10), _accent.withValues(alpha: 0.03)],
+                  ),
+                  border: Border.all(color: _accent.withValues(alpha: 0.12), width: 0.5),
+                ),
+                child: Icon(Icons.people_outlined, color: _accent.withValues(alpha: 0.45), size: 26),
               ),
-              child: Icon(Icons.people_outlined, color: _teal.withValues(alpha: 0.4), size: 30),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('No suggestions yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: context.textPrimary)),
-            const SizedBox(height: AppSpacing.sm),
-            Text('We\'re finding your best matches. Check back soon.',
-                textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.5)),
-          ],
+              const SizedBox(height: 24),
+              Text('Still searching', style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+              const SizedBox(height: 8),
+              Text('We\'re looking for people\nwho match your vibe',
+                  textAlign: TextAlign.center, style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
+            ],
+          ),
         ),
       ),
     );
@@ -528,7 +609,7 @@ class _FilterButton extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.tune_rounded),
-          color: count > 0 ? _teal : context.textMuted,
+          color: count > 0 ? _accent : context.textMuted,
           onPressed: () => FilterBottomSheet.show(context),
         ),
         if (count > 0)
@@ -536,7 +617,7 @@ class _FilterButton extends StatelessWidget {
             right: 4, top: 4,
             child: Container(
               width: 16, height: 16,
-              decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: _accent, shape: BoxShape.circle),
               child: Center(child: Text('$count', style: TextStyle(color: context.bgColor, fontSize: 9, fontWeight: FontWeight.w800))),
             ),
           ),

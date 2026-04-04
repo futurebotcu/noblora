@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/premium.dart';
 import 'edit_profile_provider.dart';
 import 'widgets/profile_section_card.dart';
 import 'sections/photos_media_section.dart';
@@ -337,9 +338,7 @@ class _ScorePopOverlayState extends State<_ScorePopOverlay>
                 decoration: BoxDecoration(
                   color: context.accent,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(color: context.accent.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 4)),
-                  ],
+                  boxShadow: Premium.emeraldGlow(intensity: 1.0),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -533,7 +532,7 @@ class _PhotoHeroState extends State<_PhotoHero>
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(color: context.accent, borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: context.accent.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]),
+                            boxShadow: Premium.emeraldGlow(intensity: 0.6)),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.camera_alt_rounded, color: context.onAccent, size: 14),
                             const SizedBox(width: 5),

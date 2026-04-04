@@ -147,27 +147,55 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          backgroundColor: context.surfaceColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isVideoProposed
-                  ? AppColors.emerald500.withValues(alpha: 0.5)
-                  : context.borderColor,
-            ),
-          ),
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+          padding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
           duration: const Duration(seconds: 5),
-          content: Row(
-            children: [
-              Icon(
-                isVideoProposed
-                    ? Icons.videocam_rounded
-                    : Icons.notifications_rounded,
-                color: AppColors.emerald500,
-                size: 20,
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.emerald600.withValues(alpha: 0.3),
               ),
-              const SizedBox(width: 10),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.emerald600.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+            children: [
+              // Noblara branded icon container
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.emerald600.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'N',
+                    style: TextStyle(
+                      color: AppColors.emerald500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'serif',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -178,14 +206,15 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 14,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       latest.body,
                       style: const TextStyle(
                         color: AppColors.textMuted,
-                        fontSize: 12,
+                        fontSize: 13,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -208,6 +237,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 ),
             ],
           ),
+          ), // Container
         ),
       );
     });
@@ -235,14 +265,15 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [context.elevatedColor, context.surfaceColor],
-            stops: const [0.0, 0.3],
+            colors: [
+              context.bgColor.withValues(alpha: 0.0),
+              context.bgColor.withValues(alpha: 0.85),
+              context.surfaceColor,
+            ],
+            stops: const [0.0, 0.25, 1.0],
           ),
-          border: Border(
-            top: BorderSide(color: context.borderLightColor, width: 0.5),
-          ),
-          boxShadow: const [
-            BoxShadow(color: Color(0x20000000), blurRadius: 8, offset: Offset(0, -2)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, -4)),
           ],
         ),
         child: BottomNavigationBar(
@@ -267,14 +298,14 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
               icon: showBadge
                   ? Badge(
                       label: Text('$unreadCount'),
-                      backgroundColor: AppColors.error,
+                      backgroundColor: AppColors.emerald600,
                       child: Icon(t.icon),
                     )
                   : Icon(t.icon),
               activeIcon: showBadge
                   ? Badge(
                       label: Text('$unreadCount'),
-                      backgroundColor: AppColors.error,
+                      backgroundColor: AppColors.emerald600,
                       child: Icon(t.activeIcon),
                     )
                   : Icon(t.activeIcon),

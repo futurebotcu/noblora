@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/video_provider.dart';
@@ -97,13 +98,13 @@ class _StatusCard extends StatelessWidget {
   Color get _color {
     switch (match.status) {
       case 'chatting':
-        return AppColors.gold;
+        return AppColors.emerald600;
       case 'expired':
         return AppColors.error;
       case 'pending_video':
-        return AppColors.warning;
+        return AppColors.emerald500;
       default:
-        return AppColors.gold;
+        return AppColors.emerald600;
     }
   }
 
@@ -112,9 +113,10 @@ class _StatusCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.08),
+        color: _color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: _color.withValues(alpha: 0.3)),
+        border: Border.all(color: _color.withValues(alpha: 0.20), width: 0.5),
+        boxShadow: Premium.shadowSm,
       ),
       child: Row(
         children: [
@@ -174,12 +176,13 @@ class _SessionCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
+        boxShadow: Premium.shadowSm,
       ),
       child: Row(
         children: [
-          const Icon(Icons.videocam_rounded, color: AppColors.gold, size: 18),
+          const Icon(Icons.videocam_rounded, color: AppColors.emerald600, size: 18),
           const SizedBox(width: AppSpacing.sm),
           Text(
             'Video: ${fmt.format(session.scheduledAt.toLocal())} · ${session.status}',
@@ -212,7 +215,7 @@ class _ActionButton extends ConsumerWidget {
           icon: const Icon(Icons.chat_bubble_outline_rounded),
           label: const Text('Send Mini Intro'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.gold,
+            backgroundColor: AppColors.emerald600,
             foregroundColor: AppColors.bg,
             minimumSize: const Size.fromHeight(52),
           ),
@@ -235,7 +238,7 @@ class _ActionButton extends ConsumerWidget {
             icon: const Icon(Icons.videocam_rounded),
             label: const Text('Join Video Call'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
+              backgroundColor: AppColors.emerald600,
               foregroundColor: AppColors.bg,
               minimumSize: const Size.fromHeight(52),
             ),
@@ -255,7 +258,7 @@ class _ActionButton extends ConsumerWidget {
           icon: const Icon(Icons.schedule_rounded),
           label: const Text('Schedule Video Call'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.gold,
+            backgroundColor: AppColors.emerald600,
             foregroundColor: AppColors.bg,
             minimumSize: const Size.fromHeight(52),
           ),
@@ -289,7 +292,7 @@ class _ActionButton extends ConsumerWidget {
           icon: const Icon(Icons.chat_bubble_rounded),
           label: const Text('Open Chat'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.gold,
+            backgroundColor: AppColors.emerald600,
             foregroundColor: AppColors.bg,
             minimumSize: const Size.fromHeight(52),
           ),

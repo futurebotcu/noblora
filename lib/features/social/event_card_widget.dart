@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/event.dart';
 
-const _violet = AppColors.violet;
-const _violetLight = Color(0xFFA98CE8);
+const _accent = AppColors.emerald700;
 
 class EventCardWidget extends StatelessWidget {
   final NobEvent event;
@@ -21,19 +21,15 @@ class EventCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressEffect(
       onTap: onTap,
+      scale: 0.98,
       child: Container(
         margin: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.sm,
         ),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: context.borderSubtleColor, width: 0.5),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 3))],
-        ),
+        decoration: Premium.cardDecoration(radius: AppSpacing.radiusLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -50,7 +46,7 @@ class EventCardWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _violet.withValues(alpha: 0.3),
+                          color: _accent.withValues(alpha: 0.3),
                           blurRadius: 8,
                           spreadRadius: 1,
                         ),
@@ -58,14 +54,14 @@ class EventCardWidget extends StatelessWidget {
                     ),
                     child: CircleAvatar(
                       radius: 18,
-                      backgroundColor: _violet.withValues(alpha: 0.3),
+                      backgroundColor: _accent.withValues(alpha: 0.3),
                       backgroundImage: event.hostPhotoUrl != null
                           ? NetworkImage(event.hostPhotoUrl!)
                           : null,
                       child: event.hostPhotoUrl == null
                           ? Text(
                               (event.hostName ?? '?')[0].toUpperCase(),
-                              style: const TextStyle(color: _violet, fontSize: 14, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: _accent, fontSize: 14, fontWeight: FontWeight.w600),
                             )
                           : null,
                     ),
@@ -85,10 +81,10 @@ class EventCardWidget extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color: _violet.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
+                                color: _accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('Host', style: TextStyle(color: _violet, fontSize: 9, fontWeight: FontWeight.w600)),
+                              child: const Text('Host', style: TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ),
@@ -107,13 +103,13 @@ class EventCardWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                     decoration: BoxDecoration(
-                      color: event.isUpcoming ? _violet.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1),
+                      color: event.isUpcoming ? _accent.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     child: Text(
                       event.timeLabel,
                       style: TextStyle(
-                        color: event.isUpcoming ? _violet : AppColors.error,
+                        color: event.isUpcoming ? _accent : AppColors.error,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -149,11 +145,11 @@ class EventCardWidget extends StatelessWidget {
                     const Spacer(),
                   ],
                   // Attendee count
-                  Icon(Icons.people_outline_rounded, color: _violetLight, size: 14),
+                  Icon(Icons.people_outline_rounded, color: _accent.withValues(alpha: 0.6), size: 14),
                   const SizedBox(width: 4),
                   Text(
                     '${event.attendeeCount}/${event.maxAttendees}',
-                    style: TextStyle(color: _violetLight, fontSize: 12, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: _accent.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -165,13 +161,13 @@ class EventCardWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: event.fillPercent,
                   minHeight: 3,
                   backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    event.fillPercent > 0.8 ? AppColors.warning : _violet,
+                    event.fillPercent > 0.8 ? AppColors.warning : _accent,
                   ),
                 ),
               ),
@@ -192,7 +188,7 @@ class EventCardWidget extends StatelessWidget {
                       icon: const Icon(Icons.add_rounded, size: 16),
                       label: const Text('Going'),
                       style: TextButton.styleFrom(
-                        foregroundColor: _violet,
+                        foregroundColor: _accent,
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                         visualDensity: VisualDensity.compact,
                       ),

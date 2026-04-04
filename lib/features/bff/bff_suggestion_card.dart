@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/bff_suggestion.dart';
 
-const _teal = AppColors.teal;
-const _tealLight = Color(0xFF2FC3CC);
+const _accent = AppColors.emerald500;
+const _accentLight = Color(0xFF2FC3CC);
 
 class BffSuggestionCard extends StatelessWidget {
   final BffSuggestion suggestion;
@@ -35,12 +36,7 @@ class BffSuggestionCard extends StatelessWidget {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.sm,
       ),
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: context.borderSubtleColor, width: 0.5),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 3))],
-      ),
+      decoration: Premium.cardDecoration(radius: AppSpacing.radiusLg, withGlow: true),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -49,22 +45,28 @@ class BffSuggestionCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: _teal.withValues(alpha: 0.2),
-                  backgroundImage: suggestion.otherUserPhotoUrl != null
-                      ? NetworkImage(suggestion.otherUserPhotoUrl!)
-                      : null,
-                  child: suggestion.otherUserPhotoUrl == null
-                      ? Text(
-                          (suggestion.otherUserName ?? '?')[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: _teal,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.15), blurRadius: 12, spreadRadius: 1)],
+                  ),
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: _accent.withValues(alpha: 0.2),
+                    backgroundImage: suggestion.otherUserPhotoUrl != null
+                        ? NetworkImage(suggestion.otherUserPhotoUrl!)
+                        : null,
+                    child: suggestion.otherUserPhotoUrl == null
+                        ? Text(
+                            (suggestion.otherUserName ?? '?')[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: _accent,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -82,7 +84,7 @@ class BffSuggestionCard extends StatelessWidget {
                       Text(
                         'Suggested for you',
                         style: TextStyle(
-                          color: _teal.withValues(alpha: 0.8),
+                          color: _accent.withValues(alpha: 0.8),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -138,7 +140,7 @@ class BffSuggestionCard extends StatelessWidget {
                 Text(
                   'You might get along',
                   style: TextStyle(
-                    color: _tealLight,
+                    color: _accentLight,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -150,7 +152,7 @@ class BffSuggestionCard extends StatelessWidget {
                       child: Row(
                         children: [
                           Icon(Icons.check_circle_outline_rounded,
-                              color: _teal.withValues(alpha: 0.6), size: 16),
+                              color: _accent.withValues(alpha: 0.6), size: 16),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
@@ -239,10 +241,10 @@ class BffSuggestionCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: context.textMuted.withValues(alpha: 0.3)),
+                      side: BorderSide(color: context.textMuted.withValues(alpha: 0.2)),
                       foregroundColor: context.textMuted,
                       minimumSize: const Size.fromHeight(44),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                     ),
                     onPressed: onPass,
                     child: const Text('Pass'),
@@ -251,16 +253,22 @@ class BffSuggestionCard extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.people_rounded, size: 18),
-                    label: const Text('Connect'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _teal,
-                      foregroundColor: context.bgColor,
-                      minimumSize: const Size.fromHeight(44),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      boxShadow: Premium.emeraldGlow(intensity: 0.5),
                     ),
-                    onPressed: onConnect,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.people_rounded, size: 18),
+                      label: const Text('Connect'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      ),
+                      onPressed: onConnect,
+                    ),
                   ),
                 ),
               ],
@@ -273,14 +281,14 @@ class BffSuggestionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton.icon(
-                  icon: Icon(Icons.waving_hand_rounded, size: 14, color: _teal.withValues(alpha: 0.7)),
-                  label: Text('Reach Out', style: TextStyle(color: _teal.withValues(alpha: 0.7), fontSize: 12)),
+                  icon: Icon(Icons.waving_hand_rounded, size: 14, color: _accent.withValues(alpha: 0.7)),
+                  label: Text('Reach Out', style: TextStyle(color: _accent.withValues(alpha: 0.7), fontSize: 12)),
                   onPressed: onReachOut,
                 ),
                 const SizedBox(width: AppSpacing.lg),
                 TextButton.icon(
-                  icon: Icon(Icons.mail_outline_rounded, size: 14, color: _teal.withValues(alpha: 0.7)),
-                  label: Text('Note', style: TextStyle(color: _teal.withValues(alpha: 0.7), fontSize: 12)),
+                  icon: Icon(Icons.mail_outline_rounded, size: 14, color: _accent.withValues(alpha: 0.7)),
+                  label: Text('Note', style: TextStyle(color: _accent.withValues(alpha: 0.7), fontSize: 12)),
                   onPressed: onNote,
                 ),
               ],
@@ -307,10 +315,10 @@ class BffSuggestionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.teal.withValues(alpha: 0.1),
+                color: AppColors.emerald500.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text('Nob', style: TextStyle(color: _teal, fontSize: 10, fontWeight: FontWeight.w600)),
+              child: const Text('Nob', style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(content, style: TextStyle(color: context.textPrimary, fontSize: 16, height: 1.5)),

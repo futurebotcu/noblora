@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/gating_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -279,7 +280,8 @@ class _VerifStep extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.surfaceColor,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: borderColor),
+          border: Border.all(color: borderColor, width: 0.5),
+          boxShadow: Premium.shadowMd,
         ),
         child: Row(
           children: [
@@ -376,9 +378,10 @@ class _StatusBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: color.withValues(alpha: 0.20), width: 0.5),
+        boxShadow: Premium.shadowSm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

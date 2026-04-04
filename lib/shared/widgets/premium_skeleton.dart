@@ -21,11 +21,13 @@ class PremiumSkeleton extends StatefulWidget {
 
 class _PremiumSkeletonState extends State<PremiumSkeleton> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  late Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat();
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
   }
 
   @override
@@ -34,23 +36,28 @@ class _PremiumSkeletonState extends State<PremiumSkeleton> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(widget.radius),
-          gradient: LinearGradient(
-            begin: Alignment(-1 + 2 * _ctrl.value, 0),
-            end: Alignment(-1 + 2 * _ctrl.value + 1, 0),
-            colors: [
-              context.shimmerBase,
-              context.shimmerHighlight,
-              context.shimmerBase,
-            ],
+      animation: _anim,
+      builder: (_, __) {
+        final v = _anim.value;
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.radius),
+            gradient: LinearGradient(
+              begin: Alignment(-1.5 + 3.0 * v, 0),
+              end: Alignment(-0.5 + 3.0 * v, 0),
+              stops: const [0.0, 0.4, 0.6, 1.0],
+              colors: [
+                context.shimmerBase,
+                context.shimmerHighlight,
+                context.shimmerHighlight,
+                context.shimmerBase,
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

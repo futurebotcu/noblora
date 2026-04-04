@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/room.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class RoomCardWidget extends StatelessWidget {
   final Room room;
@@ -20,25 +21,15 @@ class RoomCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressEffect(
       onTap: onTap,
+      scale: 0.98,
       child: Container(
         margin: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.sm,
         ),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: context.borderSubtleColor, width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
+        decoration: Premium.cardDecoration(radius: AppSpacing.radiusLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -55,7 +46,7 @@ class RoomCardWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _violet.withValues(alpha: 0.3),
+                          color: _accent.withValues(alpha: 0.3),
                           blurRadius: 8,
                           spreadRadius: 1,
                         ),
@@ -63,7 +54,7 @@ class RoomCardWidget extends StatelessWidget {
                     ),
                     child: CircleAvatar(
                       radius: 18,
-                      backgroundColor: _violet.withValues(alpha: 0.2),
+                      backgroundColor: _accent.withValues(alpha: 0.2),
                       backgroundImage: room.hostPhotoUrl != null
                           ? NetworkImage(room.hostPhotoUrl!)
                           : null,
@@ -71,7 +62,7 @@ class RoomCardWidget extends StatelessWidget {
                           ? Text(
                               (room.hostName ?? '?')[0].toUpperCase(),
                               style: const TextStyle(
-                                color: _violet,
+                                color: _accent,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -99,13 +90,13 @@ class RoomCardWidget extends StatelessWidget {
                                 horizontal: 5, vertical: 1,
                               ),
                               decoration: BoxDecoration(
-                                color: _violet.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
+                                color: _accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
                                 'Host',
                                 style: TextStyle(
-                                  color: _violet,
+                                  color: _accent,
                                   fontSize: 9,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -132,13 +123,13 @@ class RoomCardWidget extends StatelessWidget {
                       vertical: AppSpacing.xs,
                     ),
                     decoration: BoxDecoration(
-                      color: _violet.withValues(alpha: 0.08),
+                      color: _accent.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     child: Text(
                       room.ageLabel,
                       style: const TextStyle(
-                        color: _violet,
+                        color: _accent,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -180,16 +171,16 @@ class RoomCardWidget extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _violet.withValues(alpha: 0.06),
+                        color: _accent.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
                         border: Border.all(
-                          color: _violet.withValues(alpha: 0.12),
+                          color: _accent.withValues(alpha: 0.12),
                         ),
                       ),
                       child: Text(
                         tag,
                         style: TextStyle(
-                          color: _violet.withValues(alpha: 0.7),
+                          color: _accent.withValues(alpha: 0.7),
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
@@ -206,22 +197,22 @@ class RoomCardWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Row(
                 children: [
-                  Icon(Icons.near_me_outlined, color: _violet.withValues(alpha: 0.5), size: 13),
+                  Icon(Icons.near_me_outlined, color: _accent.withValues(alpha: 0.5), size: 13),
                   const SizedBox(width: 4),
                   Text(
                     room.distanceLabel,
                     style: TextStyle(
-                      color: _violet.withValues(alpha: 0.6),
+                      color: _accent.withValues(alpha: 0.6),
                       fontSize: 11,
                     ),
                   ),
                   const Spacer(),
-                  Icon(Icons.people_outline_rounded, color: _violet.withValues(alpha: 0.6), size: 14),
+                  Icon(Icons.people_outline_rounded, color: _accent.withValues(alpha: 0.6), size: 14),
                   const SizedBox(width: 4),
                   Text(
                     '${room.participantCount}/${room.maxParticipants}',
                     style: TextStyle(
-                      color: _violet.withValues(alpha: 0.6),
+                      color: _accent.withValues(alpha: 0.6),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -236,13 +227,13 @@ class RoomCardWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: room.fillPercent,
                   minHeight: 3,
                   backgroundColor: context.borderColor,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    room.fillPercent > 0.8 ? AppColors.warning : _violet,
+                    room.fillPercent > 0.8 ? AppColors.warning : _accent,
                   ),
                 ),
               ),
@@ -266,7 +257,7 @@ class RoomCardWidget extends StatelessWidget {
                       icon: const Icon(Icons.login_rounded, size: 16),
                       label: const Text('Join'),
                       style: TextButton.styleFrom(
-                        foregroundColor: _violet,
+                        foregroundColor: _accent,
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.sm,
                         ),

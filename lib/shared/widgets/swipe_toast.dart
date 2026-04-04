@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/premium.dart';
 
 enum ToastType { signal, match, message, event, system, success, error }
 
@@ -64,8 +65,8 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
   Color get _dotColor => switch (widget.type) {
     ToastType.signal => AppColors.emerald500,
     ToastType.match => AppColors.emerald500,
-    ToastType.message => AppColors.info,
-    ToastType.event => const Color(0xFF9B6DFF),
+    ToastType.message => AppColors.emerald500,
+    ToastType.event => AppColors.emerald700,
     ToastType.system => AppColors.textMuted,
     ToastType.success => AppColors.emerald500,
     ToastType.error => AppColors.error,
@@ -128,7 +129,9 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
                     width: 0.5,
                   ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 4)),
+                    ...Premium.shadowMd,
+                    if (isImportant || widget.type == ToastType.success)
+                      BoxShadow(color: _dotColor.withValues(alpha: 0.12), blurRadius: 20, spreadRadius: -2),
                   ],
                 ),
                 child: Row(

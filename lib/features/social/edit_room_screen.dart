@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/room.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 const _topicOptions = [
   'Tech', 'Design', 'Startup', 'Music', 'Film',
@@ -123,11 +124,11 @@ class _EditRoomScreenState extends ConsumerState<EditRoomScreen> {
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: selected ? _violet.withValues(alpha: 0.12) : AppColors.elevated,
+                      color: selected ? _accent.withValues(alpha: 0.12) : AppColors.elevated,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                      border: Border.all(color: selected ? _violet.withValues(alpha: 0.4) : AppColors.borderSubtle, width: 0.5),
+                      border: Border.all(color: selected ? _accent.withValues(alpha: 0.4) : AppColors.borderSubtle, width: 0.5),
                     ),
-                    child: Text(tag, style: TextStyle(color: selected ? _violet : AppColors.textMuted, fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+                    child: Text(tag, style: TextStyle(color: selected ? _accent : AppColors.textMuted, fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
                   ),
                 );
               }).toList(),
@@ -136,10 +137,10 @@ class _EditRoomScreenState extends ConsumerState<EditRoomScreen> {
             Row(children: [
               const Text('Max participants', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               const Spacer(),
-              Text('$_maxParticipants', style: const TextStyle(color: _violet, fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('$_maxParticipants', style: const TextStyle(color: _accent, fontSize: 16, fontWeight: FontWeight.w700)),
             ]),
             SliderTheme(
-              data: SliderThemeData(activeTrackColor: _violet, inactiveTrackColor: AppColors.border, thumbColor: _violet),
+              data: SliderThemeData(activeTrackColor: _accent, inactiveTrackColor: AppColors.border, thumbColor: _accent),
               child: Slider(value: _maxParticipants.toDouble(), min: 5, max: 20, divisions: 15, onChanged: (v) => setState(() => _maxParticipants = v.round())),
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -151,11 +152,15 @@ class _EditRoomScreenState extends ConsumerState<EditRoomScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
             ],
-            SizedBox(
+            Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                boxShadow: _submitting ? null : Premium.emeraldGlow(intensity: 0.5),
+              ),
               child: ElevatedButton(
                 onPressed: _submitting ? null : _save,
-                style: ElevatedButton.styleFrom(backgroundColor: _violet, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
+                style: ElevatedButton.styleFrom(backgroundColor: _accent, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
                 child: _submitting
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),

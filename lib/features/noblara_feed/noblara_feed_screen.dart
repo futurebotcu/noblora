@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
@@ -54,7 +56,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
           : null,
       body: SafeArea(
         child: RefreshIndicator(
-          color: AppColors.noblaraGold,
+          color: AppColors.emerald600,
           backgroundColor: context.surfaceColor,
           onRefresh: () => ref.read(postsProvider.notifier).refresh(),
           child: CustomScrollView(
@@ -135,7 +137,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
                         color: context.surfaceColor,
                         borderRadius: BorderRadius.circular(10),
                         border: Border(
-                          left: BorderSide(color: AppColors.noblaraGold, width: 2.5),
+                          left: BorderSide(color: AppColors.emerald600, width: 2.5),
                         ),
                       ),
                       child: Text(
@@ -231,7 +233,11 @@ class _HeaderIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: context.textMuted, size: 22),
@@ -251,25 +257,21 @@ class _ComposeFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       child: Container(
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         decoration: BoxDecoration(
-          color: AppColors.noblaraGold,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.emerald500, AppColors.emerald600],
+          ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.noblaraGold.withValues(alpha: 0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: AppColors.emerald600.withValues(alpha: 0.12),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: Premium.emeraldGlow(intensity: 1.3),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -302,34 +304,58 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: context.surfaceColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: context.borderColor),
-            ),
-            child: Icon(Icons.article_outlined, color: context.textMuted, size: 32),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+          decoration: Premium.emptyStateDecoration(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.emerald600.withValues(alpha: 0.10),
+                      AppColors.emerald600.withValues(alpha: 0.03),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: AppColors.emerald600.withValues(alpha: 0.12),
+                    width: 0.5,
+                  ),
+                ),
+                child: Icon(Icons.article_outlined,
+                    color: AppColors.emerald600.withValues(alpha: 0.4), size: 28),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No Nobs yet',
+                style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Be the first to share a thought\nwith the community.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(
-            'No Nobs yet.',
-            style: TextStyle(
-              color: context.textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Be the first to share a thought.',
-            style: TextStyle(color: context.textMuted, fontSize: 14),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -415,11 +441,17 @@ class _TierBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _color.withValues(alpha: 0.25)),
+        color: _color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _color.withValues(alpha: 0.18), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: _color.withValues(alpha: 0.06),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: Text(
         tier.label.toUpperCase(),
@@ -466,13 +498,12 @@ class _NobCard extends StatelessWidget {
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: post.isPinned ? AppColors.emerald600.withValues(alpha: 0.35) : AppColors.borderLight,
-          width: post.isPinned ? 1.5 : 1,
+          color: post.isPinned
+              ? AppColors.emerald600.withValues(alpha: 0.30)
+              : AppColors.borderLight.withValues(alpha: 0.5),
+          width: post.isPinned ? 1 : 0.5,
         ),
-        boxShadow: [
-          BoxShadow(color: const Color(0x38000000), blurRadius: 12, offset: const Offset(0, 4)),
-          BoxShadow(color: const Color(0x20000000), blurRadius: 32, offset: const Offset(0, 12)),
-        ],
+        boxShadow: Premium.shadowMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,7 +527,7 @@ class _NobCard extends StatelessWidget {
             child: Row(
               children: [
                 if (post.isPinned) ...[
-                  const Icon(Icons.push_pin_rounded, color: AppColors.noblaraGold, size: 12),
+                  const Icon(Icons.push_pin_rounded, color: AppColors.emerald600, size: 12),
                   const SizedBox(width: 6),
                 ],
                 GestureDetector(
@@ -672,7 +703,7 @@ class _NobCard extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('Send', style: TextStyle(color: AppColors.noblaraGold)),
+            child: const Text('Send', style: TextStyle(color: AppColors.emerald600)),
           ),
         ],
       ),
@@ -680,7 +711,7 @@ class _NobCard extends StatelessWidget {
       if (text != null && text.toString().isNotEmpty && context.mounted) {
         onSendNote?.call(post.userId, 'post', post.id, text.toString());
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.noblaraGold),
+          const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.emerald600),
         );
       }
     });
@@ -719,7 +750,7 @@ class _OwnerMenu extends StatelessWidget {
       },
       itemBuilder: (_) => [
         PopupMenuItem(value: 'pin', child: Row(children: [
-          Icon(post.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded, color: AppColors.noblaraGold, size: 15),
+          Icon(post.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded, color: AppColors.emerald600, size: 15),
           const SizedBox(width: 8),
           Text(post.isPinned ? 'Unpin' : 'Pin to top', style: TextStyle(color: context.textPrimary, fontSize: 13)),
         ])),
@@ -742,7 +773,7 @@ class _OwnerMenu extends StatelessWidget {
 // Reaction button
 // ---------------------------------------------------------------------------
 
-class _ReactionBtn extends StatelessWidget {
+class _ReactionBtn extends StatefulWidget {
   final String emoji;
   final String type;
   final bool isActive;
@@ -751,19 +782,56 @@ class _ReactionBtn extends StatelessWidget {
   const _ReactionBtn({required this.emoji, required this.type, required this.isActive, required this.onTap, this.isSubtle = false});
 
   @override
+  State<_ReactionBtn> createState() => _ReactionBtnState();
+}
+
+class _ReactionBtnState extends State<_ReactionBtn>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleCtrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.90).animate(
+      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final activeColor = isSubtle ? context.textMuted : AppColors.noblaraGold;
+    final activeColor = widget.isSubtle ? context.textMuted : AppColors.emerald600;
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? activeColor.withValues(alpha: 0.35) : context.borderSubtleColor),
+      onTapDown: (_) => _scaleCtrl.forward(),
+      onTapUp: (_) => _scaleCtrl.reverse(),
+      onTapCancel: () => _scaleCtrl.reverse(),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      child: ScaleTransition(
+        scale: _scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: widget.isActive ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: widget.isActive ? activeColor.withValues(alpha: 0.35) : context.borderSubtleColor),
+          ),
+          child: Text(widget.emoji, style: TextStyle(fontSize: 14, color: widget.isActive ? null : context.textMuted)),
         ),
-        child: Text(emoji, style: TextStyle(fontSize: 14, color: isActive ? null : context.textMuted)),
       ),
     );
   }
@@ -879,7 +947,10 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
@@ -908,7 +979,10 @@ class _ToggleChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
@@ -987,20 +1061,20 @@ class _AuthorProfileSheet extends StatelessWidget {
             Row(children: [
               Expanded(child: OutlinedButton.icon(
                 icon: const Icon(Icons.bolt_rounded, size: 16), label: const Text('Signal'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.gold, side: BorderSide(color: AppColors.gold.withValues(alpha: 0.4))),
-                onPressed: () { Navigator.pop(context); onSignal?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signal sent'), backgroundColor: AppColors.gold)); },
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
+                onPressed: () { Navigator.pop(context); onSignal?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signal sent'), backgroundColor: AppColors.emerald600)); },
               )),
               const SizedBox(width: 10),
               Expanded(child: OutlinedButton.icon(
                 icon: const Icon(Icons.people_rounded, size: 16), label: const Text('Reach Out'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.teal, side: BorderSide(color: AppColors.teal.withValues(alpha: 0.4))),
-                onPressed: () { Navigator.pop(context); onReachOut?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Reached out!'), backgroundColor: AppColors.teal)); },
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald500, side: BorderSide(color: AppColors.emerald500.withValues(alpha: 0.4))),
+                onPressed: () { Navigator.pop(context); onReachOut?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Reached out!'), backgroundColor: AppColors.emerald500)); },
               )),
             ]),
             const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
               icon: const Icon(Icons.mail_outline_rounded, size: 16), label: const Text('Send Note'),
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.noblaraGold, side: BorderSide(color: AppColors.noblaraGold.withValues(alpha: 0.4))),
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
               onPressed: () => Navigator.pop(context),
             )),
           ],

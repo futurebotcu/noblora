@@ -153,7 +153,7 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
                     : null,
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.gold.withValues(alpha: 0.5)),
+                  borderSide: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.5)),
                 ),
               ),
             ),
@@ -162,7 +162,7 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
           if (_loading)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xxl),
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.emerald600),
             ),
 
           // Results

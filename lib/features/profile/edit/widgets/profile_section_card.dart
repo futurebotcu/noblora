@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/premium.dart';
 
 class ProfileSectionCard extends StatefulWidget {
   final IconData icon;
@@ -86,13 +87,7 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
                     : context.borderColor.withValues(alpha: 0.3),
                 width: 0.5,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              boxShadow: Premium.shadowMd,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

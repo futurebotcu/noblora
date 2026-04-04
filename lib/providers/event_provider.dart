@@ -160,24 +160,36 @@ class EventDetailNotifier extends StateNotifier<EventDetailState> {
     }
   }
 
+  /// Reload only the messages list (not event + participants).
+  Future<void> refreshMessages() async {
+    final repo = _ref.read(eventRepositoryProvider);
+    final messages = await repo.fetchMessages(eventId, hostId: state.event?.hostId);
+    state = EventDetailState(
+      event: state.event,
+      participants: state.participants,
+      messages: messages,
+    );
+  }
+
   Future<void> sendMessage(String content) async {
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     final repo = _ref.read(eventRepositoryProvider);
     await repo.sendMessage(eventId, uid, content);
-    await load();
+    // Only refresh messages, not the entire event+participants
+    await refreshMessages();
   }
 
   Future<void> flagGold(String messageId) async {
     final repo = _ref.read(eventRepositoryProvider);
     await repo.flagGold(messageId);
-    await load();
+    await refreshMessages();
   }
 
   Future<void> flagBlue(String messageId) async {
     final repo = _ref.read(eventRepositoryProvider);
     await repo.flagBlue(messageId);
-    await load();
+    await refreshMessages();
   }
 
   Future<void> updateMyAttendance(String status) async {

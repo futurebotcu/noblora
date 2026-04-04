@@ -37,6 +37,18 @@ class RoomRepository {
     return rooms;
   }
 
+  // ─── Fetch single room ──────────────────────────────────────
+
+  Future<Room?> fetchRoom(String roomId) async {
+    if (isMockMode) return null;
+    final row = await _supabase!
+        .from('rooms')
+        .select('*, host_profile:profiles!rooms_host_id_fkey(display_name, date_avatar_url)')
+        .eq('id', roomId)
+        .maybeSingle();
+    return row != null ? Room.fromJson(row) : null;
+  }
+
   // ─── Join / Leave ───────────────────────────────────────────
 
   Future<String> joinRoom(String roomId) async {
@@ -106,7 +118,8 @@ class RoomRepository {
         .from('room_messages')
         .select('*, profiles(display_name, date_avatar_url)')
         .eq('room_id', roomId)
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true)
+        .limit(200);
 
     return rows.map((r) => RoomMessage.fromJson(r, hostId: hostId)).toList();
   }

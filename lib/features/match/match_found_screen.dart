@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 
 class MatchFoundScreen extends StatefulWidget {
@@ -77,10 +78,21 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
               children: [
                 ScaleTransition(
                   scale: _pulseAnim,
-                  child: Icon(
-                    mode.icon,
-                    color: mode.accentColor,
-                    size: 80,
+                  child: Container(
+                    width: 100, height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        colors: [mode.accentColor.withValues(alpha: 0.15), mode.accentColor.withValues(alpha: 0.04)],
+                      ),
+                      border: Border.all(color: mode.accentColor.withValues(alpha: 0.20), width: 0.5),
+                      boxShadow: [
+                        ...Premium.accentGlow(mode.accentColor, intensity: 1.2),
+                        ...Premium.shadowLg,
+                      ],
+                    ),
+                    child: Icon(mode.icon, color: mode.accentColor, size: 48),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -111,10 +123,10 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: mode.accentLight,
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: mode.accentColor.withValues(alpha: 0.4)),
+                    color: mode.accentColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(color: mode.accentColor.withValues(alpha: 0.15), width: 0.5),
+                    boxShadow: Premium.shadowMd,
                   ),
                   child: Row(
                     children: [
@@ -148,12 +160,16 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
-                SizedBox(
+                Container(
                   width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    boxShadow: Premium.accentGlow(mode.accentColor, intensity: 0.8),
+                  ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mode.accentColor,
-                      foregroundColor: AppColors.bg,
+                      foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                         borderRadius:

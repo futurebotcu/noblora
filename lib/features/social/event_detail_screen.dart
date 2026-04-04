@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/event_participant.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -10,7 +11,7 @@ import 'edit_event_screen.dart';
 import 'event_chat_screen.dart';
 import 'event_checkin_screen.dart';
 
-const _violet = AppColors.violet;
+const _accent = AppColors.emerald700;
 
 class EventDetailScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -39,7 +40,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       return Scaffold(
         backgroundColor: AppColors.bg,
         appBar: AppBar(backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent),
-        body: const Center(child: CircularProgressIndicator(color: _violet)),
+        body: const Center(child: CircularProgressIndicator(color: _accent)),
       );
     }
 
@@ -55,7 +56,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         actions: [
           if (isHost && !isLocked)
             IconButton(
-              icon: const Icon(Icons.edit_outlined, color: _violet),
+              icon: const Icon(Icons.edit_outlined, color: _accent),
               onPressed: () async {
                 final edited = await Navigator.push<bool>(
                   context,
@@ -69,7 +70,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
           if (!isLocked)
             IconButton(
-              icon: const Icon(Icons.chat_rounded, color: _violet),
+              icon: const Icon(Icons.chat_rounded, color: _accent),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => EventChatScreen(eventId: widget.eventId)),
@@ -98,9 +99,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                color: AppColors.warning.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.15), width: 0.5),
+                boxShadow: Premium.shadowSm,
               ),
               child: const Text(
                 'This event has ended. Chat is now read-only.',
@@ -127,9 +129,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   flex: 2,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _violet, foregroundColor: Colors.white,
+                      backgroundColor: _accent, foregroundColor: AppColors.textOnEmerald,
                       minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () => _joinWithCompanion(context),
                     child: const Text('Going'),
@@ -166,7 +168,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('On my way!')));
                       }
                     },
-                    child: Text('\u231B On My Way', style: TextStyle(color: _violet, fontSize: 13)),
+                    child: Text('\u231B On My Way', style: TextStyle(color: _accent, fontSize: 13)),
                   ),
                 ),
                 Expanded(
@@ -189,8 +191,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             const SizedBox(height: AppSpacing.lg),
             OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _violet),
-                foregroundColor: _violet,
+                side: const BorderSide(color: _accent),
+                foregroundColor: _accent,
                 minimumSize: const Size.fromHeight(48),
               ),
               onPressed: () => Navigator.push(
@@ -242,8 +244,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: _violet.withValues(alpha: 0.2),
-            child: Text((p.displayName ?? '?')[0].toUpperCase(), style: const TextStyle(color: _violet, fontSize: 14)),
+            backgroundColor: _accent.withValues(alpha: 0.2),
+            child: Text((p.displayName ?? '?')[0].toUpperCase(), style: const TextStyle(color: _accent, fontSize: 14)),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -254,8 +256,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                    child: const Text('Host', style: TextStyle(color: _violet, fontSize: 9, fontWeight: FontWeight.w600)),
+                    decoration: BoxDecoration(color: _accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                    child: const Text('Host', style: TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.w600)),
                   ),
                 ],
                 if (p.companionCount > 0) ...[
@@ -293,11 +295,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: _violet.withValues(alpha: 0.2),
+                  backgroundColor: _accent.withValues(alpha: 0.2),
                   backgroundImage: p.photoUrl != null ? NetworkImage(p.photoUrl!) : null,
                   child: p.photoUrl == null
                       ? Text((p.displayName ?? '?')[0].toUpperCase(),
-                          style: const TextStyle(color: _violet, fontSize: 24, fontWeight: FontWeight.w600))
+                          style: const TextStyle(color: _accent, fontSize: 24, fontWeight: FontWeight.w600))
                       : null,
                 ),
                 const SizedBox(width: AppSpacing.lg),
@@ -311,8 +313,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                         Container(
                           margin: const EdgeInsets.only(top: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-                          child: const Text('Host', style: TextStyle(color: _violet, fontSize: 10, fontWeight: FontWeight.w600)),
+                          decoration: BoxDecoration(color: _accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                          child: const Text('Host', style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w600)),
                         ),
                     ],
                   ),
@@ -360,11 +362,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _violet.withValues(alpha: 0.1),
+                    color: _accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _violet.withValues(alpha: 0.3)),
+                    border: Border.all(color: _accent.withValues(alpha: 0.3)),
                   ),
-                  child: const Text('+3 mode enabled', style: TextStyle(color: _violet, fontSize: 11)),
+                  child: const Text('+3 mode enabled', style: TextStyle(color: _accent, fontSize: 11)),
                 ),
               ),
             const SizedBox(height: AppSpacing.xxl),
@@ -377,12 +379,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                     child: Container(
                       width: 64, height: 64,
                       decoration: BoxDecoration(
-                        color: _violet.withValues(alpha: 0.1),
+                        color: _accent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        border: Border.all(color: _violet.withValues(alpha: 0.3)),
+                        border: Border.all(color: _accent.withValues(alpha: 0.3)),
                       ),
                       child: Center(child: Text(n == 0 ? 'Just me' : '+$n',
-                          style: TextStyle(color: _violet, fontWeight: FontWeight.w600))),
+                          style: TextStyle(color: _accent, fontWeight: FontWeight.w600))),
                     ),
                   ),
               ],
@@ -415,7 +417,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Icon(icon, color: _violet, size: 18),
+          Icon(icon, color: _accent, size: 18),
           const SizedBox(width: AppSpacing.md),
           Expanded(child: Text(text, style: TextStyle(color: AppColors.textSecondary, fontSize: 14))),
         ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/real_meeting.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/real_meeting_provider.dart';
@@ -196,7 +197,7 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
                       onPressed:
                           _submitting ? null : () => _confirm(meeting),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
+                        backgroundColor: AppColors.emerald600,
                         foregroundColor: AppColors.bg,
                         minimumSize: const Size.fromHeight(48),
                       ),
@@ -285,10 +286,10 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
                       borderRadius:
                           BorderRadius.circular(AppSpacing.radiusSm),
                       borderSide:
-                          const BorderSide(color: AppColors.gold),
+                          const BorderSide(color: AppColors.emerald600),
                     ),
                     prefixIcon: const Icon(Icons.location_on_rounded,
-                        color: AppColors.gold),
+                        color: AppColors.emerald600),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -314,11 +315,11 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
                   ),
                   child: Row(children: [
                     const Icon(Icons.event_rounded,
-                        color: AppColors.gold, size: 18),
+                        color: AppColors.emerald600, size: 18),
                     const SizedBox(width: AppSpacing.sm),
                     Text(_formattedScheduled,
                         style: const TextStyle(
-                            color: AppColors.gold,
+                            color: AppColors.emerald600,
                             fontWeight: FontWeight.w600)),
                   ]),
                 ),
@@ -327,7 +328,7 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
+                      backgroundColor: AppColors.emerald600,
                       foregroundColor: AppColors.bg,
                       minimumSize: const Size.fromHeight(52),
                     ),
@@ -395,18 +396,18 @@ class _ConfirmedView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.12),
+                color: AppColors.emerald600.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.handshake_rounded,
-                  color: AppColors.gold, size: 40),
+                  color: AppColors.emerald600, size: 40),
             ),
             const SizedBox(height: AppSpacing.xxl),
             Text('It\'s a Date!',
                 style: Theme.of(context)
                     .textTheme
                     .headlineMedium
-                    ?.copyWith(color: AppColors.gold)),
+                    ?.copyWith(color: AppColors.emerald600)),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'You and $otherUserName are meeting up.',
@@ -436,13 +437,13 @@ class _ConfirmedView extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Safety card copied — share with a trusted contact'),
-                      backgroundColor: AppColors.gold,
+                      backgroundColor: AppColors.emerald600,
                     ),
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.gold.withValues(alpha: 0.4)),
-                  foregroundColor: AppColors.gold,
+                  side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4)),
+                  foregroundColor: AppColors.emerald600,
                   minimumSize: const Size.fromHeight(48),
                 ),
               ),
@@ -477,13 +478,14 @@ class _InfoBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.08),
+        color: AppColors.emerald600.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.15), width: 0.5),
+        boxShadow: Premium.shadowSm,
       ),
       child: Row(
         children: [
-          const Icon(Icons.place_rounded, color: AppColors.gold),
+          const Icon(Icons.place_rounded, color: AppColors.emerald600),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -491,7 +493,7 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 const Text('Plan a Real Meetup',
                     style: TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.emerald600,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
@@ -518,31 +520,31 @@ class _MeetingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.1),
+        color: AppColors.emerald600.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.schedule_rounded, color: AppColors.gold, size: 18),
+            const Icon(Icons.schedule_rounded, color: AppColors.emerald600, size: 18),
             const SizedBox(width: AppSpacing.sm),
             Text(fmt.format(meeting.scheduledAt.toLocal()),
                 style: const TextStyle(
-                    color: AppColors.gold, fontWeight: FontWeight.w600)),
+                    color: AppColors.emerald600, fontWeight: FontWeight.w600)),
           ]),
           if (meeting.locationText != null &&
               meeting.locationText!.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Row(children: [
               const Icon(Icons.location_on_rounded,
-                  color: AppColors.gold, size: 18),
+                  color: AppColors.emerald600, size: 18),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(meeting.locationText!,
                     style: const TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.emerald600,
                         fontWeight: FontWeight.w500)),
               ),
             ]),
@@ -575,11 +577,11 @@ class _DateSelector extends StatelessWidget {
             child: Container(
               width: 56,
               decoration: BoxDecoration(
-                color: isSel ? AppColors.gold : AppColors.surface,
+                color: isSel ? AppColors.emerald600 : AppColors.surface,
                 borderRadius:
                     BorderRadius.circular(AppSpacing.radiusSm),
                 border: Border.all(
-                    color: isSel ? AppColors.gold : AppColors.border),
+                    color: isSel ? AppColors.emerald600 : AppColors.border),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -626,11 +628,11 @@ class _TimeSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: isSel ? AppColors.gold : AppColors.surface,
+              color: isSel ? AppColors.emerald600 : AppColors.surface,
               borderRadius:
                   BorderRadius.circular(AppSpacing.radiusSm),
               border: Border.all(
-                  color: isSel ? AppColors.gold : AppColors.border),
+                  color: isSel ? AppColors.emerald600 : AppColors.border),
             ),
             child: Text(t.format(context),
                 style: TextStyle(

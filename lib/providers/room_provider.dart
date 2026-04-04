@@ -191,22 +191,53 @@ class RoomChatNotifier extends StateNotifier<RoomChatState> {
       state = state.copyWith(isLoading: false);
     }
 
-    // Subscribe to realtime messages
+    // Subscribe to realtime messages — enrich with participant profile cache
     _msgSub = repo.watchRoomMessages(roomId).listen(
       (rows) {
         if (!mounted) return;
-        final msgs = rows.map((r) => RoomMessage.fromJson(r, hostId: hostId)).toList();
+        final msgs = rows.map((r) {
+          final msg = RoomMessage.fromJson(r, hostId: hostId);
+          // If stream data lacks profile info, fill from participant cache
+          if (msg.senderName == null && state.participants.isNotEmpty) {
+            final p = state.participants
+                .where((p) => p.userId == msg.senderId)
+                .firstOrNull;
+            if (p != null) {
+              return RoomMessage(
+                id: msg.id,
+                roomId: msg.roomId,
+                senderId: msg.senderId,
+                content: msg.content,
+                goldFlagged: msg.goldFlagged,
+                blueFlagged: msg.blueFlagged,
+                blueFlaggedBy: msg.blueFlaggedBy,
+                createdAt: msg.createdAt,
+                senderName: p.displayName,
+                senderAvatarUrl: p.avatarUrl,
+                isHost: msg.isHost,
+              );
+            }
+          }
+          return msg;
+        }).toList();
         state = state.copyWith(messages: msgs);
       },
       onError: (Object e) {},
     );
 
-    // Subscribe to realtime participants
+    // Subscribe to realtime participants — re-fetch full data with profile JOIN
     _partSub = repo.watchRoomParticipants(roomId).listen(
-      (rows) {
+      (rows) async {
         if (!mounted) return;
-        final parts = rows.map((r) => RoomParticipant.fromJson(r)).toList();
-        state = state.copyWith(participants: parts);
+        // Stream data lacks profile JOIN; re-fetch with proper query
+        try {
+          final participants = await repo.fetchParticipants(roomId);
+          if (mounted) state = state.copyWith(participants: participants);
+        } catch (_) {
+          // Fallback: use raw stream data
+          final parts = rows.map((r) => RoomParticipant.fromJson(r)).toList();
+          if (mounted) state = state.copyWith(participants: parts);
+        }
       },
       onError: (Object e) {},
     );

@@ -1,16 +1,16 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 
-const _violet = AppColors.violet;
-const _emerald = AppColors.gold;
+const _accent = AppColors.emerald700;
+const _emerald = AppColors.emerald600;
 
 class EventChatScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -44,14 +44,15 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
       filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'event_id', value: widget.eventId),
       callback: (payload) {
         if (!mounted) return;
-        ref.read(eventDetailProvider(widget.eventId).notifier).load();
+        // Only refresh messages, not the entire event+participants
+        ref.read(eventDetailProvider(widget.eventId).notifier).refreshMessages();
         _scrollToBottom();
       },
     ).subscribe();
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 200), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
@@ -82,7 +83,11 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
     _msgCtrl.clear();
-    ref.read(eventDetailProvider(widget.eventId).notifier).sendMessage(text);
+    try {
+      ref.read(eventDetailProvider(widget.eventId).notifier).sendMessage(text);
+    } catch (e) {
+      _msgCtrl.text = text;
+    }
   }
 
   @override
@@ -106,13 +111,13 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
             IconButton(
               icon: Stack(
                 children: [
-                  const Icon(Icons.flag_rounded, color: Colors.blue),
+                  const Icon(Icons.flag_rounded, color: AppColors.emerald500),
                   Positioned(
                     right: 0,
                     top: 0,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(color: AppColors.emerald500, shape: BoxShape.circle),
                       child: Text('${flagged.length}', style: const TextStyle(fontSize: 8, color: Colors.white)),
                     ),
                   ),
@@ -164,8 +169,16 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
           // ── Messages ──
           Expanded(
             child: state.isLoading
-                ? const Center(child: CircularProgressIndicator(color: _violet))
-                : ListView.builder(
+                ? const Center(child: CircularProgressIndicator(color: _accent))
+                : regular.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No messages yet.\nBe the first to say something!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.5),
+                        ),
+                      )
+                    : ListView.builder(
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: regular.length,
@@ -181,9 +194,10 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                             decoration: BoxDecoration(
-                              color: isMine ? _violet.withValues(alpha: 0.15) : AppColors.surfaceAlt,
+                              color: isMine ? _accent.withValues(alpha: 0.12) : AppColors.surfaceAlt,
                               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                              border: msg.blueFlagged ? Border.all(color: Colors.blue.withValues(alpha: 0.5)) : null,
+                              border: msg.blueFlagged ? Border.all(color: AppColors.emerald500.withValues(alpha: 0.5)) : Border.all(color: isMine ? _accent.withValues(alpha: 0.10) : AppColors.border.withValues(alpha: 0.3), width: 0.5),
+                              boxShadow: Premium.shadowSm,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,19 +208,19 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                                     children: [
                                       Text(
                                         msg.senderName ?? 'User',
-                                        style: TextStyle(color: _violet, fontSize: 11, fontWeight: FontWeight.w600),
+                                        style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w600),
                                       ),
                                       if (msg.isHost) ...[
                                         const SizedBox(width: 4),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(color: _violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
-                                          child: const Text('Host', style: TextStyle(color: _violet, fontSize: 8, fontWeight: FontWeight.w600)),
+                                          decoration: BoxDecoration(color: _accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
+                                          child: const Text('Host', style: TextStyle(color: _accent, fontSize: 8, fontWeight: FontWeight.w600)),
                                         ),
                                       ],
                                       if (msg.blueFlagged) ...[
                                         const SizedBox(width: 4),
-                                        const Icon(Icons.flag_rounded, color: Colors.blue, size: 12),
+                                        const Icon(Icons.flag_rounded, color: AppColors.emerald500, size: 12),
                                       ],
                                     ],
                                   ),
@@ -243,7 +257,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send_rounded, color: _violet),
+                    icon: const Icon(Icons.send_rounded, color: _accent),
                     onPressed: _send,
                   ),
                 ],
@@ -273,7 +287,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.flag_rounded, color: Colors.blue),
+              leading: const Icon(Icons.flag_rounded, color: AppColors.emerald500),
               title: const Text('Flag as important', style: TextStyle(color: AppColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
@@ -302,7 +316,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: Row(
                     children: [
-                      const Icon(Icons.flag_rounded, color: Colors.blue, size: 16),
+                      const Icon(Icons.flag_rounded, color: AppColors.emerald500, size: 16),
                       const SizedBox(width: 8),
                       Expanded(child: Text(m.content as String, style: TextStyle(color: AppColors.textSecondary, fontSize: 13))),
                     ],

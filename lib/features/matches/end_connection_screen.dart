@@ -142,11 +142,11 @@ Respond with JSON only:
               Center(child: Column(children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: AppColors.gold.withValues(alpha: 0.1),
+                  backgroundColor: AppColors.emerald600.withValues(alpha: 0.1),
                   backgroundImage: widget.otherUserPhotoUrl != null && widget.otherUserPhotoUrl!.startsWith('http')
                       ? NetworkImage(widget.otherUserPhotoUrl!) : null,
                   child: widget.otherUserPhotoUrl == null || !widget.otherUserPhotoUrl!.startsWith('http')
-                      ? Text(initial, style: TextStyle(color: AppColors.gold, fontSize: 22, fontWeight: FontWeight.w600))
+                      ? Text(initial, style: TextStyle(color: AppColors.emerald600, fontSize: 22, fontWeight: FontWeight.w600))
                       : null,
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -170,7 +170,7 @@ Respond with JSON only:
                     fillColor: context.surfaceColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.borderColor)),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: context.borderColor)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.gold)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.emerald600)),
                   ),
                 ),
               ),
@@ -179,7 +179,7 @@ Respond with JSON only:
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.lg),
                 child: Row(children: [
-                  Icon(Icons.auto_awesome_rounded, color: AppColors.gold.withValues(alpha: 0.6), size: 14),
+                  Icon(Icons.auto_awesome_rounded, color: AppColors.emerald600.withValues(alpha: 0.6), size: 14),
                   const SizedBox(width: 6),
                   Expanded(child: Text('Our AI ensures your message is respectful and genuine.',
                       style: TextStyle(color: context.textMuted, fontSize: 12))),
@@ -190,7 +190,7 @@ Respond with JSON only:
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: (_loading || !_canSend) ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
+                  backgroundColor: AppColors.emerald600,
                   foregroundColor: context.bgColor,
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),

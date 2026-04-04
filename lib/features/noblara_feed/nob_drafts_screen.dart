@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../providers/posts_provider.dart';
 import 'nob_compose_screen.dart';
@@ -37,42 +38,40 @@ class NobDraftsScreen extends ConsumerWidget {
       body: draftsAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(
-                color: AppColors.noblaraGold, strokeWidth: 1.5)),
+                color: AppColors.emerald600, strokeWidth: 1.5)),
         error: (e, _) => Center(
             child: Text('Error: $e',
                 style: const TextStyle(color: AppColors.error, fontSize: 13))),
         data: (drafts) {
           if (drafts.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.nobSurface,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.nobBorder),
-                    ),
-                    child: const Icon(Icons.drafts_outlined,
-                        color: AppColors.nobObserver, size: 22),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+                  decoration: Premium.emptyStateDecoration(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 60, height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [AppColors.emerald600.withValues(alpha: 0.10), AppColors.emerald600.withValues(alpha: 0.03)],
+                          ),
+                          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.12), width: 0.5),
+                        ),
+                        child: Icon(Icons.drafts_outlined, color: AppColors.emerald600.withValues(alpha: 0.45), size: 26),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text('No drafts yet', style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                      const SizedBox(height: 8),
+                      const Text('Saved drafts will appear here', style: TextStyle(color: AppColors.nobObserver, fontSize: 14, height: 1.5)),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const Text(
-                    'No drafts yet.',
-                    style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Text(
-                    'Saved drafts will appear here.',
-                    style: TextStyle(
-                        color: AppColors.nobObserver, fontSize: 13),
-                  ),
-                ],
+                ),
               ),
             );
           }
@@ -103,7 +102,8 @@ class _DraftCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.nobSurface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.nobBorder),
+        border: Border.all(color: AppColors.nobBorder, width: 0.5),
+        boxShadow: Premium.shadowMd,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +204,7 @@ class _DraftCard extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.sm),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.noblaraGold,
+                    backgroundColor: AppColors.emerald600,
                     foregroundColor: AppColors.nobBackground,
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: 8),

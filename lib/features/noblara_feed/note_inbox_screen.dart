@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/premium.dart';
 import '../../providers/note_provider.dart';
 
 class NoteInboxScreen extends ConsumerStatefulWidget {
@@ -29,26 +30,44 @@ class _NoteInboxScreenState extends ConsumerState<NoteInboxScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.nobBackground,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Notes', style: TextStyle(color: AppColors.noblaraGold, fontWeight: FontWeight.w700)),
+        title: const Text('Notes', style: TextStyle(color: AppColors.emerald600, fontWeight: FontWeight.w700)),
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.noblaraGold))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.emerald600))
           : state.notes.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.mail_outline_rounded, color: AppColors.nobObserver.withValues(alpha: 0.3), size: 56),
-                      const SizedBox(height: AppSpacing.lg),
-                      Text('No notes yet', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary)),
-                      const SizedBox(height: AppSpacing.sm),
-                      const Text('When someone sends you a note,\nyou\'ll see it here.',
-                          textAlign: TextAlign.center, style: TextStyle(color: AppColors.nobObserver, fontSize: 13)),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+                      decoration: Premium.emptyStateDecoration(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 60, height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                colors: [AppColors.emerald600.withValues(alpha: 0.10), AppColors.emerald600.withValues(alpha: 0.03)],
+                              ),
+                              border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.12), width: 0.5),
+                            ),
+                            child: Icon(Icons.mail_outline_rounded, color: AppColors.emerald600.withValues(alpha: 0.45), size: 26),
+                          ),
+                          const SizedBox(height: 24),
+                          Text('No notes yet', style: TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
+                          const SizedBox(height: 8),
+                          const Text('When someone sends you a note\nyou\'ll see it here',
+                              textAlign: TextAlign.center, style: TextStyle(color: AppColors.nobObserver, fontSize: 14, height: 1.5)),
+                        ],
+                      ),
+                    ),
                   ),
                 )
               : RefreshIndicator(
-                  color: AppColors.noblaraGold,
+                  color: AppColors.emerald600,
                   onRefresh: () => ref.read(noteInboxProvider.notifier).load(),
                   child: ListView.builder(
                     padding: const EdgeInsets.all(AppSpacing.lg),
@@ -70,8 +89,13 @@ class _NoteInboxScreenState extends ConsumerState<NoteInboxScreen> {
                             border: Border.all(
                               color: note.isRead
                                   ? AppColors.nobBorder
-                                  : AppColors.noblaraGold.withValues(alpha: 0.3),
+                                  : AppColors.emerald600.withValues(alpha: 0.3),
+                              width: 0.5,
                             ),
+                            boxShadow: note.isRead ? Premium.shadowSm : [
+                              ...Premium.shadowMd,
+                              BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.06), blurRadius: 12),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,14 +104,14 @@ class _NoteInboxScreenState extends ConsumerState<NoteInboxScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: AppColors.noblaraGold.withValues(alpha: 0.15),
+                                    backgroundColor: AppColors.emerald600.withValues(alpha: 0.15),
                                     backgroundImage: note.senderPhotoUrl != null
                                         ? NetworkImage(note.senderPhotoUrl!)
                                         : null,
                                     child: note.senderPhotoUrl == null
                                         ? Text(
                                             (note.senderName ?? '?')[0].toUpperCase(),
-                                            style: const TextStyle(color: AppColors.noblaraGold, fontWeight: FontWeight.w600),
+                                            style: const TextStyle(color: AppColors.emerald600, fontWeight: FontWeight.w600),
                                           )
                                         : null,
                                   ),
@@ -115,7 +139,7 @@ class _NoteInboxScreenState extends ConsumerState<NoteInboxScreen> {
                                     Container(
                                       width: 8, height: 8,
                                       decoration: const BoxDecoration(
-                                        color: AppColors.noblaraGold,
+                                        color: AppColors.emerald600,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
