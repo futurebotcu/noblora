@@ -411,12 +411,21 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: context.surfaceColor,
+                    color: AppColors.error.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
-                    border: Border.all(color: context.borderColor),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.30),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.error.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.close_rounded,
-                      color: AppColors.error, size: 26),
+                  child: Icon(Icons.close_rounded,
+                      color: AppColors.error.withValues(alpha: 0.85), size: 26),
                 ),
               ),
               // Signal / Note (GATED)
@@ -431,15 +440,24 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   }
                 },
                 child: Container(
-                  width: 48,
-                  height: 48,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: context.surfaceColor,
+                    color: AppColors.emerald500.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
-                    border: Border.all(color: context.borderColor),
+                    border: Border.all(
+                      color: AppColors.emerald500.withValues(alpha: 0.30),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.emerald500.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: const Icon(Icons.bolt_rounded,
-                      color: AppColors.gold, size: 22),
+                      color: AppColors.emerald500, size: 24),
                 ),
               ),
               // Connect / Like (GATED)
@@ -451,13 +469,19 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.gold,
+                    color: AppColors.emerald600,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.gold.withValues(alpha: 0.4),
-                        blurRadius: 16,
+                        color: AppColors.emerald600.withValues(alpha: 0.45),
+                        blurRadius: 18,
+                        spreadRadius: 1,
                         offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: AppColors.emerald600.withValues(alpha: 0.20),
+                        blurRadius: 8,
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),

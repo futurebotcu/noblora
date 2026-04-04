@@ -173,11 +173,11 @@ class _ProfileHeader extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              stops: const [0.0, 0.5, 1.0],
+              stops: const [0.0, 0.35, 1.0],
               colors: [
-                activeMode.accentColor.withValues(alpha: 0.08),
-                activeMode.accentColor.withValues(alpha: 0.03),
-                context.bgColor,
+                AppColors.emerald900.withValues(alpha: 0.15),
+                AppColors.emerald900.withValues(alpha: 0.06),
+                Colors.transparent,
               ],
             ),
           ),

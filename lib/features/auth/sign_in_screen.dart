@@ -99,6 +99,23 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   obscureText: true,
                   validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Forgot password — could trigger reset flow
+                    },
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        color: AppColors.emerald500,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
                 if (error != null) ...[
                   const SizedBox(height: AppSpacing.md),
                   Text(error, style: const TextStyle(color: AppColors.error, fontSize: 13)),

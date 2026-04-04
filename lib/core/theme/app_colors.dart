@@ -39,6 +39,7 @@ class AppColors {
   static const Color emerald100 = Color(0xFF1F3D30);
   static const Color emerald200 = Color(0xFF245038);
   static const Color emerald300 = Color(0xFF2C6648);
+  static const Color emerald350 = Color(0xFF67BE9B);  // bright pop accent
   static const Color emerald400 = Color(0xFF357D58);
   static const Color emerald500 = Color(0xFF43A27A);  // mid accent
   static const Color emerald600 = Color(0xFF2C8C68);  // PRIMARY ACCENT

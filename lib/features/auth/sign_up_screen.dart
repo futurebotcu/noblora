@@ -272,7 +272,7 @@ class _SignUpState extends ConsumerState<SignUpScreen> {
                     onTap: () => Navigator.pop(context),
                     child: Text.rich(TextSpan(children: [
                       TextSpan(text: 'Already have an account? ', style: TextStyle(color: context.textMuted, fontSize: 14)),
-                      TextSpan(text: 'Sign In', style: TextStyle(color: context.accent, fontSize: 14, fontWeight: FontWeight.w700)),
+                      const TextSpan(text: 'Sign In', style: TextStyle(color: AppColors.emerald500, fontSize: 14, fontWeight: FontWeight.w700)),
                     ])),
                   ),
                 ),

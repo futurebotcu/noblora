@@ -42,12 +42,20 @@ class _ModeTab extends ConsumerWidget {
     return GestureDetector(
       onTap: () => ref.read(modeProvider.notifier).setMode(mode),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? mode.accentColor : Colors.transparent,
+          color: isSelected
+              ? mode.accentColor.withValues(alpha: 0.18)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+          border: Border.all(
+            color: isSelected
+                ? mode.accentColor.withValues(alpha: 0.4)
+                : context.borderSubtleColor,
+            width: isSelected ? 1.0 : 0.5,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -56,16 +64,16 @@ class _ModeTab extends ConsumerWidget {
             Icon(
               mode.icon,
               size: 14,
-              color: isSelected ? context.bgColor : context.textMuted,
+              color: isSelected ? mode.accentColor : context.textMuted,
             ),
             const SizedBox(width: 4),
             AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 220),
+              duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight:
-                    isSelected ? FontWeight.w700 : FontWeight.w400,
-                color: isSelected ? context.bgColor : context.textMuted,
+                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? mode.accentColor : context.textMuted,
               ),
               child: Text(mode.shortLabel),
             ),

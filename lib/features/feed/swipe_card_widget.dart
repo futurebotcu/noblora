@@ -215,17 +215,18 @@ class _CardBody extends StatelessWidget {
                 ]),
               ),
             ),
-            // Bottom gradient overlay
+            // Bottom gradient overlay — cinematic bg-tinted fade
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.4, 1.0],
-                    colors: [
+                    stops: const [0.0, 0.4, 1.0],
+                    colors: const [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.8),
+                      Color(0x400B0D0C),
+                      Color(0xCC0B0D0C),
                     ],
                   ),
                 ),

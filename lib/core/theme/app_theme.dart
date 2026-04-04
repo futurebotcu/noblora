@@ -134,7 +134,10 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.elevated,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0x152C8C68)),
+        ),
         elevation: 16,
         shadowColor: const Color(0x52000000),
       ),

@@ -67,8 +67,14 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
     ToastType.message => AppColors.info,
     ToastType.event => const Color(0xFF9B6DFF),
     ToastType.system => AppColors.textMuted,
-    ToastType.success => AppColors.success,
+    ToastType.success => AppColors.emerald500,
     ToastType.error => AppColors.error,
+  };
+
+  /// Success toasts use a subtle emerald-tinted surface for premium feel.
+  Color get _toastBackground => switch (widget.type) {
+    ToastType.success => const Color(0xFF152018),
+    _ => AppColors.surface,
   };
 
   IconData get _icon => switch (widget.type) {
@@ -113,10 +119,12 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: _toastBackground,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isImportant ? _dotColor.withValues(alpha: 0.4) : AppColors.borderLight,
+                    color: isImportant || widget.type == ToastType.success
+                        ? _dotColor.withValues(alpha: 0.4)
+                        : AppColors.borderLight,
                     width: 0.5,
                   ),
                   boxShadow: [

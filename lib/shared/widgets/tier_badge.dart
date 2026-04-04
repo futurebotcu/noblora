@@ -18,19 +18,30 @@ class TierBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color color, IconData icon, String label) = switch (tier) {
-      NobTier.noble => (AppColors.emerald500, Icons.workspace_premium_rounded, 'Noble'),
+      NobTier.noble => (AppColors.emerald600, Icons.workspace_premium_rounded, 'Noble'),
       NobTier.explorer => (AppColors.info, Icons.explore_rounded, 'Explorer'),
       NobTier.observer => (AppColors.textMuted, Icons.radio_button_unchecked_rounded, 'Observer'),
     };
+
+    final isNoble = tier == NobTier.noble;
 
     if (!showLabel) {
       return Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withValues(alpha: isNoble ? 0.12 : 0.08),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+          border: Border.all(color: color.withValues(alpha: isNoble ? 0.35 : 0.25), width: 1),
+          boxShadow: isNoble
+              ? [
+                  BoxShadow(
+                    color: AppColors.emerald600.withValues(alpha: 0.18),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                  ),
+                ]
+              : null,
         ),
         child: Icon(icon, color: color, size: size * 0.55),
       );
@@ -39,16 +50,25 @@ class TierBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
+        color: color.withValues(alpha: isNoble ? 0.10 : 0.06),
         borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        border: Border.all(color: color.withValues(alpha: isNoble ? 0.30 : 0.18)),
+        boxShadow: isNoble
+            ? [
+                BoxShadow(
+                  color: AppColors.emerald600.withValues(alpha: 0.14),
+                  blurRadius: 8,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 13),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: isNoble ? FontWeight.w700 : FontWeight.w600, letterSpacing: 0.3)),
         ],
       ),
     );

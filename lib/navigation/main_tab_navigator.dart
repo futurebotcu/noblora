@@ -232,15 +232,23 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: context.surfaceColor,
-          border: Border(
-            top: BorderSide(color: context.borderColor, width: 0.5),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [context.elevatedColor, context.surfaceColor],
+            stops: const [0.0, 0.3],
           ),
+          border: Border(
+            top: BorderSide(color: context.borderLightColor, width: 0.5),
+          ),
+          boxShadow: const [
+            BoxShadow(color: Color(0x20000000), blurRadius: 8, offset: Offset(0, -2)),
+          ],
         ),
         child: BottomNavigationBar(
           currentIndex: safeIndex,
           elevation: 0,
-          backgroundColor: context.surfaceColor,
+          backgroundColor: Colors.transparent,
           selectedItemColor: AppColors.emerald500,
           unselectedItemColor: AppColors.textSecondary,
           selectedFontSize: 11,

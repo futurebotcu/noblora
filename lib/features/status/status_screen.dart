@@ -225,7 +225,7 @@ class _OverviewTab extends StatelessWidget {
       ],
 
       // AI Guide
-      _Card(borderColor: tc.withValues(alpha: 0.2), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _Card(borderColor: AppColors.emerald600.withValues(alpha: 0.25), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [Icon(Icons.auto_awesome_rounded, color: tc, size: 16), const SizedBox(width: 6),
           Text('Your guide', style: TextStyle(color: tc, fontSize: 13, fontWeight: FontWeight.w600))]),
         const SizedBox(height: AppSpacing.md),
@@ -434,7 +434,7 @@ class _Card extends StatelessWidget {
       color: context.surfaceColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       border: Border.all(color: borderColor ?? context.borderSubtleColor, width: 0.5),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.30), blurRadius: 20, offset: const Offset(0, 6))],
+      boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 8))],
     ),
     child: child);
 }

@@ -469,7 +469,14 @@ class _T extends StatelessWidget {
     leading: Icon(icon, color: context.textMuted, size: 20),
     title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
     subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 11)) : null,
-    trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.emerald500.withValues(alpha: 0.5)));
+    trailing: Switch.adaptive(
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor: Colors.white,
+      activeTrackColor: AppColors.emerald600,
+      inactiveThumbColor: AppColors.textMuted,
+      inactiveTrackColor: AppColors.borderStrong,
+    ));
 }
 
 class _PermSelector extends StatelessWidget {

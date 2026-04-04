@@ -264,6 +264,11 @@ class _ComposeFab extends StatelessWidget {
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
+            BoxShadow(
+              color: AppColors.emerald600.withValues(alpha: 0.12),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
           ],
         ),
         child: const Row(
@@ -461,7 +466,7 @@ class _NobCard extends StatelessWidget {
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: post.isPinned ? AppColors.noblaraGold.withValues(alpha: 0.3) : AppColors.borderLight,
+          color: post.isPinned ? AppColors.emerald600.withValues(alpha: 0.35) : AppColors.borderLight,
           width: post.isPinned ? 1.5 : 1,
         ),
         boxShadow: [
@@ -478,8 +483,8 @@ class _NobCard extends StatelessWidget {
               height: 2,
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
-                  AppColors.noblaraGold.withValues(alpha: 0.8),
-                  AppColors.noblaraGold.withValues(alpha: 0),
+                  AppColors.emerald600.withValues(alpha: 0.6),
+                  AppColors.emerald600.withValues(alpha: 0),
                 ]),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
@@ -881,9 +886,12 @@ class _FilterChip extends StatelessWidget {
           color: active ? AppColors.emerald900 : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
+          boxShadow: active
+              ? [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.08), blurRadius: 8, spreadRadius: -2)]
+              : null,
         ),
         child: Text(label, style: TextStyle(
-          color: active ? AppColors.emerald500 : context.textMuted,
+          color: active ? AppColors.emerald350 : context.textMuted,
           fontSize: 12, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
         )),
       ),
@@ -907,9 +915,12 @@ class _ToggleChip extends StatelessWidget {
           color: active ? AppColors.emerald900 : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
+          boxShadow: active
+              ? [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.08), blurRadius: 8, spreadRadius: -2)]
+              : null,
         ),
         child: Text(label, style: TextStyle(
-          color: active ? AppColors.emerald500 : context.textMuted, fontSize: 11,
+          color: active ? AppColors.emerald350 : context.textMuted, fontSize: 11,
         )),
       ),
     );

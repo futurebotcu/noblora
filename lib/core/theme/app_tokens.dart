@@ -14,6 +14,7 @@ extension ThemeTokens on BuildContext {
 
   // ── BORDERS ──
   Color get borderColor       => AppColors.border;
+  Color get borderLightColor  => AppColors.borderLight;
   Color get borderSubtleColor => AppColors.borderSubtle;
 
   // ── TEXT ──
