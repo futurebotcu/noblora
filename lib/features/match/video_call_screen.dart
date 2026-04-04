@@ -28,7 +28,7 @@ class VideoCallScreen extends ConsumerStatefulWidget {
 class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   late final Duration _callDuration;
 
-  late Duration _remaining;
+  final ValueNotifier<Duration> _remaining = ValueNotifier(Duration.zero);
   Timer? _timer;
   bool _callStarted = false;
   bool _callEnded = false;
@@ -40,13 +40,14 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   void initState() {
     super.initState();
     _callDuration = Duration(minutes: widget.session.callDurationMinutes);
-    _remaining = _callDuration;
+    _remaining.value = _callDuration;
     WidgetsBinding.instance.addPostFrameCallback((_) => _startCallOrWait());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _remaining.dispose();
     super.dispose();
   }
 
@@ -58,14 +59,14 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     if (diff.isNegative || diff.inMinutes < 1) {
       _beginCall();
     } else {
-      setState(() => _remaining = diff);
+      _remaining.value = diff;
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         final r = widget.session.scheduledAt.difference(DateTime.now());
         if (r.isNegative) {
           _timer?.cancel();
           _beginCall();
         } else {
-          if (mounted) setState(() => _remaining = r);
+          if (mounted) _remaining.value = r;
         }
       });
     }
@@ -76,7 +77,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     setState(() {
       _callStarted = true;
       _isAudioPhase = true;
-      _remaining = _callDuration;
+      _remaining.value = _callDuration;
     });
 
     final notifier = ref.read(videoProvider(widget.match.id).notifier);
@@ -106,11 +107,12 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       }
     });
 
-    // Local countdown for UI
+    // Local countdown — ValueNotifier avoids full widget rebuild per tick
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
       final videoState = ref.read(videoProvider(widget.match.id));
       final remaining = videoState.callTimeRemaining ?? Duration.zero;
-      if (mounted) setState(() => _remaining = remaining);
+      _remaining.value = remaining;
 
       if (remaining.inSeconds <= 0) {
         _timer?.cancel();
@@ -186,7 +188,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              _formatDuration(_remaining),
+              _formatDuration(_remaining.value),
               style: const TextStyle(
                 color: AppColors.gold,
                 fontSize: 52,
@@ -242,7 +244,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   }
 
   Widget _buildCallUI() {
-    final pct = _remaining.inSeconds / _callDuration.inSeconds;
+    final pct = _remaining.value.inSeconds / _callDuration.inSeconds;
     final color = pct > 0.4
         ? AppColors.gold
         : pct > 0.15
@@ -338,7 +340,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                         style:
                             TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     Text(
-                      _formatDuration(_remaining),
+                      _formatDuration(_remaining.value),
                       style: TextStyle(
                         color: color,
                         fontSize: 28,

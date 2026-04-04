@@ -268,8 +268,12 @@ class PostRepository {
         .order('quality_score', ascending: false)
         .limit(50)
         .asyncMap((rows) async {
-          final published = rows.where((r) => r['is_archived'] == false).toList();
-          return _enrichWithProfiles(published);
+          try {
+            final published = rows.where((r) => r['is_archived'] == false).toList();
+            return _enrichWithProfiles(published);
+          } catch (_) {
+            return <Post>[];
+          }
         });
   }
 

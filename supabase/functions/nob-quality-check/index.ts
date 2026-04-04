@@ -8,9 +8,21 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function validateApiKey(req: Request): boolean {
+  const key = req.headers.get("apikey") ?? "";
+  return key.length > 20;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS, status: 200 });
+  }
+
+  if (!validateApiKey(req)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+    );
   }
 
   try {

@@ -18,7 +18,10 @@ const BASE_PROMPT =
   "6. Do NOT summarize.\n" +
   "7. Return ONLY the improved text. No explanations, no labels, no quotes.";
 
-// Language detection moved to client side — passed as `lang` parameter
+function validateApiKey(req: Request): boolean {
+  const key = req.headers.get("apikey") ?? "";
+  return key.length > 20;
+}
 
 const PROMPTS: Record<string, string> = {
   improve: BASE_PROMPT,
@@ -27,6 +30,13 @@ const PROMPTS: Record<string, string> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS, status: 200 });
+  }
+
+  if (!validateApiKey(req)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+    );
   }
 
   try {

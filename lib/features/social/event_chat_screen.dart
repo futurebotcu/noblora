@@ -23,7 +23,7 @@ class EventChatScreen extends ConsumerStatefulWidget {
 class _EventChatScreenState extends ConsumerState<EventChatScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  StreamSubscription<dynamic>? _realtimeSub;
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
@@ -36,13 +36,14 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
 
   void _subscribeRealtime() {
     if (isMockMode) return;
-    final channel = Supabase.instance.client.channel('event-chat-${widget.eventId}');
-    channel.onPostgresChanges(
+    _channel = Supabase.instance.client.channel('event-chat-${widget.eventId}');
+    _channel!.onPostgresChanges(
       event: PostgresChangeEvent.insert,
       schema: 'public',
       table: 'event_messages',
       filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'event_id', value: widget.eventId),
       callback: (payload) {
+        if (!mounted) return;
         ref.read(eventDetailProvider(widget.eventId).notifier).load();
         _scrollToBottom();
       },
@@ -63,11 +64,8 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
 
   @override
   void dispose() {
-    _realtimeSub?.cancel();
-    if (!isMockMode) {
-      Supabase.instance.client.removeChannel(
-        Supabase.instance.client.channel('event-chat-${widget.eventId}'),
-      );
+    if (_channel != null && !isMockMode) {
+      Supabase.instance.client.removeChannel(_channel!);
     }
     _msgCtrl.dispose();
     _scrollCtrl.dispose();

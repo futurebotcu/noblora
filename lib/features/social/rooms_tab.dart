@@ -112,9 +112,11 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
     final gate = ref.read(interactionGateProvider).valueOrNull ??
         InteractionGate.loading;
     if (!gate.canSocialCreate) {
-      if (mounted) showGatingPopup(context, 'Verify your photo',
-          'Verify your profile photo to host events and create rooms.',
-          type: GatePopupType.verifyPhoto);
+      if (mounted) {
+        showGatingPopup(context, 'Verify your photo',
+            'Verify your profile photo to host events and create rooms.',
+            type: GatePopupType.verifyPhoto);
+      }
       return;
     }
     final created = await Navigator.push<bool>(
