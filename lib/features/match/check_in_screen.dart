@@ -39,7 +39,7 @@ class CheckInScreen extends ConsumerWidget {
                     style: Theme.of(context)
                         .textTheme
                         .headlineSmall
-                        ?.copyWith(color: Colors.white),
+                        ?.copyWith(color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   const Text(
@@ -84,7 +84,7 @@ class CheckInScreen extends ConsumerWidget {
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
-                    ?.copyWith(color: Colors.white),
+                    ?.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(

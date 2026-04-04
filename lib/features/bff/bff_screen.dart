@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../data/models/bff_suggestion.dart';
@@ -16,7 +17,7 @@ import '../../shared/widgets/mode_switcher.dart';
 import '../filters/filter_bottom_sheet.dart';
 import 'bff_suggestion_card.dart';
 
-const _teal = Color(0xFF26C6DA);
+const _teal = AppColors.teal;
 
 class BffScreen extends ConsumerStatefulWidget {
   const BffScreen({super.key});
@@ -121,14 +122,14 @@ class _SuggestionsTab extends ConsumerWidget {
             onConnect: () => _onAction(context, ref, sug.id, 'connect'),
             onPass: () => _onAction(context, ref, sug.id, 'pass'),
             onReachOut: () async {
-              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
               if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.'); return; }
               final sent = await ref.read(bffProvider.notifier).sendReachOut(sug.otherUserId(ref.read(authProvider).userId ?? ''));
               if (!context.mounted) return;
               ToastService.show(context, message: sent ? 'Reached out!' : 'Limit reached', type: sent ? ToastType.success : ToastType.error);
             },
             onNote: () {
-              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
               if (!gate.canBffInteract) { if (context.mounted) showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.'); return; }
               _showNoteDialog(context, ref, sug);
             },
@@ -181,7 +182,7 @@ class _SuggestionsTab extends ConsumerWidget {
   Future<void> _onAction(BuildContext context, WidgetRef ref, String id, String action) async {
     // Gate connect action (pass is always allowed)
     if (action == 'connect') {
-      final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+      final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
       if (!gate.canBffInteract) {
         showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.');
         return;
@@ -263,7 +264,7 @@ class _FreeDiscoveryTabState extends ConsumerState<_FreeDiscoveryTab> {
         return _BffDiscoveryCard(
           card: card,
           onConnect: () {
-            final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+            final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
             if (!gate.canBffInteract) {
               showGatingPopup(context, 'Add a photo first', 'Upload at least one photo to start connecting with people.');
               return;

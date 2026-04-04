@@ -26,7 +26,8 @@ class MessagesRepository {
     final existing = await db
         .from('conversation_participants')
         .select('conversation_id')
-        .eq('user_id', currentUserId);
+        .eq('user_id', currentUserId)
+        .limit(500);
 
     final existingIds =
         (existing as List).map((e) => e['conversation_id'] as String).toSet();

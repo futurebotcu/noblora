@@ -56,11 +56,11 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   }
 
   static const _baseTabs = [
-    _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_outlined),
-    _TabItem(label: 'Noblara', icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome_outlined),
-    _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_outline_rounded),
+    _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_rounded),
+    _TabItem(label: 'Noblara', icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome_rounded),
+    _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded),
     _TabItem(label: 'Status', icon: Icons.bar_chart_rounded, activeIcon: Icons.bar_chart_rounded),
-    _TabItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_outline_rounded),
+    _TabItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded),
   ];
 
   static const _adminTab = _TabItem(
@@ -153,7 +153,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
               color: isVideoProposed
-                  ? AppColors.gold.withValues(alpha: 0.5)
+                  ? AppColors.emerald500.withValues(alpha: 0.5)
                   : context.borderColor,
             ),
           ),
@@ -164,7 +164,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 isVideoProposed
                     ? Icons.videocam_rounded
                     : Icons.notifications_rounded,
-                color: AppColors.gold,
+                color: AppColors.emerald500,
                 size: 20,
               ),
               const SizedBox(width: 10),
@@ -176,15 +176,15 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                     Text(
                       latest.title,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
                     ),
                     Text(
                       latest.body,
-                      style: TextStyle(
-                        color: context.textMuted,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
                         fontSize: 12,
                       ),
                       maxLines: 2,
@@ -200,7 +200,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                     setState(() => _currentIndex = 2); // Go to Chats tab
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.gold,
+                    foregroundColor: AppColors.emerald500,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: const Text('View',
@@ -240,6 +240,12 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         child: BottomNavigationBar(
           currentIndex: safeIndex,
           elevation: 0,
+          backgroundColor: context.surfaceColor,
+          selectedItemColor: AppColors.emerald500,
+          unselectedItemColor: AppColors.textSecondary,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          type: BottomNavigationBarType.fixed,
           onTap: (i) => setState(() {
             _currentIndex = i;
             _visitedTabs.add(i);

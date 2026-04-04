@@ -13,6 +13,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
@@ -24,7 +25,7 @@ class WelcomeScreen extends StatelessWidget {
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 52,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.gold,
+                  color: AppColors.emerald500,
                   letterSpacing: 2,
                 ),
               ),

@@ -4,7 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../providers/event_provider.dart';
 
-const _violet = Color(0xFFAB47BC);
+const _violet = AppColors.violet;
 
 class EventCheckinScreen extends ConsumerStatefulWidget {
   final String eventId;

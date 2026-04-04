@@ -70,7 +70,10 @@ Respond with JSON only:
         return;
       }
     } catch (_) {
-      // If AI check fails, allow anyway
+      // AI check failed — allow but inform user
+      if (mounted) {
+        ToastService.show(context, message: 'AI check unavailable — message will be sent without review.', type: ToastType.system);
+      }
     }
 
     // Send farewell message + close match

@@ -18,8 +18,8 @@ class TierBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color color, IconData icon, String label) = switch (tier) {
-      NobTier.noble => (AppColors.gold, Icons.workspace_premium_rounded, 'Noble'),
-      NobTier.explorer => (AppColors.teal, Icons.explore_rounded, 'Explorer'),
+      NobTier.noble => (AppColors.emerald500, Icons.workspace_premium_rounded, 'Noble'),
+      NobTier.explorer => (AppColors.info, Icons.explore_rounded, 'Explorer'),
       NobTier.observer => (AppColors.textMuted, Icons.radio_button_unchecked_rounded, 'Observer'),
     };
 

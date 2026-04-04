@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/photo_verification.dart';
@@ -176,11 +176,15 @@ class VerificationRepository {
     String? genderDetected;
 
     try {
+      // Encode on isolate to avoid blocking UI
+      final selfieB64 = await compute(base64Encode, selfieBytes);
+      final profileB64 = await compute(base64Encode, profileBytes);
+
       final res = await client.functions.invoke(
         'verify-images',
         body: {
-          'selfie': base64Encode(selfieBytes),
-          'profile': base64Encode(profileBytes),
+          'selfie': selfieB64,
+          'profile': profileB64,
         },
       );
 

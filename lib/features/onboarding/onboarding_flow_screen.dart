@@ -93,8 +93,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
           await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes,
               fileOptions: const FileOptions(contentType: 'image/jpeg'));
           remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
-        } catch (_) {
+        } catch (e) {
+          debugPrint('Onboarding photo upload error: $e');
           remotePhotoUrl = null;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Photo upload failed. Your profile will use the selected avatar instead.')),
+            );
+          }
         }
       }
 
@@ -135,8 +141,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'active_modes': ['date', 'bff', 'social'],
       }).eq('id', uid);
       } catch (e) {
-        // DB update failed — log but continue to avoid stuck screen
         debugPrint('Onboarding DB update error: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile save had an issue. Please check your profile later.')),
+          );
+        }
       }
     }
 
@@ -169,7 +179,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                 Expanded(
                   child: ClipRRect(borderRadius: BorderRadius.circular(1),
                     child: LinearProgressIndicator(value: (_step + 1) / _totalSteps, minHeight: 2,
-                        backgroundColor: context.borderSubtleColor, valueColor: const AlwaysStoppedAnimation(AppColors.gold))),
+                        backgroundColor: context.borderSubtleColor, valueColor: AlwaysStoppedAnimation(context.accent))),
                 ),
               ]),
             ),
@@ -235,10 +245,10 @@ class _WelcomePage extends StatelessWidget {
           width: 72, height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.gold.withValues(alpha: 0.06),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+            color: context.accentSoft,
+            border: Border.all(color: context.accentBorder),
           ),
-          child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 32),
+          child: Icon(Icons.diamond_outlined, color: context.accent, size: 32),
         ),
         const SizedBox(height: AppSpacing.xxxl),
         Text('Noblara', style: Theme.of(context).textTheme.displayMedium?.copyWith(
@@ -322,7 +332,7 @@ class _BasicsPageState extends State<_BasicsPage> {
         const SizedBox(height: AppSpacing.sm),
         Center(child: Text(
           '${_months[(widget.birthMonth ?? 1) - 1]} ${widget.birthDay ?? 1}, ${widget.birthYear ?? now.year - 25} · $age years old',
-          style: TextStyle(color: ageInvalid ? AppColors.error : AppColors.gold, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(color: ageInvalid ? AppColors.error : AppColors.emerald500, fontSize: 14, fontWeight: FontWeight.w600),
         )),
       ],
       if (ageInvalid)
@@ -643,8 +653,8 @@ class _LocationPageState extends State<_LocationPage> {
           label: Text(_gpsLoading ? 'Detecting...' : 'Use my location',
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.gold,
-            foregroundColor: context.bgColor,
+            backgroundColor: context.accent,
+            foregroundColor: AppColors.textOnEmerald,
             minimumSize: const Size.fromHeight(52),
           ),
         )),
@@ -671,12 +681,12 @@ class _LocationPageState extends State<_LocationPage> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppColors.gold.withValues(alpha: 0.06),
+              color: context.accentSoft,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
+              border: Border.all(color: context.accentBorder),
             ),
             child: Row(children: [
-              Icon(Icons.location_on_rounded, color: AppColors.gold, size: 22),
+              Icon(Icons.location_on_rounded, color: context.accent, size: 22),
               const SizedBox(width: 12),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,7 +696,7 @@ class _LocationPageState extends State<_LocationPage> {
                     Text(widget.country, style: TextStyle(color: context.textMuted, fontSize: 13)),
                 ],
               )),
-              Icon(Icons.check_circle_rounded, color: AppColors.gold, size: 20),
+              Icon(Icons.check_circle_rounded, color: context.accent, size: 20),
             ]),
           ),
         ],
@@ -733,10 +743,10 @@ class _PhotoPage extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: context.surfaceColor,
-              border: Border.all(color: photoUrl != null ? AppColors.gold : context.borderColor, width: photoUrl != null ? 2.5 : 1),
+              border: Border.all(color: photoUrl != null ? context.accent : context.borderColor, width: photoUrl != null ? 2.5 : 1),
             ),
             child: photoUrl != null
-                ? const Center(child: Icon(Icons.check_rounded, color: AppColors.gold, size: 40))
+                ? Center(child: Icon(Icons.check_rounded, color: context.accent, size: 40))
                 : Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.add_a_photo_rounded, color: context.textMuted, size: 28),
                     const SizedBox(height: 4),
@@ -764,8 +774,8 @@ class _PhotoPage extends StatelessWidget {
 
         ElevatedButton(onPressed: onNext,
             style: ElevatedButton.styleFrom(
-              backgroundColor: hasSelection ? AppColors.gold : context.surfaceColor,
-              foregroundColor: hasSelection ? context.bgColor : context.textMuted,
+              backgroundColor: hasSelection ? context.accent : context.surfaceColor,
+              foregroundColor: hasSelection ? AppColors.textOnEmerald : context.textMuted,
               minimumSize: const Size.fromHeight(50)),
             child: Text(hasSelection ? 'Continue' : 'Skip for now')),
         const SizedBox(height: AppSpacing.xxl),
@@ -795,7 +805,7 @@ class _PrivacyPage extends StatelessWidget {
         ])),
         const SizedBox(height: AppSpacing.md),
         ElevatedButton(onPressed: onNext,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: context.bgColor,
+            style: ElevatedButton.styleFrom(backgroundColor: context.accent, foregroundColor: AppColors.textOnEmerald,
                 minimumSize: const Size.fromHeight(50)),
             child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
@@ -813,7 +823,7 @@ class _InfoCard extends StatelessWidget {
     decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         border: Border.all(color: context.borderColor)),
     child: Row(children: [
-      Icon(icon, color: AppColors.gold, size: 20),
+      Icon(icon, color: context.accent, size: 20),
       const SizedBox(width: AppSpacing.md),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
@@ -835,7 +845,7 @@ class _CompletePageState extends State<_CompletePage> {
   Widget build(BuildContext context) {
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxxl), child: Column(
       mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.check_circle_outline_rounded, color: AppColors.gold, size: 64),
+        Icon(Icons.check_circle_outline_rounded, color: context.accent, size: 64),
         const SizedBox(height: AppSpacing.xxl),
         Text('You\'re all set${widget.name.isNotEmpty ? ', ${widget.name}' : ''}',
             style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
@@ -881,5 +891,5 @@ InputDecoration _deco(BuildContext context, String hint) => InputDecoration(
   filled: true, fillColor: context.surfaceColor,
   border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.borderColor)),
-  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: const BorderSide(color: AppColors.gold)),
+  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm), borderSide: BorderSide(color: context.accent)),
 );

@@ -79,15 +79,15 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.lock_outline,
-                  color: AppColors.gold,
+                  color: context.accent,
                   size: 72,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 Text(
                   'Access Pending',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: context.textPrimary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -144,7 +144,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppSpacing.radiusSm),
                             borderSide:
-                                const BorderSide(color: AppColors.gold),
+                                BorderSide(color: context.accent),
                           ),
                         ),
                         onSubmitted: (_) => _submitCode(),
@@ -152,18 +152,18 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     _submitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 36,
                             height: 36,
                             child: CircularProgressIndicator(
-                              color: AppColors.gold,
+                              color: context.accent,
                               strokeWidth: 2,
                             ),
                           )
                         : ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.gold,
-                              foregroundColor: context.bgColor,
+                              backgroundColor: context.accent,
+                              foregroundColor: AppColors.textOnEmerald,
                               minimumSize: const Size(60, 44),
                             ),
                             onPressed: _submitCode,
@@ -178,7 +178,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: _feedback!.startsWith('Could')
                             ? AppColors.error
-                            : AppColors.gold),
+                            : AppColors.emerald500),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -243,7 +243,7 @@ class _WaitingPulseState extends State<_WaitingPulse>
         height: 8,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.gold,
+          color: AppColors.emerald500,
         ),
       ),
     );

@@ -8,7 +8,7 @@ import '../../core/utils/mock_mode.dart';
 import '../../data/models/event.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = Color(0xFFAB47BC);
+const _violet = AppColors.violet;
 
 class EditEventScreen extends ConsumerStatefulWidget {
   final NobEvent event;

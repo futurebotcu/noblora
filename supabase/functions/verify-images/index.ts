@@ -17,7 +17,13 @@ serve(async (req) => {
     const { selfie, profile } = await req.json();
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
-    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
+        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

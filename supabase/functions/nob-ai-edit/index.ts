@@ -7,13 +7,21 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const BASE_PROMPT =
+  "Improve this text gently. Fix spelling and grammar errors, improve clarity and flow.\n\n" +
+  "ABSOLUTE RULES — NEVER BREAK THESE:\n" +
+  "1. Your output language MUST be IDENTICAL to the input language. Auto-detect the language and stay in it.\n" +
+  "2. NEVER translate. If input is Turkish, output Turkish. If Korean, output Korean. If English, output English. Any language.\n" +
+  "3. Keep the original meaning, tone, and voice.\n" +
+  "4. Keep roughly the same length — do NOT shorten aggressively.\n" +
+  "5. Do NOT leave sentences unfinished.\n" +
+  "6. Do NOT summarize.\n" +
+  "7. Return ONLY the improved text. No explanations, no labels, no quotes.";
+
+// Language detection moved to client side — passed as `lang` parameter
+
 const PROMPTS: Record<string, string> = {
-  fix_typos:
-    "Fix only spelling and grammar errors. Do not change the meaning, tone or style. Return only the corrected text, nothing else.",
-  clean_up:
-    "Clean up this text slightly. Fix typos, remove redundancy, improve flow. Keep the author's voice. Max 150 chars. Return only the cleaned text, nothing else.",
-  make_clearer:
-    "Make this thought clearer and more concise. Keep the original meaning and tone. Max 150 chars. Return only the text, nothing else.",
+  improve: BASE_PROMPT,
 };
 
 serve(async (req) => {
@@ -32,7 +40,13 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
-    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
+        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -50,11 +64,19 @@ serve(async (req) => {
           ],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 256,
+            maxOutputTokens: 2048,
           },
         }),
       }
     );
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      return new Response(
+        JSON.stringify({ error: `Gemini API error: ${response.status}`, details: errorBody }),
+        { status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
 
     const data = await response.json();
     const edited =

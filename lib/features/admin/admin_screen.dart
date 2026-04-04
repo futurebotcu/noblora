@@ -158,18 +158,18 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
         title: const Row(
           children: [
             Icon(Icons.admin_panel_settings_rounded,
-                color: AppColors.gold, size: 20),
+                color: AppColors.emerald500, size: 20),
             SizedBox(width: AppSpacing.sm),
             Text('Admin',
                 style: TextStyle(
-                    color: AppColors.gold, fontWeight: FontWeight.w700)),
+                    color: AppColors.emerald500, fontWeight: FontWeight.w700)),
           ],
         ),
         bottom: TabBar(
           controller: _tabs,
-          labelColor: AppColors.gold,
+          labelColor: AppColors.emerald500,
           unselectedLabelColor: AppColors.textMuted,
-          indicatorColor: AppColors.gold,
+          indicatorColor: AppColors.emerald500,
           tabs: const [
             Tab(text: 'Overview'),
             Tab(text: 'Verifications'),
@@ -202,7 +202,7 @@ class _OverviewTab extends ConsumerWidget {
 
     return statsAsync.when(
       loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold)),
+          child: CircularProgressIndicator(color: AppColors.emerald500)),
       error: (e, _) => Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.error))),
@@ -220,7 +220,7 @@ class _OverviewTab extends ConsumerWidget {
                     label: 'Total Users',
                     value: stats.totalUsers,
                     icon: Icons.people_rounded,
-                    color: AppColors.gold),
+                    color: AppColors.emerald500),
                 _StatCard(
                     label: 'Pending Reviews',
                     value: stats.pendingVerifications,
@@ -230,7 +230,7 @@ class _OverviewTab extends ConsumerWidget {
                     label: 'Active Matches',
                     value: stats.activeMatches,
                     icon: Icons.favorite_rounded,
-                    color: const Color(0xFF26C6DA)),
+                    color: AppColors.info),
                 _StatCard(
                     label: 'Posts Today',
                     value: stats.postsToday,
@@ -253,7 +253,7 @@ class _OverviewTab extends ConsumerWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                   side: const BorderSide(color: AppColors.border)),
-              leading: const Icon(Icons.refresh_rounded, color: AppColors.gold),
+              leading: const Icon(Icons.refresh_rounded, color: AppColors.emerald500),
               title: const Text('Refresh Stats',
                   style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
               onTap: () => ref.invalidate(_adminStatsProvider),
@@ -322,7 +322,7 @@ class _VerificationsTab extends ConsumerWidget {
 
     return listAsync.when(
       loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold)),
+          child: CircularProgressIndicator(color: AppColors.emerald500)),
       error: (e, _) => Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.error))),
@@ -333,7 +333,7 @@ class _VerificationsTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.check_circle_outline_rounded,
-                    color: AppColors.gold, size: 48),
+                    color: AppColors.emerald500, size: 48),
                 SizedBox(height: AppSpacing.lg),
                 Text('All caught up!',
                     style: TextStyle(
@@ -519,8 +519,8 @@ class _VerificationCard extends StatelessWidget {
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: const Text('Approve'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.gold,
-                    foregroundColor: AppColors.bg,
+                    backgroundColor: AppColors.emerald500,
+                    foregroundColor: AppColors.textOnEmerald,
                   ),
                   onPressed: onApprove,
                 ),
@@ -547,7 +547,7 @@ class _PostsModerationTab extends ConsumerWidget {
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.gold));
+              child: CircularProgressIndicator(color: AppColors.emerald500));
         }
         final posts = snap.data ?? <Map<String, dynamic>>[];
         if (posts.isEmpty) {
@@ -648,7 +648,7 @@ class _PostModerationCard extends StatelessWidget {
           Text(
             authorName,
             style: const TextStyle(
-                color: AppColors.gold,
+                color: AppColors.emerald500,
                 fontWeight: FontWeight.w600,
                 fontSize: 12),
           ),

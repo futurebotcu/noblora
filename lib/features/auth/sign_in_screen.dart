@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/device_service.dart';
 import '../../providers/auth_provider.dart';
@@ -65,7 +66,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final error = _deviceError ?? auth.error;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign In')),
+      backgroundColor: context.bgColor,
+      appBar: AppBar(
+        backgroundColor: context.bgColor,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: context.textPrimary,
+        title: Text('Sign In', style: TextStyle(color: context.textPrimary)),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -75,7 +82,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppSpacing.xxxl),
-                Text('Welcome back', style: Theme.of(context).textTheme.headlineMedium),
+                Text('Welcome back', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: context.textPrimary)),
                 const SizedBox(height: AppSpacing.xxl),
                 AppTextField(
                   controller: _emailCtrl,

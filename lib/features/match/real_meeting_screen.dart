@@ -99,7 +99,7 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('Cancel Meeting?',
-            style: TextStyle(color: Colors.white)),
+            style: TextStyle(color: AppColors.textPrimary)),
         content: const Text('This will cancel the planned meetup.',
             style: TextStyle(color: AppColors.textMuted)),
         actions: [
@@ -264,7 +264,7 @@ class _RealMeetingScreenState extends ConsumerState<RealMeetingScreen> {
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _locationCtrl,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'e.g. Karaköy, café near the pier',
                     hintStyle:

@@ -44,10 +44,10 @@ class VerificationHubScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xxl),
-              const Icon(Icons.shield_outlined, color: AppColors.gold, size: 48),
+              Icon(Icons.shield_outlined, color: context.accent, size: 48),
               const SizedBox(height: AppSpacing.lg),
               Text('Verify Your Identity',
-                  style: Theme.of(context).textTheme.headlineMedium),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: context.textPrimary)),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Add a selfie and a profile photo. '
@@ -109,8 +109,8 @@ class VerificationHubScreen extends ConsumerWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: context.bgColor,
+                      backgroundColor: context.accent,
+                      foregroundColor: AppColors.textOnEmerald,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius:
@@ -132,7 +132,7 @@ class VerificationHubScreen extends ConsumerWidget {
                 Center(
                   child: Column(
                     children: [
-                      const CircularProgressIndicator(color: AppColors.gold),
+                      CircularProgressIndicator(color: context.accent),
                       const SizedBox(height: AppSpacing.md),
                       Text('Analysing photos…',
                           style: TextStyle(
@@ -177,8 +177,8 @@ class VerificationHubScreen extends ConsumerWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: context.bgColor,
+                      backgroundColor: context.accent,
+                      foregroundColor: AppColors.textOnEmerald,
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                           borderRadius:
@@ -261,14 +261,14 @@ class _VerifStep extends StatelessWidget {
       iconColor = AppColors.success;
       displayIcon = Icons.check_circle_rounded;
     } else if (isStaged) {
-      borderColor = AppColors.gold.withValues(alpha: 0.7);
-      iconBg = AppColors.gold.withValues(alpha: 0.15);
-      iconColor = AppColors.gold;
+      borderColor = AppColors.emerald500.withValues(alpha: 0.7);
+      iconBg = AppColors.emerald500.withValues(alpha: 0.15);
+      iconColor = AppColors.emerald500;
       displayIcon = Icons.check_rounded;
     } else {
       borderColor = context.borderColor;
-      iconBg = AppColors.gold.withValues(alpha: 0.1);
-      iconColor = AppColors.gold;
+      iconBg = AppColors.emerald500.withValues(alpha: 0.1);
+      iconColor = AppColors.emerald500;
       displayIcon = icon;
     }
 
@@ -312,7 +312,7 @@ class _VerifStep extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.gold))
+                      strokeWidth: 2, color: AppColors.emerald500))
             else if (!isCompleted && onTap != null)
               Icon(
                 isStaged
@@ -451,9 +451,9 @@ class _GenderReminderBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.08),
+        color: AppColors.emerald500.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
+        border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -469,7 +469,7 @@ class _GenderReminderBanner extends StatelessWidget {
                   TextSpan(
                     text: label,
                     style: const TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.emerald500,
                         fontWeight: FontWeight.w700),
                   ),
                   const TextSpan(

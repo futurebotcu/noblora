@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/post.dart';
@@ -66,12 +67,40 @@ class PostRepository {
     return {};
   }
 
+  /// Batch version — single RPC instead of N+1 loop
+  Future<Map<String, Map<String, int>>> getOwnReactionCountsBatch(
+      List<String> postIds, String authorId) async {
+    if (isMockMode || postIds.isEmpty) return {};
+    try {
+      final result = await _supabase!.rpc('get_own_reaction_counts_batch', params: {
+        'p_post_ids': postIds,
+        'p_author_id': authorId,
+      });
+      final map = <String, Map<String, int>>{};
+      if (result is List) {
+        for (final row in result) {
+          map[row['post_id'] as String] = {
+            'appreciate': (row['appreciate'] as num?)?.toInt() ?? 0,
+            'support': (row['support'] as num?)?.toInt() ?? 0,
+            'pass': (row['pass'] as num?)?.toInt() ?? 0,
+            'total': (row['total'] as num?)?.toInt() ?? 0,
+          };
+        }
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Trigger quality score computation via edge function
   Future<void> computeQualityScore(String postId) async {
     if (isMockMode) return;
     try {
       await _supabase!.functions.invoke('nob-quality-check', body: {'post_id': postId});
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[nob-quality-check] AI scoring failed for $postId: $e');
+    }
   }
 
   Future<List<Post>> fetchDrafts(String userId) async {
@@ -82,7 +111,8 @@ class PostRepository {
         .eq('user_id', userId)
         .eq('is_draft', true)
         .eq('is_archived', false)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(50);
     return rows.map((r) => Post.fromJson(r)).toList();
   }
 
@@ -107,7 +137,8 @@ class PostRepository {
         .select()
         .eq('user_id', userId)
         .eq('is_archived', true)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(50);
     return rows.map((r) => Post.fromJson(r)).toList();
   }
 
@@ -202,8 +233,10 @@ class PostRepository {
       final result = await _supabase!.rpc('check_nob_limit',
           params: {'p_user_id': userId, 'p_type': nobType});
       return result as bool? ?? false;
-    } catch (_) {
-      return false;
+    } catch (e) {
+      debugPrint('[canPublishToday] RPC failed: $e');
+      // On error, allow publish — RLS will enforce the actual limit
+      return true;
     }
   }
 

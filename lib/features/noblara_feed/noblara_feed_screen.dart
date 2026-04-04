@@ -31,7 +31,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
       loading: () => NobTier.observer,
       error: (_, __) => NobTier.observer,
     );
-    final gate = ref.watch(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    final gate = ref.watch(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
     final tierCanCompose = tier == NobTier.noble || tier == NobTier.explorer;
     final canCompose = tierCanCompose && gate.canPostNob;
 
@@ -266,15 +266,15 @@ class _ComposeFab extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.edit_outlined, size: 16, color: context.bgColor),
-            const SizedBox(width: AppSpacing.sm),
+            Icon(Icons.edit_outlined, size: 16, color: AppColors.textOnEmerald),
+            SizedBox(width: AppSpacing.sm),
             Text(
               'Write a Nob',
               style: TextStyle(
-                color: context.bgColor,
+                color: AppColors.textOnEmerald,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
                 letterSpacing: 0.3,
@@ -456,15 +456,18 @@ class _NobCard extends StatelessWidget {
     final isOwn = currentUserId == post.userId;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       decoration: BoxDecoration(
         color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: post.isPinned ? AppColors.noblaraGold.withValues(alpha: 0.25) : context.borderSubtleColor,
-          width: post.isPinned ? 1 : 0.5,
+          color: post.isPinned ? AppColors.noblaraGold.withValues(alpha: 0.3) : AppColors.borderLight,
+          width: post.isPinned ? 1.5 : 1,
         ),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(color: const Color(0x38000000), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(color: const Color(0x20000000), blurRadius: 32, offset: const Offset(0, 12)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -755,7 +758,7 @@ class _ReactionBtn extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: isActive ? activeColor.withValues(alpha: 0.35) : context.borderSubtleColor),
         ),
-        child: Text(emoji, style: TextStyle(fontSize: 14, color: isActive ? null : Colors.white.withValues(alpha: 0.25))),
+        child: Text(emoji, style: TextStyle(fontSize: 14, color: isActive ? null : context.textMuted)),
       ),
     );
   }
@@ -875,12 +878,12 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: active ? AppColors.noblaraGold.withValues(alpha: 0.15) : context.surfaceAltColor,
+          color: active ? AppColors.emerald900 : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.noblaraGold.withValues(alpha: 0.4) : context.borderSubtleColor),
+          border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
         ),
         child: Text(label, style: TextStyle(
-          color: active ? AppColors.noblaraGold : context.textMuted,
+          color: active ? AppColors.emerald500 : context.textMuted,
           fontSize: 12, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
         )),
       ),
@@ -901,12 +904,12 @@ class _ToggleChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: active ? AppColors.noblaraGold.withValues(alpha: 0.15) : context.surfaceAltColor,
+          color: active ? AppColors.emerald900 : context.surfaceAltColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.noblaraGold.withValues(alpha: 0.4) : context.borderSubtleColor),
+          border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
         ),
         child: Text(label, style: TextStyle(
-          color: active ? AppColors.noblaraGold : context.textMuted, fontSize: 11,
+          color: active ? AppColors.emerald500 : context.textMuted, fontSize: 11,
         )),
       ),
     );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -115,17 +116,16 @@ class PostsNotifier extends StateNotifier<PostsState> {
         prioritizeConnected: state.prioritizeConnected,
       );
 
-      // Load own reaction counts for author's posts
+      // Load own reaction counts in single batch (not N+1)
       if (uid != null) {
-        final enriched = <Post>[];
-        for (final p in posts) {
-          if (p.userId == uid) {
-            final counts = await _repo.getOwnReactionCounts(p.id, uid);
-            enriched.add(p.copyWith(ownCounts: counts));
-          } else {
-            enriched.add(p);
+        final ownPostIds = posts.where((p) => p.userId == uid).map((p) => p.id).toList();
+        final countsMap = await _repo.getOwnReactionCountsBatch(ownPostIds, uid);
+        final enriched = posts.map((p) {
+          if (p.userId == uid && countsMap.containsKey(p.id)) {
+            return p.copyWith(ownCounts: countsMap[p.id]);
           }
-        }
+          return p;
+        }).toList();
         state = state.copyWith(posts: enriched, isLoading: false);
       } else {
         state = state.copyWith(posts: posts, isLoading: false);
@@ -216,6 +216,7 @@ class PostsNotifier extends StateNotifier<PostsState> {
       }
       return post;
     } catch (e) {
+      debugPrint('[CREATE_NOB] ERROR: $e');
       state = state.copyWith(isSubmitting: false, error: e.toString());
       return null;
     }

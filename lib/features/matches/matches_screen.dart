@@ -484,7 +484,7 @@ class _FilterRow extends StatelessWidget {
           _FilterPill(
               label: 'BFF',
               isActive: selected == NobleMode.bff,
-              color: const Color(0xFF26C6DA),
+              color: AppColors.teal,
               dot: true,
               onTap: onBff),
         ],

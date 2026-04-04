@@ -347,8 +347,8 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 7)),
       builder: (c, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(
             primary: AppColors.gold,
             surface: AppColors.surface,
           ),
@@ -363,8 +363,8 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
       context: context,
       initialTime: TimeOfDay.now(),
       builder: (c, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(
             primary: AppColors.gold,
             surface: AppColors.surface,
           ),

@@ -9,7 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/room_provider.dart';
 import 'edit_room_screen.dart';
 
-const _violet = Color(0xFF9B6DFF);
+const _violet = AppColors.violet;
 
 class RoomChatScreen extends ConsumerStatefulWidget {
   final String roomId;

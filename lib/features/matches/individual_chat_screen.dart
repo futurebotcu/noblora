@@ -104,7 +104,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       }
     } catch (_) {
       if (mounted) {
-        _msgCtrl.text = 'Hey ${_item.name}! Looks like we have some things in common.';
+        _msgCtrl.text = '[AI unavailable] Hey ${_item.name}! Looks like we have some things in common.';
       }
     }
   }

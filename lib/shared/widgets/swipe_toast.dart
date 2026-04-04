@@ -62,13 +62,13 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
   }
 
   Color get _dotColor => switch (widget.type) {
-    ToastType.signal => AppColors.gold,
-    ToastType.match => AppColors.gold,
-    ToastType.message => const Color(0xFF26C6DA),
+    ToastType.signal => AppColors.emerald500,
+    ToastType.match => AppColors.emerald500,
+    ToastType.message => AppColors.info,
     ToastType.event => const Color(0xFF9B6DFF),
-    ToastType.system => const Color(0xFF78909C),
-    ToastType.success => const Color(0xFF4CAF50),
-    ToastType.error => const Color(0xFFEF5350),
+    ToastType.system => AppColors.textMuted,
+    ToastType.success => AppColors.success,
+    ToastType.error => AppColors.error,
   };
 
   IconData get _icon => switch (widget.type) {
@@ -113,14 +113,14 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111113),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isImportant ? AppColors.gold.withValues(alpha: 0.4) : const Color(0xFF222225),
+                    color: isImportant ? _dotColor.withValues(alpha: 0.4) : AppColors.borderLight,
                     width: 0.5,
                   ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Row(
@@ -129,13 +129,13 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(widget.message,
-                          style: const TextStyle(color: Color(0xFFF2F2F2), fontSize: 14, fontWeight: FontWeight.w400),
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w400),
                           maxLines: 2, overflow: TextOverflow.ellipsis),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _dismiss,
-                      child: Icon(Icons.close_rounded, color: const Color(0xFF78909C), size: 16),
+                      child: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 16),
                     ),
                   ],
                 ),

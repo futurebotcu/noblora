@@ -83,8 +83,8 @@ class ProfileScreen extends ConsumerWidget {
                     icon: const Icon(Icons.edit_outlined, size: 16),
                     label: const Text('Edit Profile'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.gold,
-                      side: const BorderSide(color: AppColors.gold, width: 0.5),
+                      foregroundColor: AppColors.emerald500,
+                      side: const BorderSide(color: AppColors.emerald500, width: 0.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                       minimumSize: const Size.fromHeight(44),
                     ),
@@ -194,7 +194,7 @@ class _ProfileHeader extends StatelessWidget {
                 height: 96,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4))],
                   border:
                       Border.all(color: activeMode.accentColor, width: 2.5),
                 ),
@@ -291,8 +291,8 @@ class _ActiveModesSection extends ConsumerWidget {
   const _ActiveModesSection();
 
   static const _modeInfo = [
-    (mode: 'date', label: 'Dating', icon: Icons.favorite_rounded, color: AppColors.gold),
-    (mode: 'bff', label: 'BFF', icon: Icons.people_rounded, color: Color(0xFF26C6DA)),
+    (mode: 'date', label: 'Dating', icon: Icons.favorite_rounded, color: AppColors.emerald500),
+    (mode: 'bff', label: 'BFF', icon: Icons.people_rounded, color: AppColors.info),
   ];
 
   @override
@@ -887,22 +887,22 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withValues(alpha: 0.1),
+                  color: AppColors.emerald500.withValues(alpha: 0.1),
                   borderRadius:
                       BorderRadius.circular(AppSpacing.radiusCircle),
                   border: Border.all(
-                      color: AppColors.gold.withValues(alpha: 0.3)),
+                      color: AppColors.emerald500.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.auto_awesome,
-                        size: 10, color: AppColors.gold),
+                        size: 10, color: AppColors.emerald500),
                     const SizedBox(width: 4),
                     Text(
                       p.nobTier.label,
                       style: const TextStyle(
-                          color: AppColors.gold,
+                          color: AppColors.emerald500,
                           fontSize: 10,
                           fontWeight: FontWeight.w700),
                     ),
@@ -921,7 +921,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
               color: context.surfaceColor,
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               border:
-                  Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+                  Border.all(color: AppColors.emerald500.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -933,7 +933,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                     Text(
                       '$maturity',
                       style: const TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.emerald500,
                         fontSize: 56,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -984,7 +984,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                       minHeight: 6,
                       backgroundColor: context.surfaceAltColor,
                       valueColor:
-                          const AlwaysStoppedAnimation(AppColors.gold),
+                          const AlwaysStoppedAnimation(AppColors.emerald500),
                     ),
                   ),
                 ),
@@ -1031,7 +1031,7 @@ class _ScoreBarRow extends StatelessWidget {
               Text(
                 '${(bar.value * 100).toInt()}',
                 style: const TextStyle(
-                  color: AppColors.gold,
+                  color: AppColors.emerald500,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1051,7 +1051,7 @@ class _ScoreBarRow extends StatelessWidget {
                 minHeight: 4,
                 backgroundColor: context.surfaceAltColor,
                 valueColor: AlwaysStoppedAnimation(
-                    AppColors.gold.withValues(alpha: 0.6)),
+                    AppColors.emerald500.withValues(alpha: 0.6)),
               ),
             ),
           ),
@@ -1170,7 +1170,7 @@ class _DateGallery extends StatelessWidget {
           caption: 'Santorini, 2024',
           title: 'Golden Hour',
           height: 260,
-          accentColor: AppColors.gold,
+          accentColor: AppColors.emerald500,
           featured: true,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1182,7 +1182,7 @@ class _DateGallery extends StatelessWidget {
                 caption: 'Istanbul Modern, 2024',
                 title: 'Gallery Opening',
                 height: 140,
-                accentColor: AppColors.gold,
+                accentColor: AppColors.emerald500,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -1192,7 +1192,7 @@ class _DateGallery extends StatelessWidget {
                 caption: 'Bebek, Istanbul',
                 title: 'Rooftop Soirée',
                 height: 140,
-                accentColor: AppColors.gold,
+                accentColor: AppColors.emerald500,
               ),
             ),
           ],
@@ -1312,7 +1312,7 @@ class _BffGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const teal = Color(0xFF26C6DA);
+    const teal = AppColors.info;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1541,13 +1541,13 @@ class _BadgesSection extends StatelessWidget {
   const _BadgesSection();
 
   static const _badges = [
-    _Badge(Icons.verified_rounded, 'Verified', AppColors.gold),
+    _Badge(Icons.verified_rounded, 'Verified', AppColors.emerald500),
     _Badge(
-        Icons.rocket_launch_rounded, 'Verified Founder', Color(0xFF26C6DA)),
+        Icons.rocket_launch_rounded, 'Verified Founder', AppColors.info),
     _Badge(Icons.flight_rounded, 'World Traveler', Color(0xFF7986CB)),
     _Badge(Icons.palette_rounded, 'Art Collector', Color(0xFFAB47BC)),
-    _Badge(Icons.star_rounded, 'Early Member', AppColors.gold),
-    _Badge(Icons.emoji_events_rounded, 'Top 10%', AppColors.goldLight),
+    _Badge(Icons.star_rounded, 'Early Member', AppColors.emerald500),
+    _Badge(Icons.emoji_events_rounded, 'Top 10%', AppColors.emerald200),
   ];
 
   @override

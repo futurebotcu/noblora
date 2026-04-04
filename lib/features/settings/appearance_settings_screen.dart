@@ -59,15 +59,15 @@ class AppearanceSettingsScreen extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: AppSpacing.lg),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.06),
+                color: AppColors.emerald500.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+                border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.15)),
               ),
               child: Row(children: [
-                Icon(Icons.lock_outline_rounded, color: AppColors.gold.withValues(alpha: 0.6), size: 18),
+                Icon(Icons.lock_outline_rounded, color: AppColors.emerald500.withValues(alpha: 0.6), size: 18),
                 const SizedBox(width: 10),
                 Expanded(child: Text('Unlock accent colors with Noble tier',
-                    style: TextStyle(color: AppColors.gold.withValues(alpha: 0.8), fontSize: 13))),
+                    style: TextStyle(color: AppColors.emerald500.withValues(alpha: 0.8), fontSize: 13))),
               ]),
             ),
 
@@ -129,11 +129,11 @@ class _AccentCircle extends StatelessWidget {
               color: locked ? accent.primary.withValues(alpha: 0.4) : accent.primary,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected ? Colors.white : Colors.transparent,
+                color: selected ? AppColors.bg : Colors.transparent,
                 width: selected ? 3 : 0,
               ),
               boxShadow: selected ? [
-                BoxShadow(color: accent.primary.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 2)),
+                BoxShadow(color: accent.primary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 2)),
               ] : null,
             ),
             child: locked

@@ -383,7 +383,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
 
   /// Check gating before allowing an interaction action
   bool _checkGate(BuildContext context, String mode) {
-    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
     if (gate.canInteract(mode)) return true;
     showGatingPopup(context, 'Add a photo first',
         'Upload at least one photo to start connecting with people.');
@@ -462,7 +462,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                     ],
                   ),
                   child: const Icon(Icons.favorite_rounded,
-                      color: Colors.black, size: 28),
+                      color: AppColors.textOnEmerald, size: 28),
                 ),
               ),
             ],

@@ -6,7 +6,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../providers/room_provider.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = Color(0xFF9B6DFF);
+const _violet = AppColors.violet;
 
 const _topicOptions = [
   'Tech', 'Design', 'Startup', 'Music', 'Film',

@@ -4,8 +4,8 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../data/models/bff_suggestion.dart';
 
-const _teal = Color(0xFF26C6DA);
-const _tealLight = Color(0xFF4DD0E1);
+const _teal = AppColors.teal;
+const _tealLight = Color(0xFF2FC3CC);
 
 class BffSuggestionCard extends StatelessWidget {
   final BffSuggestion suggestion;
@@ -307,10 +307,10 @@ class BffSuggestionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF26C6DA).withValues(alpha: 0.1),
+                color: AppColors.teal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text('Nob', style: TextStyle(color: Color(0xFF26C6DA), fontSize: 10, fontWeight: FontWeight.w600)),
+              child: const Text('Nob', style: TextStyle(color: _teal, fontSize: 10, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(content, style: TextStyle(color: context.textPrimary, fontSize: 16, height: 1.5)),

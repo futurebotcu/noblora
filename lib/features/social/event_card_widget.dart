@@ -4,8 +4,8 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../data/models/event.dart';
 
-const _violet = Color(0xFFAB47BC);
-const _violetLight = Color(0xFFCE93D8);
+const _violet = AppColors.violet;
+const _violetLight = Color(0xFFA98CE8);
 
 class EventCardWidget extends StatelessWidget {
   final NobEvent event;

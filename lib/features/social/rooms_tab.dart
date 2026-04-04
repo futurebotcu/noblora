@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../providers/room_provider.dart';
@@ -8,7 +9,7 @@ import 'room_card_widget.dart';
 import 'room_chat_screen.dart';
 import 'create_room_screen.dart';
 
-const _violet = Color(0xFF9B6DFF);
+const _violet = AppColors.violet;
 
 class RoomsTab extends ConsumerStatefulWidget {
   const RoomsTab({super.key});
@@ -75,7 +76,7 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
 
   Future<void> _joinRoom(String roomId, String hostId, String title) async {
     final gate = ref.read(interactionGateProvider).valueOrNull ??
-        const InteractionGate();
+        InteractionGate.loading;
     if (!gate.canSocialJoin) {
       if (mounted) showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
       return;
@@ -109,7 +110,7 @@ class _RoomsTabState extends ConsumerState<RoomsTab> {
 
   Future<void> _createRoom() async {
     final gate = ref.read(interactionGateProvider).valueOrNull ??
-        const InteractionGate();
+        InteractionGate.loading;
     if (!gate.canSocialCreate) {
       if (mounted) showGatingPopup(context, 'Verify your photo',
           'Verify your profile photo to host events and create rooms.',

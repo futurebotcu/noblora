@@ -146,7 +146,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       if (mounted) setState(() => _topicSuggestion = topic);
     } catch (_) {
       if (mounted) {
-        setState(() => _topicSuggestion = 'What do you enjoy doing on weekends?');
+        setState(() => _topicSuggestion = '[AI unavailable] What do you enjoy doing on weekends?');
       }
     }
     if (mounted) setState(() => _loadingTopic = false);
@@ -253,7 +253,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       children: [
         // Background
         Container(
-          color: const Color(0xFF0A0A0A),
+          color: AppColors.bg,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -291,7 +291,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                 Text(
                   widget.match.otherUserName ?? 'Your Match',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                 ),
@@ -323,7 +323,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.8),
+                  AppColors.bg.withValues(alpha: 0.8),
                   Colors.transparent,
                 ],
               ),
@@ -336,7 +336,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                   children: [
                     const Text('Time Remaining',
                         style:
-                            TextStyle(color: Colors.white60, fontSize: 12)),
+                            TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     Text(
                       _formatDuration(_remaining),
                       style: TextStyle(
@@ -352,7 +352,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                   width: 120,
                   child: LinearProgressIndicator(
                     value: pct,
-                    backgroundColor: Colors.white24,
+                    backgroundColor: AppColors.border,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                     minHeight: 4,
                   ),
@@ -453,13 +453,13 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.call_end_rounded,
-                        color: Colors.white, size: 28),
+                        color: AppColors.textOnEmerald, size: 28),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 const Text('End Call',
                     style:
-                        TextStyle(color: Colors.white60, fontSize: 12)),
+                        TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
             ),
           ),

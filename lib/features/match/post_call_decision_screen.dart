@@ -62,6 +62,13 @@ class _PostCallDecisionScreenState
   }
 
   void _listenForOtherDecision() {
+    // Timeout: if other user doesn't decide in 10 minutes, expire
+    Future.delayed(const Duration(minutes: 10), () {
+      if (mounted && _waiting) {
+        _decisionSub?.cancel();
+        _handleResult('expired');
+      }
+    });
     _decisionSub?.cancel();
     _decisionSub = Supabase.instance.client
         .from('call_decisions')
@@ -204,7 +211,7 @@ class _PostCallDecisionScreenState
           style: Theme.of(context)
               .textTheme
               .headlineSmall
-              ?.copyWith(color: Colors.white),
+              ?.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
@@ -240,7 +247,7 @@ class _PostCallDecisionScreenState
           style: Theme.of(context)
               .textTheme
               .headlineMedium
-              ?.copyWith(color: Colors.white),
+              ?.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.md),
         Text(

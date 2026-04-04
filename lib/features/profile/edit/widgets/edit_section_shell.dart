@@ -59,12 +59,12 @@ class EditSectionShell extends StatelessWidget {
                 onPressed: saving ? null : onSave,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.accent,
-                  foregroundColor: Colors.black,
+                  foregroundColor: context.onAccent,
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
                 ),
                 child: saving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.onAccent))
                     : const Text('Save', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               ),
             ),

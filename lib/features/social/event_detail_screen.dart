@@ -10,7 +10,7 @@ import 'edit_event_screen.dart';
 import 'event_chat_screen.dart';
 import 'event_checkin_screen.dart';
 
-const _violet = Color(0xFFAB47BC);
+const _violet = AppColors.violet;
 
 class EventDetailScreen extends ConsumerStatefulWidget {
   final String eventId;

@@ -52,7 +52,7 @@ class PhotosMediaSection extends ConsumerWidget {
                       Positioned(bottom: 4, left: 4, child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: context.accent, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('Main', style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w700)),
+                        child: Text('Main', style: TextStyle(color: context.onAccent, fontSize: 9, fontWeight: FontWeight.w700)),
                       )),
                     Positioned(top: 4, right: 4, child: Container(
                       width: 22, height: 22,

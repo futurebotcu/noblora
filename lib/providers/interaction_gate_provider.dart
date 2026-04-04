@@ -12,6 +12,9 @@ class InteractionGate {
 
   const InteractionGate({this.photoCount = 0, this.verifiedPhoto = false});
 
+  /// Permissive default while provider is loading. Real values apply once resolved.
+  static const loading = InteractionGate(photoCount: 1, verifiedPhoto: false);
+
   bool get hasPhoto => photoCount > 0;
 
   // Dating & BFF: need at least 1 photo
@@ -45,15 +48,18 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
         .eq('id', uid).maybeSingle();
     if (row == null) return const InteractionGate();
 
-    // Noble tier users get full access — never blocked by gating
     final tier = row['nob_tier'] as String?;
+    final photoCount = (row['photo_count'] as int?) ?? 0;
+    final verified = (row['verified_profile_photo'] as bool?) ?? false;
+
+    // Noble tier users get full access — never blocked by gating
     if (tier == 'noble') {
       return const InteractionGate(photoCount: 5, verifiedPhoto: true);
     }
 
     return InteractionGate(
-      photoCount: (row['photo_count'] as int?) ?? 0,
-      verifiedPhoto: (row['verified_profile_photo'] as bool?) ?? false,
+      photoCount: photoCount,
+      verifiedPhoto: verified,
     );
   } catch (_) {
     return const InteractionGate();
@@ -100,7 +106,12 @@ void showGatingPopup(BuildContext context, String title, String message, {GatePo
           SizedBox(width: double.infinity, child: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF080808),
                   minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Go to Profile tab to add or update your photo.')),
+                );
+              },
               child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.3)))),
         ],
       ),

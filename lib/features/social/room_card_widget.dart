@@ -4,7 +4,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../data/models/room.dart';
 
-const _violet = Color(0xFF9B6DFF);
+const _violet = AppColors.violet;
 
 class RoomCardWidget extends StatelessWidget {
   final Room room;

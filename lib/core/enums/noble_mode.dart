@@ -59,38 +59,37 @@ extension NobleModeX on NobleMode {
   Color get accentColor {
     switch (this) {
       case NobleMode.date:
-        return AppColors.gold;
+        return AppColors.emerald500;
       case NobleMode.bff:
         return AppColors.teal;
       case NobleMode.social:
         return AppColors.violet;
       case NobleMode.noblara:
-        return AppColors.gold;
+        return AppColors.emerald500;
     }
   }
 
   Color get accentLight {
     switch (this) {
       case NobleMode.date:
-        return AppColors.goldLight;
+        return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.bff:
-        return const Color(0x2226C6DA);
+        return AppColors.teal.withValues(alpha: 0.14);
       case NobleMode.social:
-        return const Color(0x229B6DFF);
+        return AppColors.violet.withValues(alpha: 0.14);
       case NobleMode.noblara:
-        return AppColors.goldLight;
+        return AppColors.emerald600.withValues(alpha: 0.14);
     }
   }
 
-  // Subtle scaffold background tint per mode
   Color get bgTint {
     switch (this) {
       case NobleMode.date:
         return AppColors.bg;
       case NobleMode.bff:
-        return const Color(0xFF070A0A);
+        return const Color(0xFF0A0E0D);
       case NobleMode.social:
-        return const Color(0xFF08070B);
+        return const Color(0xFF0C0B0F);
       case NobleMode.noblara:
         return AppColors.bg;
     }

@@ -17,7 +17,7 @@ import 'event_detail_screen.dart';
 import 'create_event_screen.dart';
 import 'rooms_tab.dart';
 
-const _violet = Color(0xFF9B6DFF);
+const _violet = AppColors.violet;
 
 class SocialEventsScreen extends ConsumerStatefulWidget {
   const SocialEventsScreen({super.key});
@@ -170,7 +170,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
   }
 
   Future<void> _joinEvent(String eventId) async {
-    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
     if (!gate.canSocialJoin) {
       if (mounted) showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
       return;
@@ -246,7 +246,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
             heroTag: 'create_event_fab',
             backgroundColor: _violet,
             onPressed: () async {
-              final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+              final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
               if (!gate.canSocialCreate) {
                 if (context.mounted) {
                   showGatingPopup(context, 'Verify your photo',

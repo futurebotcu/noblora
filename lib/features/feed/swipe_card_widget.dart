@@ -187,7 +187,7 @@ class _CardBody extends StatelessWidget {
         border: Border.all(color: context.borderSubtleColor, width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: Colors.black.withValues(alpha: 0.10),
             blurRadius: 32,
             offset: const Offset(0, 12),
           ),
@@ -518,12 +518,12 @@ class _BffCardBody extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
         boxShadow: [
           BoxShadow(
-            color: _mode.accentColor.withValues(alpha: 0.12),
+            color: _mode.accentColor.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -625,7 +625,7 @@ class _NetworkingPanel extends StatelessWidget {
 
   const _NetworkingPanel({required this.card});
 
-  static const _teal = Color(0xFF26C6DA);
+  static const _teal = Color(0xFF1BA3B0);
 
   @override
   Widget build(BuildContext context) {
@@ -652,8 +652,8 @@ class _NetworkingPanel extends StatelessWidget {
         // Name + Age
         Text(
           '${card.name}, ${card.age}',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.textPrimary,
             fontSize: 22,
             fontWeight: FontWeight.w700,
             height: 1.1,
@@ -669,7 +669,7 @@ class _NetworkingPanel extends StatelessWidget {
               _ProfessionalPill(label: card.industry!, color: _teal),
             _ProfessionalPill(
               label: card.city,
-              color: Colors.white.withValues(alpha: 0.45),
+              color: context.textMuted,
               icon: Icons.location_on_rounded,
             ),
           ],
@@ -686,7 +686,7 @@ class _NetworkingPanel extends StatelessWidget {
                 child: Text(
                   card.expertise!,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.68),
+                    color: context.textSecondary,
                     fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -703,10 +703,10 @@ class _NetworkingPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: _teal.withValues(alpha: 0.10),
+              color: _teal.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               border:
-                  Border.all(color: _teal.withValues(alpha: 0.28), width: 1),
+                  Border.all(color: _teal.withValues(alpha: 0.22), width: 1),
             ),
             child: Row(
               children: [

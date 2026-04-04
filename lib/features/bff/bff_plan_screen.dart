@@ -6,7 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../data/models/bff_plan.dart';
 import '../../providers/bff_provider.dart';
 
-const _teal = Color(0xFF26C6DA);
+const _teal = AppColors.teal;
 
 class BffPlanScreen extends ConsumerStatefulWidget {
   final String conversationId;
@@ -113,8 +113,8 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 14)),
       builder: (c, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(
             primary: _teal,
             surface: AppColors.surface,
           ),
@@ -130,8 +130,8 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
       context: context,
       initialTime: _selectedTime,
       builder: (c, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(
             primary: _teal,
             surface: AppColors.surface,
           ),

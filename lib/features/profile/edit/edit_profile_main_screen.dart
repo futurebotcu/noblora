@@ -344,9 +344,9 @@ class _ScorePopOverlayState extends State<_ScorePopOverlay>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.arrow_upward_rounded, color: Colors.black, size: 18),
+                    Icon(Icons.arrow_upward_rounded, color: context.onAccent, size: 18),
                     const SizedBox(width: 6),
-                    Text('+${widget.points}', style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w800)),
+                    Text('+${widget.points}', style: TextStyle(color: context.onAccent, fontSize: 20, fontWeight: FontWeight.w800)),
                   ],
                 ),
               ),
@@ -535,9 +535,9 @@ class _PhotoHeroState extends State<_PhotoHero>
                           decoration: BoxDecoration(color: context.accent, borderRadius: BorderRadius.circular(20),
                             boxShadow: [BoxShadow(color: context.accent.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 14),
+                            Icon(Icons.camera_alt_rounded, color: context.onAccent, size: 14),
                             const SizedBox(width: 5),
-                            Text('${widget.photoUrls.length}/6', style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
+                            Text('${widget.photoUrls.length}/6', style: TextStyle(color: context.onAccent, fontSize: 12, fontWeight: FontWeight.w700)),
                           ]),
                         ),
                       )),

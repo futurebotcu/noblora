@@ -6,7 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../providers/event_provider.dart';
 import '../../services/gemini_service.dart';
 
-const _violet = Color(0xFFAB47BC);
+const _violet = AppColors.violet;
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
@@ -142,7 +142,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                           initialDate: _eventDate,
                           firstDate: DateTime.now(),
                           lastDate: DateTime.now().add(const Duration(days: 30)),
-                          builder: (c, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: _violet, surface: AppColors.surface)), child: child!),
+                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _violet, surface: AppColors.surface)), child: child!),
                         );
                         if (d != null) setState(() => _eventDate = d);
                       },
@@ -156,7 +156,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                         final t = await showTimePicker(
                           context: context,
                           initialTime: _eventTime,
-                          builder: (c, child) => Theme(data: ThemeData.dark().copyWith(colorScheme: const ColorScheme.dark(primary: _violet, surface: AppColors.surface)), child: child!),
+                          builder: (c, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _violet, surface: AppColors.surface)), child: child!),
                         );
                         if (t != null) setState(() => _eventTime = t);
                       },

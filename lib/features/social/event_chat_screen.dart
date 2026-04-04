@@ -9,8 +9,8 @@ import '../../providers/event_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 
-const _violet = Color(0xFFAB47BC);
-const _gold = AppColors.gold;
+const _violet = AppColors.violet;
+const _emerald = AppColors.gold;
 
 class EventChatScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -76,7 +76,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
 
   void _send() {
     // Social interaction gating
-    final gate = ref.read(interactionGateProvider).valueOrNull ?? const InteractionGate();
+    final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
     if (!gate.canSocialJoin) {
       showGatingPopup(context, 'Add a photo first', 'Upload a photo to join events and rooms.');
       return;
@@ -129,7 +129,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
           // ── Pinned messages (gold) ──
           if (pinned.isNotEmpty)
             Container(
-              color: _gold.withValues(alpha: 0.08),
+              color: _emerald.withValues(alpha: 0.08),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +137,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
                         children: [
-                          Icon(Icons.push_pin_rounded, color: _gold, size: 14),
+                          Icon(Icons.push_pin_rounded, color: _emerald, size: 14),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(m.content,
@@ -183,7 +183,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                             decoration: BoxDecoration(
-                              color: isMine ? _violet.withValues(alpha: 0.2) : AppColors.surface,
+                              color: isMine ? _violet.withValues(alpha: 0.15) : AppColors.surfaceAlt,
                               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                               border: msg.blueFlagged ? Border.all(color: Colors.blue.withValues(alpha: 0.5)) : null,
                             ),
@@ -267,7 +267,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
           children: [
             if (isHost)
               ListTile(
-                leading: Icon(Icons.push_pin_rounded, color: _gold),
+                leading: Icon(Icons.push_pin_rounded, color: _emerald),
                 title: const Text('Pin message', style: TextStyle(color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);

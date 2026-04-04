@@ -35,7 +35,7 @@ class _TierPromotionScreenState extends State<TierPromotionScreen>
   @override
   Widget build(BuildContext context) {
     final isNoble = widget.newTier == NobTier.noble;
-    final color = isNoble ? AppColors.gold : const Color(0xFF26C6DA);
+    final color = isNoble ? AppColors.emerald500 : AppColors.info;
     final icon = isNoble ? Icons.workspace_premium_rounded : Icons.explore_rounded;
     final title = isNoble ? 'You\'re now Noble' : 'You\'ve reached Explorer';
     final subtitle = isNoble

@@ -371,7 +371,7 @@ class SettingsScreen extends ConsumerWidget {
             Navigator.pop(ctx);
             Clipboard.setData(ClipboardData(text: 'Bug report: ${ctrl.text.trim()}'));
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bug report copied. Send to support@noblara.com')));
-          }, child: const Text('Copy & Send', style: TextStyle(color: AppColors.gold))),
+          }, child: const Text('Copy & Send', style: TextStyle(color: AppColors.emerald500))),
         ],
       ),
     );
@@ -469,7 +469,7 @@ class _T extends StatelessWidget {
     leading: Icon(icon, color: context.textMuted, size: 20),
     title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
     subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 11)) : null,
-    trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.gold.withValues(alpha: 0.5)));
+    trailing: Switch.adaptive(value: value, onChanged: onChanged, activeTrackColor: AppColors.emerald500.withValues(alpha: 0.5)));
 }
 
 class _PermSelector extends StatelessWidget {
@@ -481,12 +481,12 @@ class _PermSelector extends StatelessWidget {
     final options = ['everyone', 'verified', 'explorer_plus', 'noble_only', 'nobody'];
     final labels = {'everyone': 'Everyone', 'verified': 'Verified only', 'explorer_plus': 'Explorer+ only', 'noble_only': 'Noble only', 'nobody': 'Nobody'};
     return ListTile(tileColor: Colors.transparent,
-      leading: Icon(icon, color: context.textPrimary, size: 20),
+      leading: Icon(icon, color: context.textMuted, size: 20),
       title: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 14)),
       trailing: DropdownButton<String>(
         value: options.contains(value) ? value : 'everyone',
         dropdownColor: context.surfaceColor,
-        style: const TextStyle(color: AppColors.gold, fontSize: 12),
+        style: const TextStyle(color: AppColors.emerald500, fontSize: 12),
         underline: const SizedBox.shrink(),
         items: options.map((o) => DropdownMenuItem(value: o, child: Text(labels[o] ?? o))).toList(),
         onChanged: (v) { if (v != null) onChanged(v); },
@@ -516,7 +516,7 @@ class _EditCityState extends State<_EditCity> {
         isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.gold))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.emerald500))),
       onSubmitted: widget.onChanged, onEditingComplete: () => widget.onChanged(_c.text.trim()))));
 }
 

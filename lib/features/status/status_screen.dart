@@ -85,7 +85,9 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
       _ai = await GeminiService.getTierExplanation(
         tier: p.nobTier.name, profileCompleteness: p.profileCompletenessScore,
         communityScore: p.communityScore, depthScore: p.depthScore, followThrough: p.followThroughScore);
-    } catch (_) { _ai = 'Keep engaging — your profile grows naturally.'; }
+    } catch (_) {
+      _ai = '[AI unavailable] Keep engaging — your profile grows naturally.';
+    }
     if (mounted) setState(() => _aiLoading = false);
   }
 
@@ -102,12 +104,12 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
     final p = ref.watch(profileProvider).profile;
     if (p == null) {
       return Scaffold(backgroundColor: context.bgColor,
-          body: const Center(child: CircularProgressIndicator(color: AppColors.gold)));
+          body: Center(child: CircularProgressIndicator(color: AppColors.emerald500)));
     }
     if (!_loaded) WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     if (_ai == null && !_aiLoading) WidgetsBinding.instance.addPostFrameCallback((_) => _loadAi(p));
 
-    final tc = switch (p.nobTier) { NobTier.noble => AppColors.gold, NobTier.explorer => const Color(0xFF26C6DA), NobTier.observer => context.textMuted };
+    final tc = switch (p.nobTier) { NobTier.noble => AppColors.emerald500, NobTier.explorer => AppColors.info, NobTier.observer => context.textMuted };
 
     return Scaffold(
       backgroundColor: context.bgColor,
@@ -216,7 +218,7 @@ class _OverviewTab extends StatelessWidget {
       if (matchState.matches.any((m) => m.status == 'video_scheduled') || eventState.events.isNotEmpty) ...[
         _Sec('Coming up'),
         ...matchState.matches.where((m) => m.status == 'video_scheduled').take(2).map((m) =>
-            _Upcoming(Icons.videocam_rounded, 'Intro with ${m.otherUserName ?? "match"}', 'Scheduled', AppColors.gold)),
+            _Upcoming(Icons.videocam_rounded, 'Intro with ${m.otherUserName ?? "match"}', 'Scheduled', AppColors.emerald500)),
         ...eventState.events.take(2).map((e) =>
             _Upcoming(Icons.event_rounded, e.title, '${e.timeLabel} · ${e.locationText ?? ""}', const Color(0xFFAB47BC))),
         const SizedBox(height: AppSpacing.xxl),
@@ -227,7 +229,7 @@ class _OverviewTab extends StatelessWidget {
         Row(children: [Icon(Icons.auto_awesome_rounded, color: tc, size: 16), const SizedBox(width: 6),
           Text('Your guide', style: TextStyle(color: tc, fontSize: 13, fontWeight: FontWeight.w600))]),
         const SizedBox(height: AppSpacing.md),
-        if (aiLoading) const SizedBox(height: 30, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)))
+        if (aiLoading) const SizedBox(height: 30, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.emerald500)))
         else Text(ai ?? '', style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.5)),
       ])),
       const SizedBox(height: AppSpacing.xxl),
@@ -360,7 +362,7 @@ class _ActivityTab extends StatelessWidget {
         final dt = DateTime.tryParse(a['created_at'] as String? ?? '');
         return Padding(padding: const EdgeInsets.only(bottom: AppSpacing.md), child: Row(children: [
           Container(width: 6, height: 6, decoration: BoxDecoration(
-            color: a['read_at'] == null ? AppColors.gold : context.borderColor, shape: BoxShape.circle)),
+            color: a['read_at'] == null ? AppColors.emerald500 : context.borderColor, shape: BoxShape.circle)),
           const SizedBox(width: AppSpacing.md),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(a['title'] as String? ?? '', style: TextStyle(color: context.textPrimary, fontSize: 13)),
@@ -397,14 +399,14 @@ class _MarketTab extends StatelessWidget {
           width: 80, height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.gold.withValues(alpha: 0.04),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.1)),
-            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.05), blurRadius: 40)],
+            color: AppColors.emerald500.withValues(alpha: 0.04),
+            border: Border.all(color: AppColors.emerald500.withValues(alpha: 0.1)),
+            boxShadow: [BoxShadow(color: AppColors.emerald500.withValues(alpha: 0.05), blurRadius: 40)],
           ),
-          child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 30),
+          child: const Icon(Icons.diamond_outlined, color: AppColors.emerald500, size: 30),
         ),
         const SizedBox(height: AppSpacing.xxxl),
-        Text('Market', style: TextStyle(color: AppColors.gold.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
+        Text('Market', style: TextStyle(color: AppColors.emerald500.withValues(alpha: 0.5), fontSize: 20, fontWeight: FontWeight.w300, letterSpacing: 3)),
         const SizedBox(height: AppSpacing.md),
         Text('Reserved for private tools and access.',
             style: TextStyle(color: context.textMuted.withValues(alpha: 0.5), fontSize: 13),
@@ -432,7 +434,7 @@ class _Card extends StatelessWidget {
       color: context.surfaceColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       border: Border.all(color: borderColor ?? context.borderSubtleColor, width: 0.5),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 4))],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.30), blurRadius: 20, offset: const Offset(0, 6))],
     ),
     child: child);
 }
@@ -474,7 +476,7 @@ class _Tip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: AppSpacing.xs),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Icon(Icons.lightbulb_outline_rounded, color: AppColors.gold, size: 14),
+      const Icon(Icons.lightbulb_outline_rounded, color: AppColors.emerald500, size: 14),
       const SizedBox(width: AppSpacing.sm),
       Expanded(child: Text(t, style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4))),
     ]));
@@ -516,6 +518,6 @@ class _QA extends StatelessWidget {
     decoration: BoxDecoration(color: context.surfaceColor, borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         border: Border.all(color: context.borderColor)),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: AppColors.gold, size: 15), const SizedBox(width: 6),
+      Icon(icon, color: AppColors.emerald500, size: 15), const SizedBox(width: 6),
       Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12))])));
 }

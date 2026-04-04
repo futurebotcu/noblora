@@ -24,7 +24,13 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY");
-    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "GEMINI_API_KEY not configured", score: 0.5, ai_scored: false }),
+        { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 
     const prompt = `Rate this social post on quality (0.0-1.0).
 Consider: originality, depth, clarity, authenticity.
@@ -41,7 +47,7 @@ Post content: ${content || "(moment — caption only)"}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 128 },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
         }),
       }
     );

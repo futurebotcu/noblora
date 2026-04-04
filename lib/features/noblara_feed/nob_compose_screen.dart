@@ -40,6 +40,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   String? _uploadedPhotoUrl;
   bool _isUploading = false;
   bool _aiLoading = false;
+  bool _isPublishing = false;
   String? _savedDraftId;
   String? _feedback;
   bool _feedbackIsPositive = false;
@@ -86,7 +87,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     try {
       if (isMockMode) {
         await Future.delayed(const Duration(seconds: 1));
-        _showAiResult('$text — (AI polished)', editType);
+        _showAiResult('[AI unavailable] $text', isTurkish: _isTurkish(text));
         return;
       }
       final resp = await Supabase.instance.client.functions.invoke(
@@ -94,11 +95,14 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         body: {'content': text, 'edit_type': editType},
       );
       final edited = resp.data?['edited_content'] as String?;
-      if (edited != null && mounted) _showAiResult(edited, editType);
+      if (edited != null && mounted) {
+        _showAiResult(edited, isTurkish: _isTurkish(text) || _isTurkish(edited));
+      }
     } catch (e) {
+      debugPrint('[nob-ai-edit] ERROR: $e');
       if (mounted) {
         setState(() {
-          _feedback = 'AI edit failed. Try again.';
+          _feedback = 'AI edit failed: $e';
           _feedbackIsPositive = false;
         });
       }
@@ -107,7 +111,10 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     }
   }
 
-  void _showAiResult(String result, String editType) {
+  bool _isTurkish(String text) =>
+      RegExp(r'[ğüşıöçĞÜŞİÖÇ]').hasMatch(text);
+
+  void _showAiResult(String result, {bool isTurkish = false}) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -128,11 +135,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                       color: AppColors.noblaraGold, size: 16),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
-                    editType == 'fix_typos'
-                        ? 'Fixed typos'
-                        : editType == 'clean_up'
-                            ? 'Cleaned up'
-                            : 'Clearer version',
+                    isTurkish ? 'Geliştirilmiş sürüm' : 'Improved version',
                     style: const TextStyle(
                       color: AppColors.noblaraGold,
                       fontWeight: FontWeight.w600,
@@ -186,6 +189,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                       onPressed: () {
                         _activeCtrl.text = result;
                         Navigator.pop(context);
+                        setState(() {});
                       },
                       child: const Text('Accept',
                           style: TextStyle(
@@ -252,11 +256,11 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       final userId = ref.read(authProvider).userId ?? 'anon';
       final path =
           'nob_photos/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await Supabase.instance.client.storage.from('public').uploadBinary(
+      await Supabase.instance.client.storage.from('galleries').uploadBinary(
           path, _photoBytes!,
           fileOptions: const FileOptions(contentType: 'image/jpeg'));
       final url = Supabase.instance.client.storage
-          .from('public')
+          .from('galleries')
           .getPublicUrl(path);
       setState(() => _uploadedPhotoUrl = url);
     } catch (e) {
@@ -304,6 +308,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   }
 
   Future<void> _publish() async {
+    if (_isPublishing) return;
     final text = _activeCtrl.text.trim();
     // Thought: requires min 10 chars
     if (_nobType == 'thought' && text.length < 10) {
@@ -326,40 +331,54 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       if (_uploadedPhotoUrl == null) return;
     }
 
-    final canPublish =
-        await ref.read(postsProvider.notifier).canPublishToday(_nobType);
-    if (!mounted) return;
-    if (!canPublish) {
-      setState(() {
-        _feedback = 'You\'ve shared your Nob for today. Come back tomorrow.';
-        _feedbackIsPositive = false;
-      });
-      return;
-    }
+    setState(() => _isPublishing = true);
+    try {
+      final canPublish =
+          await ref.read(postsProvider.notifier).canPublishToday(_nobType);
+      if (!mounted) return;
+      if (!canPublish) {
+        setState(() {
+          _feedback = 'You\'ve shared your Nob for today. Come back tomorrow.';
+          _feedbackIsPositive = false;
+          _isPublishing = false;
+        });
+        return;
+      }
 
-    bool success;
-    if (_savedDraftId != null) {
-      success =
-          await ref.read(postsProvider.notifier).publishDraft(_savedDraftId!);
-    } else {
-      final post = await ref.read(postsProvider.notifier).createNob(
-            content: _nobType == 'thought' ? text : '',
-            nobType: _nobType,
-            caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
-            photoUrl: _uploadedPhotoUrl,
-            isDraft: false,
-          );
-      success = post != null;
-    }
+      bool success;
+      if (_savedDraftId != null) {
+        success =
+            await ref.read(postsProvider.notifier).publishDraft(_savedDraftId!);
+      } else {
+        final post = await ref.read(postsProvider.notifier).createNob(
+              content: _nobType == 'thought' ? text : '',
+              nobType: _nobType,
+              caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
+              photoUrl: _uploadedPhotoUrl,
+              isDraft: false,
+            );
+        success = post != null;
+      }
 
-    if (!mounted) return;
-    if (success) {
-      Navigator.pop(context);
-    } else {
-      setState(() {
-        _feedback = 'Could not publish. Try again.';
-        _feedbackIsPositive = false;
-      });
+      if (!mounted) return;
+      if (success) {
+        Navigator.pop(context);
+      } else {
+        setState(() {
+          _feedback = 'Could not publish. Try again.';
+          _feedbackIsPositive = false;
+        });
+      }
+    } catch (e) {
+      // publish failed
+      if (mounted) {
+        setState(() {
+          _feedback = 'Publish failed: $e';
+          _feedbackIsPositive = false;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
     }
   }
 
@@ -414,41 +433,11 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                     const SizedBox(height: AppSpacing.xxl),
 
                     // ── AI row ────────────────────────────────────────────
-                    if (_aiLoading)
-                      Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: AppColors.noblaraGold),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            const Text('AI thinking…',
-                                style: TextStyle(
-                                    color: AppColors.noblaraGold,
-                                    fontSize: 11)),
-                          ],
-                        ),
-                      )
-                    else
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        children: [
-                          _AiChip(
-                              label: 'Fix typos',
-                              onTap: () => _aiEdit('fix_typos')),
-                          _AiChip(
-                              label: 'Clean up',
-                              onTap: () => _aiEdit('clean_up')),
-                          _AiChip(
-                              label: 'Make clearer',
-                              onTap: () => _aiEdit('make_clearer')),
-                        ],
-                      ),
+                    _AiChip(
+                      label: _aiLoading ? 'AI thinking…' : 'AI Improve',
+                      onTap: _aiLoading ? () {} : () => _aiEdit('improve'),
+                      loading: _aiLoading,
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
 
                     // ── Photo area (Moment) ───────────────────────────────
@@ -553,14 +542,21 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                               BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                       ),
-                      onPressed: isOver ? null : _publish,
-                      child: const Text(
-                        'Publish Nob',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            letterSpacing: 0.3),
-                      ),
+                      onPressed: (isOver || _isPublishing) ? null : _publish,
+                      child: _isPublishing
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppColors.nobBackground),
+                            )
+                          : const Text(
+                              'Publish Nob',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: 0.3),
+                            ),
                     ),
                   ),
                 ],
@@ -773,7 +769,8 @@ class _TypeCard extends StatelessWidget {
 class _AiChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _AiChip({required this.label, required this.onTap});
+  final bool loading;
+  const _AiChip({required this.label, required this.onTap, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -791,8 +788,15 @@ class _AiChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome_outlined,
-                size: 11, color: AppColors.noblaraGold),
+            if (loading)
+              const SizedBox(
+                width: 11, height: 11,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: AppColors.noblaraGold),
+              )
+            else
+              const Icon(Icons.auto_awesome_outlined,
+                  size: 11, color: AppColors.noblaraGold),
             const SizedBox(width: 4),
             Text(
               label,
