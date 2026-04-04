@@ -294,6 +294,26 @@ class Premium {
     fontWeight: FontWeight.w700,
     letterSpacing: 0.3,
   );
+
+  // ══════════════════════════════════════════════════════════════
+  // DIALOG & SHEET — premium family styling
+  // ══════════════════════════════════════════════════════════════
+
+  /// Premium dialog shape with emerald-tinted border
+  static ShapeBorder dialogShape({double radius = 24}) =>
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: BorderSide(
+          color: AppColors.emerald600.withValues(alpha: 0.10),
+          width: 0.5,
+        ),
+      );
+
+  /// Premium sheet handle
+  static BoxDecoration sheetHandle({Color? accent}) => BoxDecoration(
+    color: (accent ?? AppColors.emerald600).withValues(alpha: 0.20),
+    borderRadius: BorderRadius.circular(999),
+  );
 }
 
 /// Animated press effect — scale down on tap, spring back on release.

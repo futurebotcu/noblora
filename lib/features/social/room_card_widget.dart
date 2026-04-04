@@ -44,13 +44,7 @@ class RoomCardWidget extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _accent.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        ),
-                      ],
+                      boxShadow: Premium.shadowSm,
                     ),
                     child: CircleAvatar(
                       radius: 18,

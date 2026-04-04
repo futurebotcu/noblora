@@ -6,7 +6,7 @@ import '../../core/services/toast_service.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/theme/premium.dart' show Premium;
+import '../../core/theme/premium.dart';
 import '../../data/models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/filter_provider.dart';
@@ -130,11 +130,12 @@ class _PillTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
+      child: PressEffect(
         onTap: onTap,
+        scale: 0.97,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
+          duration: Premium.dFast,
+          curve: Premium.cSnappy,
           margin: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: isActive ? _accent : Colors.transparent,
@@ -282,14 +283,15 @@ class _ViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressEffect(
       onTap: onToggle,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: context.borderSubtleColor, width: 0.5),
+          boxShadow: Premium.shadowSm,
         ),
         child: Icon(
           isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,

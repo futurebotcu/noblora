@@ -150,6 +150,7 @@ class _SuggestionsTab extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: Text('Note to ${sug.otherUserName ?? 'user'}', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: TextField(
           controller: ctrl, maxLength: 280, maxLines: 3,
@@ -316,7 +317,7 @@ class _BffDiscoveryCard extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.15), blurRadius: 12, spreadRadius: 1)],
+                      boxShadow: Premium.shadowSm,
                     ),
                     child: CircleAvatar(
                       radius: 28,
@@ -464,7 +465,7 @@ class _ReachOutsTab extends ConsumerWidget {
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.12), blurRadius: 10, spreadRadius: 1)],
+                  boxShadow: Premium.shadowSm,
                 ),
                 child: CircleAvatar(
                   radius: 22,

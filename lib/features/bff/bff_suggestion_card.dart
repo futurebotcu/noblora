@@ -48,7 +48,7 @@ class BffSuggestionCard extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.15), blurRadius: 12, spreadRadius: 1)],
+                    boxShadow: Premium.shadowSm,
                   ),
                   child: CircleAvatar(
                     radius: 28,
@@ -309,8 +309,7 @@ class BffSuggestionCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)))),
+            Center(child: Container(width: 40, height: 4, decoration: Premium.sheetHandle())),
             const SizedBox(height: AppSpacing.xxl),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

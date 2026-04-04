@@ -94,7 +94,7 @@ class _NoteInboxScreenState extends ConsumerState<NoteInboxScreen> {
                             ),
                             boxShadow: note.isRead ? Premium.shadowSm : [
                               ...Premium.shadowMd,
-                              BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.06), blurRadius: 12),
+                              ...Premium.emeraldGlow(intensity: 0.2),
                             ],
                           ),
                           child: Column(

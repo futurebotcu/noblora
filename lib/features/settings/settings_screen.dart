@@ -382,6 +382,7 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: Text('Report a Bug', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: TextField(controller: ctrl, maxLines: 4, style: TextStyle(color: context.textPrimary),
             decoration: InputDecoration(hintText: 'Describe the issue...', hintStyle: TextStyle(color: context.textDisabled),

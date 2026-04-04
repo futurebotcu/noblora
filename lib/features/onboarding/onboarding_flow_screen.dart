@@ -561,7 +561,7 @@ class _OccupationSheetState extends State<_OccupationSheet> {
   Widget build(BuildContext context) {
     return Column(children: [
       const SizedBox(height: AppSpacing.lg),
-      Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(4))),
+      Container(width: 40, height: 4, decoration: Premium.sheetHandle()),
       const SizedBox(height: AppSpacing.lg),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),

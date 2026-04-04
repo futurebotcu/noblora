@@ -142,7 +142,7 @@ class _PromptCard extends StatelessWidget {
         builder: (_, scroll) => Column(
           children: [
             const SizedBox(height: AppSpacing.lg),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: Premium.sheetHandle()),
             const SizedBox(height: AppSpacing.lg),
             Text('Choose a question', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: AppSpacing.md),

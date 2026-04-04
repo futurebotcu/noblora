@@ -502,7 +502,7 @@ class _FilterChip extends StatelessWidget {
         onTap();
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: Premium.dFast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isActive
@@ -557,8 +557,9 @@ class _InboxTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = item.mode.accentColor;
 
-    return InkWell(
+    return PressEffect(
       onTap: onTap,
+      scale: 0.98,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
@@ -772,8 +773,9 @@ class _CircleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = NobleMode.social.accentColor;
 
-    return InkWell(
+    return PressEffect(
       onTap: onTap,
+      scale: 0.98,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(

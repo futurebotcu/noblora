@@ -217,7 +217,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 12),
-          Container(width: 36, height: 3, decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(2))),
+          Container(width: 40, height: 4, decoration: Premium.sheetHandle()),
           const SizedBox(height: 20),
           ListTile(
             leading: const Icon(Icons.camera_alt_rounded, color: AppColors.emerald600),

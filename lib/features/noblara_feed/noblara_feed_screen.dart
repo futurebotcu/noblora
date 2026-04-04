@@ -958,7 +958,7 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
           boxShadow: active
-              ? [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.08), blurRadius: 8, spreadRadius: -2)]
+              ? Premium.shadowSm
               : null,
         ),
         child: Text(label, style: TextStyle(
@@ -990,7 +990,7 @@ class _ToggleChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
           boxShadow: active
-              ? [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.08), blurRadius: 8, spreadRadius: -2)]
+              ? Premium.shadowSm
               : null,
         ),
         child: Text(label, style: TextStyle(
@@ -1031,7 +1031,7 @@ class _AuthorProfileSheet extends StatelessWidget {
           controller: scroll,
           padding: const EdgeInsets.all(24),
           children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)))),
+            Center(child: Container(width: 40, height: 4, decoration: Premium.sheetHandle())),
             const SizedBox(height: 24),
             Row(children: [
               CircleAvatar(
