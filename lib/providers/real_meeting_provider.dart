@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -63,7 +64,8 @@ class RealMeetingNotifier extends StateNotifier<RealMeetingState> {
         if (mounted) state = state.copyWith(meeting: meeting);
       },
       onError: (Object e) {
-        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+        // Realtime stream error — keep initial fetch data visible.
+        debugPrint('[real_meeting] realtime stream error: $e');
       },
     );
   }

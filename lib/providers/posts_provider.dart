@@ -96,7 +96,11 @@ class PostsNotifier extends StateNotifier<PostsState> {
         if (mounted) state = state.copyWith(posts: posts, isLoading: false);
       },
       onError: (Object e) {
-        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+        // Realtime stream error — keep any already-loaded posts visible.
+        debugPrint('[posts] realtime stream error: $e');
+        if (mounted && state.isLoading) {
+          state = state.copyWith(isLoading: false);
+        }
       },
     );
   }

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -160,7 +160,9 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
         if (mounted) state = state.copyWith(verifications: verifs);
       },
       onError: (Object e) {
-        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+        // Realtime subscription failed (timeout, publication missing, etc.) —
+        // initial data is already loaded. Keep showing it; just lose live updates.
+        debugPrint('[verification] realtime stream error: $e');
       },
     );
   }

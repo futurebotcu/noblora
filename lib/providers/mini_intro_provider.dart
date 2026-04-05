@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -56,7 +57,8 @@ class MiniIntroNotifier extends StateNotifier<MiniIntroState> {
         if (mounted) state = MiniIntroState(intros: intros);
       },
       onError: (Object e) {
-        if (mounted) state = MiniIntroState(error: e.toString());
+        // Realtime stream error — keep initial fetch data visible.
+        debugPrint('[mini_intro] realtime stream error: $e');
       },
     );
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -81,7 +82,8 @@ class VideoSessionNotifier extends StateNotifier<VideoSessionState> {
         if (mounted) state = state.copyWith(session: session);
       },
       onError: (Object e) {
-        if (mounted) state = state.copyWith(isLoading: false, error: e.toString());
+        // Realtime stream error — keep initial fetch data visible.
+        debugPrint('[video] realtime stream error: $e');
       },
     );
   }
