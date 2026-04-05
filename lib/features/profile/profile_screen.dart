@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
@@ -195,10 +196,11 @@ class _ProfileHeader extends StatelessWidget {
                       Border.all(color: AppColors.emerald600, width: 2.5),
                 ),
                 child: ClipOval(
-                  child: Image.network(
-                    avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
+                  child: CachedNetworkImage(
+                    imageUrl: avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    memCacheWidth: 300,
+                    errorWidget: (_, __, ___) => Container(
                       color: AppColors.emerald600.withValues(alpha: 0.2),
                       child: Center(
                         child: Text(

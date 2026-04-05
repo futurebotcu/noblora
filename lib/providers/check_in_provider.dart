@@ -20,8 +20,10 @@ class CheckInState {
   });
 }
 
-/// Provider that checks for pending check-ins (meetings >2h ago without check-in)
-final pendingCheckInsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, userId) async {
+/// Provider that checks for pending check-ins (meetings >2h ago without check-in).
+/// autoDispose.family so each userId's cache is freed when no listener remains.
+final pendingCheckInsProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, userId) async {
   if (isMockMode) return [];
   final repo = ref.read(checkInRepositoryProvider);
   return repo.fetchPendingCheckIns(userId);
@@ -51,8 +53,9 @@ class CheckInNotifier extends StateNotifier<CheckInState> {
   }
 }
 
-final checkInProvider =
-    StateNotifierProvider.family<CheckInNotifier, CheckInState, String>(
+/// autoDispose.family so per-meeting check-in state is freed when its dialog closes.
+final checkInProvider = StateNotifierProvider.autoDispose
+    .family<CheckInNotifier, CheckInState, String>(
   (ref, meetingId) {
     final repo = ref.watch(checkInRepositoryProvider);
     return CheckInNotifier(repo);

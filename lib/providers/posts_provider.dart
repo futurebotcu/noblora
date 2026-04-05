@@ -349,8 +349,8 @@ final lastNobsProvider =
   return repo.fetchLastNobs(userId, limit: 3);
 });
 
-// Current user's nob tier — auto-dispose so it refetches on re-watch
-final nobTierProvider = FutureProvider<NobTier>((ref) async {
+// Current user's nob tier — autoDispose so it re-fetches on user switch.
+final nobTierProvider = FutureProvider.autoDispose<NobTier>((ref) async {
   if (isMockMode) return NobTier.noble;
   final userId = ref.watch(authProvider).userId;
   if (userId == null) return NobTier.observer;
@@ -366,8 +366,8 @@ final nobTierProvider = FutureProvider<NobTier>((ref) async {
   }
 });
 
-// Whether current user is an admin
-final isAdminProvider = FutureProvider<bool>((ref) async {
+// Whether current user is an admin — autoDispose so it refreshes on user switch.
+final isAdminProvider = FutureProvider.autoDispose<bool>((ref) async {
   if (isMockMode) return true;
   final userId = ref.watch(authProvider).userId;
   if (userId == null) return false;

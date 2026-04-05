@@ -78,7 +78,9 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
             }
             return;
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[ai_writing_help prefs] fetch failed: $e');
+        }
       }
     }
 
@@ -103,7 +105,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       debugPrint('[nob-ai-edit] ERROR: $e');
       if (mounted) {
         setState(() {
-          _feedback = 'AI edit failed: $e';
+          _feedback = 'AI edit unavailable. Try again in a moment.';
           _feedbackIsPositive = false;
         });
       }
@@ -371,10 +373,10 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         });
       }
     } catch (e) {
-      // publish failed
+      debugPrint('[publish] ERROR: $e');
       if (mounted) {
         setState(() {
-          _feedback = 'Publish failed: $e';
+          _feedback = 'Could not publish. Check your connection and try again.';
           _feedbackIsPositive = false;
         });
       }

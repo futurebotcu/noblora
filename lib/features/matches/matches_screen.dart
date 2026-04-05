@@ -23,8 +23,8 @@ import 'individual_chat_screen.dart';
 // Number of tabs in the inbox: Alliances + Requests (+ Circles if Social is on).
 const int _inboxTabCount = kSocialEnabled ? 3 : 2;
 
-/// Reads message_preview setting for current user
-final _messagePreviewProvider = FutureProvider<bool>((ref) async {
+/// Reads message_preview setting for current user — autoDispose so it refreshes per user.
+final _messagePreviewProvider = FutureProvider.autoDispose<bool>((ref) async {
   if (isMockMode) return true;
   final uid = ref.watch(authProvider).userId;
   if (uid == null) return true;

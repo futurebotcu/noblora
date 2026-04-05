@@ -514,7 +514,20 @@ void _showNobDetail(BuildContext context, Post nob) {
           if (nob.isMoment && nob.photoUrl != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              child: Image.network(nob.photoUrl!, height: 200, width: double.infinity, fit: BoxFit.cover),
+              child: CachedNetworkImage(
+                imageUrl: nob.photoUrl!,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                memCacheWidth: 1080,
+                errorWidget: (_, __, ___) => Container(
+                  height: 200,
+                  color: AppColors.surfaceAlt,
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported_outlined, size: 28),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
           ],

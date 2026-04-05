@@ -280,28 +280,32 @@ class PostRepository {
   Future<List<Post>> _enrichWithProfiles(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return [];
     final userIds = rows.map((r) => r['user_id'] as String).toSet().toList();
-    final profiles = await _supabase!
-        .from('profiles')
-        .select('id, display_name, date_avatar_url, nob_tier')
-        .inFilter('id', userIds);
+    final postIds = rows.map((r) => r['id'] as String).toList();
+
+    // Parallelize profile + reaction fetches — halves enrichment latency on
+    // every realtime stream event (was sequential, ~2x RTT).
+    final results = await Future.wait([
+      _supabase!
+          .from('profiles')
+          .select('id, display_name, date_avatar_url, nob_tier')
+          .inFilter('id', userIds),
+      _supabase.from('post_reactions').select().inFilter('post_id', postIds),
+    ]);
+    final profiles = results[0];
+    final reactionRows = results[1];
+
     final profileMap = {
       for (final p in profiles) p['id'] as String: p
     };
-    final posts = rows
-        .map((r) => Post.fromJson(r, profile: profileMap[r['user_id'] as String]))
-        .toList();
-    if (posts.isEmpty) return posts;
-    final postIds = posts.map((p) => p.id).toList();
-    final reactionRows =
-        await _supabase.from('post_reactions').select().inFilter('post_id', postIds);
     final reactionsByPost = <String, List<PostReaction>>{};
     for (final r in reactionRows) {
       final reaction = PostReaction.fromJson(r);
       reactionsByPost.putIfAbsent(reaction.postId, () => []).add(reaction);
     }
-    return posts
-        .map((p) => p.copyWith(reactions: reactionsByPost[p.id] ?? []))
-        .toList();
+    return rows.map((r) {
+      final post = Post.fromJson(r, profile: profileMap[r['user_id'] as String]);
+      return post.copyWith(reactions: reactionsByPost[post.id] ?? []);
+    }).toList();
   }
 
   List<Post> _mockPosts() => [

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/theme/premium.dart';
+import '../edit_profile_provider.dart';
 
 /// Common shell for every edit section screen.
-class EditSectionShell extends StatelessWidget {
+/// Listens to editProfileProvider and surfaces save errors via a snackbar so
+/// individual sections don't have to repeat the error-handling code.
+class EditSectionShell extends ConsumerWidget {
   final String title;
   final String? description;
   final VoidCallback onSave;
@@ -21,7 +26,21 @@ class EditSectionShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<EditProfileState>(editProfileProvider, (prev, next) {
+      final prevErr = prev?.error;
+      final nextErr = next.error;
+      if (nextErr != null && nextErr != prevErr) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save changes. Please try again.'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: context.bgColor,
       appBar: AppBar(

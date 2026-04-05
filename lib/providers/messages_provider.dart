@@ -10,8 +10,9 @@ final messagesRepositoryProvider = Provider<MessagesRepository>((ref) {
 });
 
 /// Stream provider for messages in a specific conversation.
+/// autoDispose so each closed chat screen tears down its realtime subscription.
 final messagesStreamProvider =
-    StreamProvider.family<List<ChatMessage>, String>((ref, conversationId) {
+    StreamProvider.autoDispose.family<List<ChatMessage>, String>((ref, conversationId) {
   final repo = ref.watch(messagesRepositoryProvider);
   return repo.messagesStream(conversationId);
 });

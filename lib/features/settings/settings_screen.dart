@@ -68,11 +68,18 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
   };
 
   Future<void> _save(String column, dynamic value) async {
+    final previous = state[column];
     state = {...state, column: value};
     if (isMockMode) return;
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
-    try { await Supabase.instance.client.from('profiles').update({column: value}).eq('id', uid); } catch (_) {}
+    try {
+      await Supabase.instance.client.from('profiles').update({column: value}).eq('id', uid);
+    } catch (e) {
+      debugPrint('[settings] save failed for $column: $e');
+      // Revert the optimistic update so UI reflects the persisted state.
+      state = {...state, column: previous};
+    }
   }
 
   void toggleBool(String key) { final c = state[key] as bool? ?? false; _save(key, !c); }

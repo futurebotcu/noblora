@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,6 @@ import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/note_provider.dart';
-import '../../providers/interaction_gate_provider.dart';
 import 'nob_compose_screen.dart';
 import 'nob_drafts_screen.dart';
 import 'note_inbox_screen.dart';
@@ -33,20 +33,15 @@ class NoblaraFeedScreen extends ConsumerWidget {
       loading: () => NobTier.observer,
       error: (_, __) => NobTier.observer,
     );
-    final gate = ref.watch(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
-    final tierCanCompose = tier == NobTier.noble || tier == NobTier.explorer;
-    final canCompose = tierCanCompose && gate.canPostNob;
+    // Noblara compose rights are tier-only — no photo or verification gate.
+    // Backend rate-limits via check_nob_limit() per tier.
+    final canCompose = tier == NobTier.noble || tier == NobTier.explorer;
 
     return Scaffold(
       backgroundColor: context.bgColor,
-      floatingActionButton: tierCanCompose
+      floatingActionButton: canCompose
           ? _ComposeFab(
               onTap: () {
-                if (!gate.canPostNob) {
-                  showGatingPopup(context, 'Add a photo first',
-                      'Upload a photo to share your thoughts with the community.');
-                  return;
-                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const NobComposeScreen()),
@@ -186,6 +181,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
                     (context, i) {
                       final post = postsState.posts[i];
                       return _NobCard(
+                        key: ValueKey(post.id),
                         post: post,
                         currentUserId: currentUserId,
                         onReact: (type) => ref.read(postsProvider.notifier).react(post.id, type),
@@ -477,6 +473,7 @@ class _NobCard extends StatelessWidget {
   final void Function(String)? onReachOut;
 
   const _NobCard({
+    super.key,
     required this.post, required this.currentUserId, required this.onReact,
     this.onPin, this.onArchive, this.onDelete, this.onSendNote, this.onSignal, this.onReachOut,
   });
@@ -540,7 +537,24 @@ class _NobCard extends StatelessWidget {
                       border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
                     ),
                     child: post.authorAvatarUrl != null
-                        ? ClipOval(child: Image.network(post.authorAvatarUrl!, fit: BoxFit.cover))
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: post.authorAvatarUrl!,
+                              fit: BoxFit.cover,
+                              width: 32,
+                              height: 32,
+                              memCacheWidth: 96,
+                              errorWidget: (_, __, ___) => Center(
+                                child: Text(
+                                  (post.authorName ?? 'N')[0].toUpperCase(),
+                                  style: TextStyle(
+                                      color: _tierColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          )
                         : Center(child: Text((post.authorName ?? 'N')[0].toUpperCase(), style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12))),
                   ),
                 ),
@@ -598,11 +612,12 @@ class _NobCard extends StatelessWidget {
                 child: ClipRRect(
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: Image.network(
-                      post.photoUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: post.photoUrl!,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      memCacheWidth: 1080,
+                      errorWidget: (_, __, ___) => Container(
                         color: context.surfaceAltColor,
                         child: Center(child: Icon(Icons.image_not_supported_outlined, color: context.textMuted, size: 28)),
                       ),
@@ -667,11 +682,31 @@ class _NobCard extends StatelessWidget {
   }
 
   void _openAuthorProfile(BuildContext context) {
+    // Capture the parent context so toasts and the note dialog use a
+    // widget that survives after the bottom sheet is popped.
+    final messenger = ScaffoldMessenger.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: context.surfaceColor,
       isScrollControlled: true,
-      builder: (_) => _AuthorProfileSheet(post: post, onSignal: onSignal, onReachOut: onReachOut, onSendNote: onSendNote),
+      builder: (_) => _AuthorProfileSheet(
+        post: post,
+        onSignal: (userId) {
+          onSignal?.call(userId);
+          messenger.showSnackBar(const SnackBar(
+            content: Text('Signal sent'),
+            backgroundColor: AppColors.emerald600,
+          ));
+        },
+        onReachOut: (userId) {
+          onReachOut?.call(userId);
+          messenger.showSnackBar(const SnackBar(
+            content: Text('Reached out'),
+            backgroundColor: AppColors.emerald500,
+          ));
+        },
+        onSendNotePressed: () => _showNoteDialog(context),
+      ),
     );
   }
 
@@ -1009,8 +1044,13 @@ class _AuthorProfileSheet extends StatelessWidget {
   final Post post;
   final void Function(String)? onSignal;
   final void Function(String)? onReachOut;
-  final void Function(String, String, String, String)? onSendNote;
-  const _AuthorProfileSheet({required this.post, this.onSignal, this.onReachOut, this.onSendNote});
+  final VoidCallback? onSendNotePressed;
+  const _AuthorProfileSheet({
+    required this.post,
+    this.onSignal,
+    this.onReachOut,
+    this.onSendNotePressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1062,20 +1102,29 @@ class _AuthorProfileSheet extends StatelessWidget {
               Expanded(child: OutlinedButton.icon(
                 icon: const Icon(Icons.bolt_rounded, size: 16), label: const Text('Signal'),
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
-                onPressed: () { Navigator.pop(context); onSignal?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Signal sent'), backgroundColor: AppColors.emerald600)); },
+                onPressed: () {
+                  Navigator.pop(context);
+                  onSignal?.call(post.userId);
+                },
               )),
               const SizedBox(width: 10),
               Expanded(child: OutlinedButton.icon(
                 icon: const Icon(Icons.people_rounded, size: 16), label: const Text('Reach Out'),
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald500, side: BorderSide(color: AppColors.emerald500.withValues(alpha: 0.4))),
-                onPressed: () { Navigator.pop(context); onReachOut?.call(post.userId); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Reached out!'), backgroundColor: AppColors.emerald500)); },
+                onPressed: () {
+                  Navigator.pop(context);
+                  onReachOut?.call(post.userId);
+                },
               )),
             ]),
             const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
               icon: const Icon(Icons.mail_outline_rounded, size: 16), label: const Text('Send Note'),
               style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                onSendNotePressed?.call();
+              },
             )),
           ],
         ),
