@@ -27,8 +27,10 @@ class InteractionGate {
   bool get canSocialJoin => kSocialEnabled && hasPhoto;
   bool get canSocialCreate => kSocialEnabled && verifiedPhoto;
 
-  // Nob feed: photo to post, anyone can react
-  bool get canPostNob => hasPhoto;
+  // Nob feed: Noblara is the open expression layer — no photo gate here.
+  // Tier (observer/explorer/noble) decides posting rights in the UI; the
+  // backend rate-limits via check_nob_limit() tier + daily/weekly counters.
+  bool get canPostNob => true;
   bool get canReactNob => true;
 
   bool canInteract(String mode) => switch (mode) {

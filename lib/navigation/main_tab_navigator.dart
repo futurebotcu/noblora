@@ -12,10 +12,14 @@ import '../features/noblara_feed/noblara_feed_screen.dart';
 import '../features/status/status_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/tier_promotion_screen.dart';
+import '../features/verification/verification_hub_screen.dart';
+import '../features/entry_gate/entry_gate_screen.dart';
 import '../data/models/post.dart';
 import '../providers/notification_provider.dart';
 import '../providers/posts_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/verification_provider.dart';
+import '../providers/gating_provider.dart';
 import '../core/services/toast_service.dart';
 
 class MainTabNavigator extends ConsumerStatefulWidget {
@@ -33,10 +37,35 @@ class MainTabNavigator extends ConsumerStatefulWidget {
 }
 
 class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
+  // Tabs that require verification + entry-gate approval before access.
+  // Noblara (1), Status (3), Profile (4) are always open.
+  static const _secureTabs = {0, 2}; // Discover, Chats
+
   int _currentIndex = 0;
   // Tracks which tab indices have been visited — unvisited tabs are not built
   final Set<int> _visitedTabs = {0};
   static bool _welcomeShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If verification or entry-gate is still pending, land on Noblara (the
+    // open expression layer) instead of Discover. User can still tap secure
+    // tabs and will be shown the gate prompt.
+    final verif = ref.read(verificationProvider);
+    final gating = ref.read(gatingProvider);
+    if (_needsSecureGate(verif, gating)) {
+      _currentIndex = 1;
+      _visitedTabs
+        ..clear()
+        ..add(1);
+    }
+  }
+
+  bool _needsSecureGate(VerificationState verif, GatingState gating) {
+    return verif.verificationStatus != VerificationStatus.approved ||
+        !gating.isEntryApproved;
+  }
 
   void _showWelcomeToast() {
     final name = ref.read(profileProvider).profile?.displayName;
@@ -49,10 +78,114 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   }
 
   void _switchTo(int index) {
+    // Respect the same security gate programmatic switches rely on.
+    if (_secureTabs.contains(index)) {
+      final verif = ref.read(verificationProvider);
+      final gating = ref.read(gatingProvider);
+      if (_needsSecureGate(verif, gating)) {
+        _showSecureTabGate(context, verif, gating);
+        return;
+      }
+    }
     setState(() {
       _currentIndex = index;
       _visitedTabs.add(index);
     });
+  }
+
+  void _showSecureTabGate(
+    BuildContext context,
+    VerificationState verif,
+    GatingState gating,
+  ) {
+    final needsVerification =
+        verif.verificationStatus != VerificationStatus.approved;
+    final title = needsVerification ? 'Verify to meet people' : 'Access pending';
+    final message = needsVerification
+        ? 'Finish photo verification to unlock Discover and Chats. This keeps direct interactions safer for everyone.'
+        : 'Your account is waiting for approval before Discover and Chats unlock.';
+    final buttonLabel = needsVerification ? 'Verify now' : 'Open access';
+    final icon = needsVerification
+        ? Icons.verified_outlined
+        : Icons.hourglass_bottom_rounded;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.emerald600.withValues(alpha: 0.08),
+                border: Border.all(
+                    color: AppColors.emerald600.withValues(alpha: 0.2)),
+              ),
+              child: Icon(icon, color: AppColors.emerald600, size: 28),
+            ),
+            const SizedBox(height: 20),
+            Text(title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                )),
+            const SizedBox(height: 12),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                )),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.emerald600,
+                  foregroundColor: AppColors.textOnEmerald,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () {
+                  Navigator.pop(sheetCtx);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => needsVerification
+                          ? const VerificationHubScreen()
+                          : const EntryGateScreen(),
+                    ),
+                  );
+                },
+                child: Text(buttonLabel,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   static const _baseTabs = [
@@ -286,10 +419,22 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           selectedFontSize: 11,
           unselectedFontSize: 11,
           type: BottomNavigationBarType.fixed,
-          onTap: (i) => setState(() {
-            _currentIndex = i;
-            _visitedTabs.add(i);
-          }),
+          onTap: (i) {
+            // Secure tabs (Discover, Chats) require verification + entry-gate.
+            // Noblara, Status, Profile, Admin are always reachable.
+            if (_secureTabs.contains(i)) {
+              final verif = ref.read(verificationProvider);
+              final gating = ref.read(gatingProvider);
+              if (_needsSecureGate(verif, gating)) {
+                _showSecureTabGate(context, verif, gating);
+                return;
+              }
+            }
+            setState(() {
+              _currentIndex = i;
+              _visitedTabs.add(i);
+            });
+          },
           items: tabs.asMap().entries.map((entry) {
             final i = entry.key;
             final t = entry.value;

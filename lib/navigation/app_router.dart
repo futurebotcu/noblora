@@ -7,8 +7,6 @@ import '../providers/gating_provider.dart';
 import '../providers/verification_provider.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/onboarding/onboarding_flow_screen.dart';
-import '../features/verification/verification_hub_screen.dart';
-import '../features/entry_gate/entry_gate_screen.dart';
 import 'main_tab_navigator.dart';
 
 // ---------------------------------------------------------------------------
@@ -23,16 +21,22 @@ import 'main_tab_navigator.dart';
 //  4. verifications still loading                 → splash (loading data)
 //  5. profile missing OR display_name empty       → ProfileBasicsScreen
 //  6. profile.gender not set                      → GenderSelectionScreen
-//  7. verif ≠ approved                            → VerificationHubScreen
-//       • idle / rejected / error → upload UI (shown by hub internally)
-//       • manualReview / pending  → under-review UI (shown by hub internally)
-//  8. !gating.isEntryApproved                     → EntryGateScreen
-//  9. all clear                                   → MainTabNavigator
+//  7. all clear                                   → MainTabNavigator
+//
+// Access model:
+//  • Noblara is the open expression layer — reachable once basic profile
+//    (display_name + gender) is complete. Verification and entry-gate are
+//    NOT blockers for Noblara.
+//  • Dating / BFF / DM / Chats stay behind the existing security model:
+//    MainTabNavigator guards the Discover & Chats tabs, redirecting to
+//    VerificationHub / EntryGate when verification or entry approval is
+//    still missing. See main_tab_navigator.dart.
 //
 // Key invariants:
-//  • gating.isVerified is NOT used — photo_verifications is the authority
 //  • Bootstrap awaits profile + gating + verifications before routing
 //  • User switch clears ALL three providers before re-bootstrapping
+//  • verification + entry-gate state is still loaded, just enforced
+//    per-surface inside MainTabNavigator instead of at router level
 // ---------------------------------------------------------------------------
 
 class AppRouter extends ConsumerStatefulWidget {
@@ -131,7 +135,6 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     final auth = ref.watch(authProvider);
     final profile = ref.watch(profileProvider);
     final verif = ref.watch(verificationProvider);
-    final gating = ref.watch(gatingProvider);
 
     // ── 1. Supabase initializing ─────────────────────────────────────────────
     if (!auth.isInitialized) {
@@ -156,38 +159,14 @@ class _AppRouterState extends ConsumerState<AppRouter> {
 
     // ── 5+6. Profile not complete → full onboarding flow ───────────────────
     if (!profile.hasProfile || !profile.hasGender) {
-      return _withDiag(
-        const OnboardingFlowScreen(),
-        auth: auth, profile: profile, verif: verif, gating: gating,
-        route: 'onboarding',
-      );
+      return const OnboardingFlowScreen();
     }
 
-    // ── 7. Verification (authoritative: photo_verifications table) ───────────
+    // ── 7. All clear ─────────────────────────────────────────────────────────
     //
-    // approved         → fall through to entry gate / main app
-    // manualReview     → VerificationHubScreen shows under-review UI
-    // idle/rejected    → VerificationHubScreen shows upload UI
-    // error            → VerificationHubScreen shows error + retry
-    final verifStatus = verif.verificationStatus;
-    if (verifStatus != VerificationStatus.approved) {
-      return _withDiag(
-        const VerificationHubScreen(),
-        auth: auth, profile: profile, verif: verif, gating: gating,
-        route: 'verification:${verifStatus.name}',
-      );
-    }
-
-    // ── 8. Entry gate ────────────────────────────────────────────────────────
-    if (!gating.isEntryApproved) {
-      return _withDiag(
-        const EntryGateScreen(),
-        auth: auth, profile: profile, verif: verif, gating: gating,
-        route: 'entry_gate',
-      );
-    }
-
-    // ── 9. All clear ─────────────────────────────────────────────────────────
+    // Verification and entry-gate are intentionally NOT blocking here.
+    // Noblara is reachable once basic profile is complete; Discover / Chats
+    // remain gated inside MainTabNavigator per the existing security model.
     return MainTabNavigator(key: MainTabNavigator.navigatorKey);
   }
 
@@ -209,14 +188,4 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     );
   }
 
-  Widget _withDiag(
-    Widget child, {
-    required AuthState auth,
-    required ProfileState profile,
-    required VerificationState verif,
-    required GatingState gating,
-    required String route,
-  }) {
-    return child;
-  }
 }
