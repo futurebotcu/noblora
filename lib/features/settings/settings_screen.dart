@@ -143,8 +143,10 @@ class SettingsScreen extends ConsumerWidget {
           _T(Icons.favorite_outline, 'Dating Visible', s['dating_visible'] as bool? ?? true, (_) => n.toggleBool('dating_visible')),
           _T(Icons.people_rounded, 'BFF Active', s['bff_active'] as bool? ?? true, (_) => n.toggleBool('bff_active')),
           _T(Icons.people_outline, 'BFF Visible', s['bff_visible'] as bool? ?? true, (_) => n.toggleBool('bff_visible')),
-          _T(Icons.explore_rounded, 'Social Active', s['social_active'] as bool? ?? true, (_) => n.toggleBool('social_active')),
-          _T(Icons.explore_outlined, 'Social Visible', s['social_visible'] as bool? ?? true, (_) => n.toggleBool('social_visible')),
+          if (kSocialEnabled) ...[
+            _T(Icons.explore_rounded, 'Social Active', s['social_active'] as bool? ?? true, (_) => n.toggleBool('social_active')),
+            _T(Icons.explore_outlined, 'Social Visible', s['social_visible'] as bool? ?? true, (_) => n.toggleBool('social_visible')),
+          ],
 
           // ════════════════════════════════════════════════════════════
           // 4. PRIVACY & VISIBILITY
@@ -176,8 +178,10 @@ class SettingsScreen extends ConsumerWidget {
           _T(Icons.bolt_outlined, 'Signals', n.notif('signals'), (_) => n.toggleNotif('signals')),
           _T(Icons.mail_outline, 'Notes', n.notif('notes'), (_) => n.toggleNotif('notes')),
           _T(Icons.people_outline, 'BFF Suggestions', n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-          _T(Icons.event_outlined, 'Event Activity', n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
-          _T(Icons.forum_outlined, 'Event Chat', n.notif('event_chat'), (_) => n.toggleNotif('event_chat')),
+          if (kSocialEnabled) ...[
+            _T(Icons.event_outlined, 'Event Activity', n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
+            _T(Icons.forum_outlined, 'Event Chat', n.notif('event_chat'), (_) => n.toggleNotif('event_chat')),
+          ],
           _T(Icons.verified_outlined, 'Verification Alerts', n.notif('verification'), (_) => n.toggleNotif('verification')),
           _T(Icons.shield_outlined, 'Safety Alerts', n.notif('safety'), (_) => n.toggleNotif('safety')),
           _T(Icons.system_update_outlined, 'Product Updates', n.notif('updates'), (_) => n.toggleNotif('updates')),
@@ -212,7 +216,8 @@ class SettingsScreen extends ConsumerWidget {
               sub: 'Show message content in inbox list'),
           _Tile(Icons.save_alt_rounded, 'Auto-save Media', sub: 'Available in a future update', color: context.textDisabled),
           _Tile(Icons.alarm_rounded, 'Call Reminders', sub: 'Available in a future update', color: context.textDisabled),
-          _T(Icons.exit_to_app_rounded, 'Leave Event Chat After End', s['leave_event_chat_auto'] as bool? ?? true, (_) => n.toggleBool('leave_event_chat_auto')),
+          if (kSocialEnabled)
+            _T(Icons.exit_to_app_rounded, 'Leave Event Chat After End', s['leave_event_chat_auto'] as bool? ?? true, (_) => n.toggleBool('leave_event_chat_auto')),
 
           // ════════════════════════════════════════════════════════════
           // 8. AI PREFERENCES

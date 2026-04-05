@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/utils/mock_mode.dart';
+import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
 import '../data/models/room.dart';
 import '../data/models/room_message.dart';
 import '../data/models/room_participant.dart';
@@ -48,6 +48,8 @@ class RoomListNotifier extends StateNotifier<RoomListState> {
   RoomListNotifier(this._ref) : super(const RoomListState());
 
   Future<void> load() async {
+    // Social disabled → stay in the empty default state, no network calls.
+    if (!kSocialEnabled) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
       final uid = _ref.read(authProvider).userId;
@@ -175,6 +177,9 @@ class RoomChatNotifier extends StateNotifier<RoomChatState> {
   }
 
   Future<void> _init() async {
+    // Social disabled → skip initial load and realtime subscriptions.
+    // RoomChatScreen is also navigationally unreachable in this mode.
+    if (!kSocialEnabled) return;
     state = state.copyWith(isLoading: true);
     final repo = _ref.read(roomRepositoryProvider);
 

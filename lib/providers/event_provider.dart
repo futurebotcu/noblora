@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/utils/mock_mode.dart';
+import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
 import '../data/models/event.dart';
 import '../data/models/event_participant.dart';
 import '../data/models/event_message.dart';
@@ -47,10 +47,16 @@ class EventListNotifier extends StateNotifier<EventListState> {
   final Ref _ref;
 
   EventListNotifier(this._ref) : super(const EventListState()) {
-    _ref.listen<FilterState>(filterProvider, (_, __) => load());
+    // When Social is disabled, skip the filter listener so no background
+    // reloads fire when the user toggles date/BFF filters.
+    if (kSocialEnabled) {
+      _ref.listen<FilterState>(filterProvider, (_, __) => load());
+    }
   }
 
   Future<void> load() async {
+    // Social disabled → stay in the empty default state, no network calls.
+    if (!kSocialEnabled) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
       final uid = _ref.read(authProvider).userId;
@@ -134,6 +140,8 @@ class EventDetailNotifier extends StateNotifier<EventDetailState> {
   EventDetailNotifier(this._ref, this.eventId) : super(const EventDetailState());
 
   Future<void> load() async {
+    // Social disabled → skip all fetches; screen is navigationally unreachable.
+    if (!kSocialEnabled) return;
     state = const EventDetailState(isLoading: true);
     final repo = _ref.read(eventRepositoryProvider);
     final event = await repo.fetchEvent(eventId);

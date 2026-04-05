@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../providers/mode_provider.dart';
+
+/// Modes offered to the user in the mode switcher + mode selection dialog.
+/// Social is excluded when the feature flag is off.
+const List<NobleMode> _availableModes = kSocialEnabled
+    ? [NobleMode.date, NobleMode.bff, NobleMode.social]
+    : [NobleMode.date, NobleMode.bff];
 
 class ModeSwitcher extends ConsumerWidget {
   const ModeSwitcher({super.key});
@@ -21,7 +28,7 @@ class ModeSwitcher extends ConsumerWidget {
         border: Border.all(color: context.borderSubtleColor, width: 0.5),
       ),
       child: Row(
-        children: const [NobleMode.date, NobleMode.bff, NobleMode.social]
+        children: _availableModes
             .map((mode) => Expanded(
                   child: _ModeTab(mode: mode, isSelected: mode == current),
                 ))
@@ -139,13 +146,13 @@ class ModeSelectionDialog extends ConsumerWidget {
                 ?.copyWith(color: context.textMuted),
           ),
           const SizedBox(height: AppSpacing.xxxl),
-          ...[NobleMode.social, NobleMode.bff, NobleMode.date]
-              .map(
-                (mode) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _ModeCard(mode: mode, isSelected: mode == current),
-                ),
-              ),
+          // Show in reverse order (Social first when enabled) as original design
+          ..._availableModes.reversed.map(
+            (mode) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: _ModeCard(mode: mode, isSelected: mode == current),
+            ),
+          ),
         ],
       ),
     );

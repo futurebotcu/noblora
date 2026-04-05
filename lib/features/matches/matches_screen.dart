@@ -20,6 +20,9 @@ import '../../core/services/toast_service.dart';
 import '../../navigation/main_tab_navigator.dart';
 import 'individual_chat_screen.dart';
 
+// Number of tabs in the inbox: Alliances + Requests (+ Circles if Social is on).
+const int _inboxTabCount = kSocialEnabled ? 3 : 2;
+
 /// Reads message_preview setting for current user
 final _messagePreviewProvider = FutureProvider<bool>((ref) async {
   if (isMockMode) return true;
@@ -85,7 +88,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: _inboxTabCount, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(matchProvider.notifier).load();
     });
@@ -108,10 +111,12 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
         .map(_matchToInboxItem)
         .toList();
 
-    final circles = allMatches
-        .where((m) => m.mode == 'social')
-        .map(_matchToInboxItem)
-        .toList();
+    final circles = kSocialEnabled
+        ? allMatches
+            .where((m) => m.mode == 'social')
+            .map(_matchToInboxItem)
+            .toList()
+        : const <InboxItem>[];
 
     final totalUnread =
         [...alliances, ...circles].where((i) => i.isUnread).length;
@@ -227,13 +232,14 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
                       count: alliances.length,
                     ),
                   ),
-                  Tab(
-                    height: 36,
-                    child: _TabChip(
-                      label: 'Circles',
-                      count: circles.length,
+                  if (kSocialEnabled)
+                    Tab(
+                      height: 36,
+                      child: _TabChip(
+                        label: 'Circles',
+                        count: circles.length,
+                      ),
                     ),
-                  ),
                   const Tab(height: 36, child: Text('Requests')),
                 ],
               ),
@@ -260,7 +266,7 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
                               m.id: m,
                           },
                         ),
-                        _CirclesTab(circles: circles),
+                        if (kSocialEnabled) _CirclesTab(circles: circles),
                         const _RequestsTab(),
                       ],
                     ),

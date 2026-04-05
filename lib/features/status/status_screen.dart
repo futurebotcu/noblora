@@ -47,7 +47,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    // Social tab is omitted when the Social layer is disabled.
+    _tabs = TabController(length: kSocialEnabled ? 5 : 4, vsync: this);
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) setState(() => _animate = true);
     });
@@ -161,17 +162,27 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
               dividerColor: context.borderSubtleColor, tabAlignment: TabAlignment.start,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
               unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-              tabs: const [Tab(text: 'Overview'), Tab(text: 'Interest'), Tab(text: 'Social'), Tab(text: 'Activity'), Tab(text: 'Market')],
+              tabs: [
+                const Tab(text: 'Overview'),
+                const Tab(text: 'Interest'),
+                if (kSocialEnabled) const Tab(text: 'Social'),
+                const Tab(text: 'Activity'),
+                const Tab(text: 'Market'),
+              ],
             ),
           ),
         ],
         body: TabBarView(controller: _tabs, children: [
           _OverviewTab(p: p, tc: tc, animate: _animate, ai: _ai, aiLoading: _aiLoading,
-            matchState: ref.watch(matchProvider), eventState: ref.watch(eventListProvider)),
+            matchState: ref.watch(matchProvider),
+            eventState: kSocialEnabled
+                ? ref.watch(eventListProvider)
+                : const EventListState()),
           _InterestTab(p: p, tc: tc, matchState: ref.watch(matchProvider),
             signalsReceived: _signalsReceived, signalsSent: _signalsSent,
             notesReceived: _notesReceived, notesSent: _notesSent, connections: _connectionCount),
-          _SocialTab(bffState: ref.watch(bffProvider), eventState: ref.watch(eventListProvider)),
+          if (kSocialEnabled)
+            _SocialTab(bffState: ref.watch(bffProvider), eventState: ref.watch(eventListProvider)),
           _ActivityTab(activity: _recentActivity),
           const _MarketTab(),
         ]),

@@ -5,6 +5,8 @@ import '../core/theme/app_colors.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 
+// kSocialEnabled controls whether Social actions can ever be permitted.
+
 /// Interaction gating state — determines what user can do per mode
 class InteractionGate {
   final int photoCount;
@@ -21,9 +23,9 @@ class InteractionGate {
   bool get canDateInteract => hasPhoto;
   bool get canBffInteract => hasPhoto;
 
-  // Social: photo to join, verified to create
-  bool get canSocialJoin => hasPhoto;
-  bool get canSocialCreate => verifiedPhoto;
+  // Social: photo to join, verified to create (always false when layer disabled)
+  bool get canSocialJoin => kSocialEnabled && hasPhoto;
+  bool get canSocialCreate => kSocialEnabled && verifiedPhoto;
 
   // Nob feed: photo to post, anyone can react
   bool get canPostNob => hasPhoto;

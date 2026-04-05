@@ -59,13 +59,26 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     super.dispose();
   }
 
+  /// Strip notifications the current build should ignore (e.g. event/room
+  /// when the Social layer is disabled). Prevents stale banners, unread
+  /// badges, and category preference lookups for dead notification types.
+  List<AppNotification> _filterForBuild(List<AppNotification> all) {
+    if (kSocialEnabled) return all;
+    return all
+        .where((n) =>
+            !n.type.startsWith('event_') &&
+            !n.type.startsWith('room_') &&
+            n.type != 'circle_invite')
+        .toList();
+  }
+
   Future<void> init(String userId) async {
     if (isMockMode) return;
     state = state.copyWith(isLoading: true);
 
     // Load initial unread notifications
     try {
-      final initial = await _repo.fetchUnread(userId);
+      final initial = _filterForBuild(await _repo.fetchUnread(userId));
       _seenIds = initial.map((n) => n.id).toSet();
       state = state.copyWith(notifications: initial, isLoading: false);
     } catch (_) {
@@ -75,8 +88,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     // Subscribe to realtime updates
     _sub?.cancel();
     _sub = _repo.notificationsStream(userId).listen(
-      (all) {
+      (raw) {
         if (!mounted) return;
+        final all = _filterForBuild(raw);
         // Detect newly arrived unread notifications
         AppNotification? newest;
         for (final n in all) {

@@ -115,8 +115,9 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 'new_match': 'new_match', 'bff_connected': 'new_match', 'connection_closed': 'new_match',
                 'new_message': 'new_message', 'chat_opened': 'new_message',
                 'signal_received': 'signals', 'note_received': 'notes',
-                'bff_reach_out': 'bff_suggestion', 'event_farewell': 'event_activity',
+                'bff_reach_out': 'bff_suggestion',
                 'video_proposed': 'new_match', 'video_confirmed': 'new_match',
+                if (kSocialEnabled) 'event_farewell': 'event_activity',
               };
               final category = typeToCategory[latest.type];
               if (category != null && prefs[category] == false) return; // Suppressed by user

@@ -6,6 +6,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
@@ -480,7 +481,9 @@ class _PersonaSectionState extends State<_PersonaSection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Row(
             children: NobleMode.values
-                .where((m) => m != NobleMode.noblara)
+                .where((m) =>
+                    m != NobleMode.noblara &&
+                    (kSocialEnabled || m != NobleMode.social))
                 .map((mode) {
               final isActive = mode == _selectedMode;
               return GestureDetector(
@@ -1050,7 +1053,9 @@ class _GallerySectionState extends State<_GallerySection> {
               const Spacer(),
               Row(
                 mainAxisSize: MainAxisSize.min,
-                children: NobleMode.values.map((mode) {
+                children: NobleMode.values
+                    .where((m) => kSocialEnabled || m != NobleMode.social)
+                    .map((mode) {
                   final isActive = mode == _galleryMode;
                   return GestureDetector(
                     onTap: () => setState(() => _galleryMode = mode),

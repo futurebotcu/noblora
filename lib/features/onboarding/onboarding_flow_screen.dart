@@ -122,8 +122,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'dating_visible': true,
         'bff_active': true,
         'bff_visible': true,
-        'social_active': true,
-        'social_visible': true,
+        'social_active': kSocialEnabled,
+        'social_visible': kSocialEnabled,
         'looking_for': 'Serious relationship',
         if (_occupation.isNotEmpty) 'occupation': _occupation,
         if (_avatarId != null) 'avatar_id': _avatarId,
@@ -139,7 +139,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         'signal_permission': 'everyone',
         'note_permission': 'everyone',
         'message_preview': true,
-        'active_modes': ['date', 'bff', 'social'],
+        'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
       }).eq('id', uid);
       } catch (e) {
         debugPrint('Onboarding DB update error: $e');
@@ -824,7 +824,8 @@ class _PrivacyPage extends StatelessWidget {
         Expanded(child: ListView(children: [
           _InfoCard(Icons.favorite_outline_rounded, 'Dating & BFF interactions', 'Add a photo to swipe, connect, and message. Without one you can only browse.'),
           _InfoCard(Icons.photo_camera_outlined, 'Add a photo to connect', 'Without a photo you can browse but cannot swipe, connect or message anyone.'),
-          _InfoCard(Icons.event_outlined, 'Photo needed for Social', 'You need a photo to join events and rooms. Verified photo to create them.'),
+          if (kSocialEnabled)
+            _InfoCard(Icons.event_outlined, 'Photo needed for Social', 'You need a photo to join events and rooms. Verified photo to create them.'),
           _InfoCard(Icons.auto_awesome_outlined, 'Photo to post Nobs', 'You can read and react to Nobs freely. Upload a photo to share your own.'),
           _InfoCard(Icons.visibility_off_rounded, 'Incognito available', 'You can browse invisibly anytime from Settings.'),
           _InfoCard(Icons.shield_rounded, 'Calm Mode available', 'Only quality profiles can reach you when enabled.'),

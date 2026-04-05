@@ -3,6 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 
+/// Modes the user is allowed to toggle in this build.
+const Set<String> _allowedModes = kSocialEnabled
+    ? {'date', 'bff', 'social'}
+    : {'date', 'bff'};
+
 // ---------------------------------------------------------------------------
 // State — set of mode strings the user has opted into
 // ---------------------------------------------------------------------------
@@ -66,6 +71,9 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
         // Default: date mode enabled
         loaded = {'date'};
       }
+      // Strip any disabled modes (e.g. 'social' when the feature flag is off).
+      loaded.removeWhere((m) => !_allowedModes.contains(m));
+      if (loaded.isEmpty) loaded.add('date');
       state = state.copyWith(modes: loaded, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -73,6 +81,8 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
   }
 
   Future<void> toggle(String mode) async {
+    // Silently no-op if the caller tries to enable a disabled mode.
+    if (!_allowedModes.contains(mode)) return;
     final current = {...state.modes};
     if (current.contains(mode)) {
       // Prevent deselecting all — at least one must remain
