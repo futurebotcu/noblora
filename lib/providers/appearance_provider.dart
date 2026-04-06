@@ -70,7 +70,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefThemeKey, _themeModeToString(theme));
       await prefs.setString(_prefAccentKey, accentId);
-    } catch (_) {}
+    } catch (e) { debugPrint('[appearance] Supabase sync failed: $e'); }
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -101,7 +101,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
         'theme_mode': _themeModeToString(state.themeMode),
         'accent_color': state.accentId,
       }).eq('id', uid);
-    } catch (_) {}
+    } catch (e) { debugPrint('[appearance] Supabase persist failed: $e'); }
   }
 
   static ThemeMode _parseThemeMode(String? s) => switch (s) {

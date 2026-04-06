@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
@@ -31,9 +32,11 @@ class _PostCallDecisionScreenState
   bool _decided = false;
   bool _waiting = false; // submitted, waiting for other person
   StreamSubscription<List<Map<String, dynamic>>>? _decisionSub;
+  Timer? _expiryTimer;
 
   @override
   void dispose() {
+    _expiryTimer?.cancel();
     _decisionSub?.cancel();
     super.dispose();
   }
@@ -64,7 +67,8 @@ class _PostCallDecisionScreenState
 
   void _listenForOtherDecision() {
     // Timeout: if other user doesn't decide in 10 minutes, expire
-    Future.delayed(const Duration(minutes: 10), () {
+    _expiryTimer?.cancel();
+    _expiryTimer = Timer(const Duration(minutes: 10), () {
       if (mounted && _waiting) {
         _decisionSub?.cancel();
         _handleResult('expired');
@@ -92,7 +96,9 @@ class _PostCallDecisionScreenState
               if (!mounted) return;
               _decisionSub?.cancel();
               _handleResult(result);
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[post-call] Decision finalization error: $e');
+            }
           },
           onError: (Object e) {
             _decisionSub?.cancel();
@@ -114,14 +120,15 @@ class _PostCallDecisionScreenState
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: const Row(children: [
           Icon(Icons.chat_bubble_rounded, color: AppColors.emerald600),
           SizedBox(width: AppSpacing.sm),
           Text('Chat is Open!', style: TextStyle(color: AppColors.emerald600)),
         ]),
         content: Text(
-          'You both chose to keep it open!\nStart chatting — take your time getting to know each other.',
+          "You're both in! Start chatting and take your time getting to know each other.",
           style: Theme.of(context)
               .textTheme
               .bodyMedium
@@ -134,10 +141,7 @@ class _PostCallDecisionScreenState
               foregroundColor: AppColors.bg,
             ),
             onPressed: () {
-              Navigator.of(context)
-                ..pop()
-                ..pop()
-                ..pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: const Text('Start Chatting'),
           ),
@@ -151,7 +155,8 @@ class _PostCallDecisionScreenState
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: const Row(children: [
           Icon(Icons.link_off_rounded,
               color: AppColors.textMuted, size: 20),
@@ -160,7 +165,7 @@ class _PostCallDecisionScreenState
               style: TextStyle(color: AppColors.textMuted)),
         ]),
         content: Text(
-          "This connection has come to a close. Sometimes the spark doesn't ignite — and that's okay.",
+          "This connection has ended. Not every match is meant to be — and that's perfectly fine.",
           style: Theme.of(context)
               .textTheme
               .bodyMedium
@@ -169,10 +174,7 @@ class _PostCallDecisionScreenState
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context)
-                ..pop()
-                ..pop()
-                ..pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: const Text('Back to Feed'),
           ),

@@ -62,7 +62,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       // Read quality score from AI response
       final aiScore = (validation['quality_score'] as num?)?.toInt();
       if (aiScore != null) _qualityScore = aiScore;
-    } catch (_) {}
+    } catch (e) { debugPrint('[event-create] AI validation failed: $e'); }
 
     final scheduledAt = DateTime(
       _eventDate.year, _eventDate.month, _eventDate.day,

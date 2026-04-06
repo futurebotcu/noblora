@@ -79,7 +79,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
         setState(() { _warning = 'This looks promotional.'; _submitting = false; });
         return;
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[event-edit] AI validation failed: $e'); }
 
     final scheduledAt = DateTime(
       _eventDate.year, _eventDate.month, _eventDate.day,

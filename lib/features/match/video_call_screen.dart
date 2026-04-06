@@ -34,6 +34,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
   bool _callStarted = false;
   bool _callEnded = false;
   bool _isAudioPhase = true; // first 60s is audio-only
+  Timer? _phaseTimer;
   String? _topicSuggestion;
   bool _loadingTopic = false;
 
@@ -47,6 +48,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
 
   @override
   void dispose() {
+    _phaseTimer?.cancel();
     _timer?.cancel();
     _remaining.dispose();
     super.dispose();
@@ -102,7 +104,8 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     });
 
     // Audio→video phase transition after 60 seconds
-    Future.delayed(const Duration(seconds: 60), () {
+    _phaseTimer?.cancel();
+    _phaseTimer = Timer(const Duration(seconds: 60), () {
       if (mounted && _callStarted && !_callEnded) {
         setState(() => _isAudioPhase = false);
       }
@@ -149,7 +152,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       if (mounted) setState(() => _topicSuggestion = topic);
     } catch (_) {
       if (mounted) {
-        setState(() => _topicSuggestion = '[AI unavailable] What do you enjoy doing on weekends?');
+        setState(() => _topicSuggestion = 'What do you enjoy doing on weekends?');
       }
     }
     if (mounted) setState(() => _loadingTopic = false);

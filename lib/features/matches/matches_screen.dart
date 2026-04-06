@@ -19,6 +19,9 @@ import '../match/check_in_screen.dart';
 import '../../core/services/toast_service.dart';
 import '../../navigation/main_tab_navigator.dart';
 import 'individual_chat_screen.dart';
+import '../../data/models/note.dart';
+import '../../providers/bff_provider.dart';
+import '../../providers/note_provider.dart';
 
 // Number of tabs in the inbox: Alliances + Requests (+ Circles if Social is on).
 const int _inboxTabCount = kSocialEnabled ? 3 : 2;
@@ -60,12 +63,12 @@ InboxItem _matchToInboxItem(NobleMatch match) {
 }
 
 String _statusLabel(NobleMatch match) => switch (match.status) {
-  'pending_intro' => 'Say hello — send a mini intro',
+  'pending_intro' => 'Send a mini intro to get started',
   'pending_video' => 'Ready for a Short Intro?',
   'video_scheduled' => 'Short Intro is on the calendar',
   'video_completed' => 'How did it go?',
   'chatting' => 'Conversation is open',
-  'expired' => 'This one slipped away',
+  'expired' => 'Connection expired',
   'closed' => 'Connection ended',
   _ => match.status,
 };
@@ -600,6 +603,7 @@ class _InboxTile extends StatelessWidget {
                             width: 52,
                             height: 52,
                             fit: BoxFit.cover,
+                            memCacheWidth: 156,
                             errorWidget: (_, __, ___) => _AvatarFallback(
                                 initial: item.name[0], color: accent),
                           )
@@ -795,6 +799,7 @@ class _CircleTile extends StatelessWidget {
                       width: 52,
                       height: 52,
                       fit: BoxFit.cover,
+                      memCacheWidth: 156,
                       errorWidget: (_, __, ___) => _CircleFallback(color: accent),
                     )
                   : _CircleFallback(color: accent),
@@ -963,15 +968,498 @@ class _ListFooter extends StatelessWidget {
 // Requests tab
 // ---------------------------------------------------------------------------
 
-class _RequestsTab extends StatelessWidget {
+class _RequestsTab extends ConsumerStatefulWidget {
   const _RequestsTab();
 
   @override
+  ConsumerState<_RequestsTab> createState() => _RequestsTabState();
+}
+
+class _RequestsTabState extends ConsumerState<_RequestsTab> {
+  List<Map<String, dynamic>> _reachOuts = [];
+  List<Note> _notes = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    final uid = ref.read(authProvider).userId;
+    if (uid == null) { setState(() => _loading = false); return; }
+    try {
+      final repo = ref.read(bffRepositoryProvider);
+      final noteRepo = ref.read(noteRepositoryProvider);
+      final results = await Future.wait([
+        repo.fetchReachOutsReceived(uid),
+        noteRepo.fetchReceivedNotes(uid),
+      ]);
+      if (mounted) {
+        setState(() {
+          _reachOuts = results[0] as List<Map<String, dynamic>>;
+          _notes = results[1] as List<Note>;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[requests] Load failed: $e');
+      if (mounted) setState(() { _loading = false; _error = 'Could not load requests'; });
+    }
+  }
+
+  Future<void> _acceptReachOut(String id) async {
+    final repo = ref.read(bffRepositoryProvider);
+    try {
+      final result = await repo.acceptReachOut(id);
+      if (result['result'] == 'connected') {
+        if (mounted) {
+          ToastService.show(context, message: 'Connected!', type: ToastType.match);
+        }
+        ref.read(matchProvider.notifier).load();
+        _load();
+      } else {
+        if (mounted) {
+          ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
+      }
+    }
+  }
+
+  Future<void> _declineReachOut(String id) async {
+    try {
+      await Supabase.instance.client.from('reach_outs').update({'status': 'ignored'}).eq('id', id);
+      if (mounted) {
+        ToastService.show(context, message: 'Request declined', type: ToastType.system);
+        _load();
+      }
+    } catch (_) {
+      if (mounted) {
+        ToastService.show(context, message: 'Could not decline', type: ToastType.error);
+      }
+    }
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    return '${diff.inDays}d';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return _EmptyInbox(
-      icon: Icons.mail_outline_rounded,
-      title: 'Nothing pending',
-      subtitle: 'Incoming requests will land here',
+    if (_loading) {
+      return const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: AppColors.emerald600,
+          ),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Something went wrong',
+                style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(color: context.textMuted, fontSize: 13),
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _load,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    'Retry',
+                    style: TextStyle(color: AppColors.emerald500, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_reachOuts.isEmpty && _notes.isEmpty) {
+      return _EmptyInbox(
+        icon: Icons.mail_outline_rounded,
+        title: 'Nothing pending',
+        subtitle: 'Incoming requests will land here',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.emerald600,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 100),
+        children: [
+          if (_reachOuts.isNotEmpty) ...[
+            _SectionHeader(title: 'Reach Outs', count: _reachOuts.length),
+            ..._reachOuts.map((ro) => _ReachOutTile(
+              reachOut: ro,
+              onAccept: () => _acceptReachOut(ro['id'] as String),
+              onDecline: () => _declineReachOut(ro['id'] as String),
+              timeAgo: _timeAgo(DateTime.parse(ro['created_at'] as String)),
+            )),
+          ],
+          if (_notes.isNotEmpty) ...[
+            _SectionHeader(title: 'Notes', count: _notes.length),
+            ..._notes.map((note) => _NoteTile(
+              note: note,
+              timeAgo: _timeAgo(note.createdAt),
+            )),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section header
+// ---------------------------------------------------------------------------
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int count;
+  const _SectionHeader({required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: context.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.emerald600.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                color: AppColors.emerald500,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reach-out tile
+// ---------------------------------------------------------------------------
+
+class _ReachOutTile extends StatelessWidget {
+  final Map<String, dynamic> reachOut;
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+  final String timeAgo;
+
+  const _ReachOutTile({
+    required this.reachOut,
+    required this.onAccept,
+    required this.onDecline,
+    required this.timeAgo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = reachOut['profiles'] as Map<String, dynamic>?;
+    final name = profile?['display_name'] as String? ?? 'Someone';
+    final photoUrl = profile?['date_avatar_url'] as String?;
+    final bio = profile?['bio'] as String? ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: context.borderSubtleColor),
+          boxShadow: Premium.shadowSm,
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            ClipOval(
+              child: photoUrl != null && photoUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: photoUrl,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 120,
+                      errorWidget: (_, __, ___) => _RequestAvatarFallback(name: name),
+                    )
+                  : _RequestAvatarFallback(name: name),
+            ),
+            const SizedBox(width: 12),
+            // Name + bio
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            color: context.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        timeAgo,
+                        style: TextStyle(
+                          color: context.textDisabled,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (bio.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      bio,
+                      style: TextStyle(
+                        color: context.textMuted,
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      // Accept
+                      GestureDetector(
+                        onTap: onAccept,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald600,
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          ),
+                          child: const Text(
+                            'Accept',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Decline
+                      GestureDetector(
+                        onTap: onDecline,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                            border: Border.all(color: context.textMuted.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            'Decline',
+                            style: TextStyle(
+                              color: context.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Note tile
+// ---------------------------------------------------------------------------
+
+class _NoteTile extends StatelessWidget {
+  final Note note;
+  final String timeAgo;
+
+  const _NoteTile({required this.note, required this.timeAgo});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = note.senderName ?? 'Someone';
+    final photoUrl = note.senderPhotoUrl;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: context.borderSubtleColor),
+          boxShadow: Premium.shadowSm,
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            ClipOval(
+              child: photoUrl != null && photoUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: photoUrl,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 120,
+                      errorWidget: (_, __, ___) => _RequestAvatarFallback(name: name),
+                    )
+                  : _RequestAvatarFallback(name: name),
+            ),
+            const SizedBox(width: 12),
+            // Name + content preview
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            color: context.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        timeAgo,
+                        style: TextStyle(
+                          color: context.textDisabled,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    note.content,
+                    style: TextStyle(
+                      color: context.textMuted,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (!note.isRead) ...[
+              const SizedBox(width: 8),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.emerald600,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Request avatar fallback
+// ---------------------------------------------------------------------------
+
+class _RequestAvatarFallback extends StatelessWidget {
+  final String name;
+  const _RequestAvatarFallback({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.isNotEmpty ? name[0] : '?';
+    return Container(
+      width: 40,
+      height: 40,
+      color: AppColors.emerald600.withValues(alpha: 0.15),
+      child: Center(
+        child: Text(
+          initial.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.emerald500,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+      ),
     );
   }
 }

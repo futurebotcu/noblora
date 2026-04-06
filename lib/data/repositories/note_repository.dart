@@ -83,15 +83,24 @@ class NoteRepository {
     }
     final rows = await _supabase!
         .from('notes')
-        .select('*, profiles!notes_sender_id_fkey(display_name, date_avatar_url)')
+        .select()
         .eq('receiver_id', userId)
         .order('created_at', ascending: false);
 
+    // Enrich with sender profile info
+    final senderIds = rows.map((r) => r['sender_id'] as String).toSet().toList();
+    final profiles = senderIds.isEmpty ? <Map<String, dynamic>>[] : await _supabase
+        .from('profiles')
+        .select('id, display_name, date_avatar_url')
+        .inFilter('id', senderIds);
+    final profileMap = {for (final p in profiles) p['id'] as String: p};
+
     return rows.map((r) {
-      final profile = r['profiles'] as Map<String, dynamic>?;
+      final senderId = r['sender_id'] as String;
+      final profile = profileMap[senderId];
       return Note(
         id: r['id'] as String,
-        senderId: r['sender_id'] as String,
+        senderId: senderId,
         receiverId: r['receiver_id'] as String,
         targetType: r['target_type'] as String? ?? 'profile',
         targetId: r['target_id'] as String,

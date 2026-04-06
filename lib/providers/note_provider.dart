@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -33,7 +34,8 @@ class NoteInboxNotifier extends StateNotifier<NoteInboxState> {
       final repo = _ref.read(noteRepositoryProvider);
       final notes = await repo.fetchReceivedNotes(uid);
       state = state.copyWith(notes: notes, isLoading: false);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[notes] Load failed: $e');
       state = state.copyWith(isLoading: false);
     }
   }

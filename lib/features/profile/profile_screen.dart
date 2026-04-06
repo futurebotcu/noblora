@@ -199,7 +199,7 @@ class _ProfileHeader extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
                     fit: BoxFit.cover,
-                    memCacheWidth: 300,
+                    memCacheWidth: 600,
                     errorWidget: (_, __, ___) => Container(
                       color: AppColors.emerald600.withValues(alpha: 0.2),
                       child: Center(

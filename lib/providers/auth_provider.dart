@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, isDevMode;
@@ -93,6 +94,7 @@ String _friendlyError(Object e) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
   StreamSubscription<dynamic>? _authSub;
+  Timer? _refreshTimer;
 
   AuthNotifier(this._repo) : super(const AuthState()) {
     initialize();
@@ -100,6 +102,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _authSub?.cancel();
     super.dispose();
   }
@@ -119,6 +122,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (!isMockMode && id != null) {
         Supabase.instance.client.rpc('update_last_active', params: {'p_user_id': id}).ignore();
         Supabase.instance.client.rpc('calculate_maturity_score', params: {'p_user_id': id}).ignore();
+      }
+      // Periodic session refresh — keeps JWT fresh, prevents stale tokens
+      if (!isMockMode && id != null) {
+        _refreshTimer?.cancel();
+        _refreshTimer = Timer.periodic(const Duration(minutes: 30), (_) async {
+          try {
+            await Supabase.instance.client.auth.refreshSession();
+          } catch (e) {
+            debugPrint('[auth] Session refresh failed: $e');
+          }
+        });
       }
       if (!isMockMode) {
         _authSub = _repo.authStateChanges.listen((authState) {
@@ -146,7 +160,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Initialization failed — clear any stale session and go to login.
       try {
         await _repo.signOut();
-      } catch (_) {}
+      } catch (_) { /* Intentional: best-effort cleanup on init failure */ }
       state = AuthState(
         isInitialized: true,
         isLoading: false,
@@ -189,7 +203,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Email confirmation disabled — user is immediately signed in.
         // On localhost: auto-verify so the gating flow is skipped in dev.
         if (isDevMode) {
-          try { await _repo.devAutoVerify(); } catch (_) {}
+          try { await _repo.devAutoVerify(); } catch (_) { /* Dev-only auto-verify, non-critical */ }
         }
         state = AuthState(
           userId: response.user!.id,

@@ -5,6 +5,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../providers/posts_provider.dart';
+import '../../core/services/toast_service.dart';
 import 'nob_compose_screen.dart';
 
 class NobDraftsScreen extends ConsumerWidget {
@@ -250,30 +251,13 @@ class _DraftCard extends ConsumerWidget {
         await ref.read(postsProvider.notifier).canPublishToday(post.nobType);
     if (!context.mounted) return;
     if (!canPublish) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              'You\'ve shared your Nob for today. Come back tomorrow.'),
-          backgroundColor: AppColors.nobSurface,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
-        ),
-      );
+      ToastService.show(context, message: 'You need at least 20 characters to publish', type: ToastType.error);
       return;
     }
     final ok = await ref.read(postsProvider.notifier).publishDraft(post.id);
     if (!context.mounted) return;
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Published!'),
-          backgroundColor: AppColors.nobSurface,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
-        ),
-      );
+      ToastService.show(context, message: 'Published!', type: ToastType.success);
       Navigator.pop(context);
     }
   }

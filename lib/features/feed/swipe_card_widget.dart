@@ -38,6 +38,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
   Offset _offset = Offset.zero;
   bool _isDragging = false;
   bool _hasTriggeredHaptic = false;
+  double _screenW = 0;
 
   @override
   void initState() {
@@ -49,6 +50,12 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _screenW = MediaQuery.of(context).size.width;
+  }
+
+  @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
@@ -56,8 +63,7 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (!widget.isTop) return;
-    final screenW = MediaQuery.of(context).size.width;
-    final threshold = screenW * 0.3;
+    final threshold = _screenW * 0.3;
     final wasOverThreshold = _offset.dx.abs() > threshold;
 
     setState(() {
@@ -77,17 +83,16 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
 
   void _onPanEnd(DragEndDetails details) {
     if (!widget.isTop) return;
-    final screenW = MediaQuery.of(context).size.width;
-    final threshold = screenW * 0.3;
+    final threshold = _screenW * 0.3;
     _hasTriggeredHaptic = false;
 
     if (_offset.dx > threshold) {
       HapticFeedback.lightImpact();
-      _flyOff(Offset(screenW * 2.5, _offset.dy));
+      _flyOff(Offset(_screenW * 2.5, _offset.dy));
       widget.onSwipeRight();
     } else if (_offset.dx < -threshold) {
       HapticFeedback.lightImpact();
-      _flyOff(Offset(-screenW * 2.5, _offset.dy));
+      _flyOff(Offset(-_screenW * 2.5, _offset.dy));
       widget.onSwipeLeft();
     } else {
       _springBack();
@@ -111,13 +116,11 @@ class _SwipeCardWidgetState extends State<SwipeCardWidget>
   }
 
   double get _rotationAngle {
-    final screenW = MediaQuery.of(context).size.width;
-    return _offset.dx / screenW * 0.4;
+    return _offset.dx / _screenW * 0.4;
   }
 
   double get _swipeProgress {
-    final screenW = MediaQuery.of(context).size.width;
-    return (_offset.dx / (screenW * 0.4)).clamp(-1.0, 1.0);
+    return (_offset.dx / (_screenW * 0.4)).clamp(-1.0, 1.0);
   }
 
   /// Subtle scale-down while dragging (max 3% shrink at full swipe)
@@ -228,6 +231,7 @@ class _CardBody extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: card.photoUrl,
               fit: BoxFit.cover,
+              memCacheWidth: 800,
               placeholder: (_, __) => Container(
                 decoration: BoxDecoration(gradient: Premium.cardGradient),
                 child: Center(
@@ -628,6 +632,7 @@ class _BffCardBody extends StatelessWidget {
                   CachedNetworkImage(
                     imageUrl: card.photoUrl,
                     fit: BoxFit.cover,
+                    memCacheWidth: 800,
                     placeholder: (_, __) =>
                         Container(color: context.bgColor),
                     errorWidget: (_, __, ___) =>

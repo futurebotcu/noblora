@@ -14,6 +14,7 @@ import '../../providers/note_provider.dart';
 import 'nob_compose_screen.dart';
 import 'nob_drafts_screen.dart';
 import 'note_inbox_screen.dart';
+import '../../core/services/toast_service.dart';
 
 // ---------------------------------------------------------------------------
 // NoblaraFeedScreen — Gallery-style community feed
@@ -684,7 +685,7 @@ class _NobCard extends StatelessWidget {
   void _openAuthorProfile(BuildContext context) {
     // Capture the parent context so toasts and the note dialog use a
     // widget that survives after the bottom sheet is popped.
-    final messenger = ScaffoldMessenger.of(context);
+    final parentContext = context;
     showModalBottomSheet(
       context: context,
       backgroundColor: context.surfaceColor,
@@ -693,17 +694,11 @@ class _NobCard extends StatelessWidget {
         post: post,
         onSignal: (userId) {
           onSignal?.call(userId);
-          messenger.showSnackBar(const SnackBar(
-            content: Text('Signal sent'),
-            backgroundColor: AppColors.emerald600,
-          ));
+          ToastService.show(parentContext, message: 'Signal sent', type: ToastType.success);
         },
         onReachOut: (userId) {
           onReachOut?.call(userId);
-          messenger.showSnackBar(const SnackBar(
-            content: Text('Reached out'),
-            backgroundColor: AppColors.emerald500,
-          ));
+          ToastService.show(parentContext, message: 'Reached out!', type: ToastType.success);
         },
         onSendNotePressed: () => _showNoteDialog(context),
       ),
@@ -716,6 +711,7 @@ class _NobCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: Text('Send a Note', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -745,10 +741,9 @@ class _NobCard extends StatelessWidget {
     ).then((text) {
       if (text != null && text.toString().isNotEmpty && context.mounted) {
         onSendNote?.call(post.userId, 'post', post.id, text.toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Note sent'), backgroundColor: AppColors.emerald600),
-        );
+        ToastService.show(context, message: 'Note sent', type: ToastType.success);
       }
+      ctrl.dispose();
     });
   }
 

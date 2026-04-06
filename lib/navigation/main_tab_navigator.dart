@@ -256,7 +256,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
               if (category != null && prefs[category] == false) return; // Suppressed by user
             }
           }
-        } catch (_) {}
+        } catch (e) { debugPrint('[nav] Notification prefs check failed: $e'); }
       }
 
       // Tier promotion → show celebration screen

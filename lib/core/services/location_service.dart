@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -15,14 +16,17 @@ class LocationService {
     if (permission == LocationPermission.deniedForever) return null;
 
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
     );
   }
 
   /// Convert coordinates to city/country
   static Future<Map<String, String?>> getCityFromCoordinates(double lat, double lng) async {
     try {
-      final placemarks = await placemarkFromCoordinates(lat, lng);
+      final placemarks = await placemarkFromCoordinates(
+        double.parse(lat.toStringAsFixed(2)),
+        double.parse(lng.toStringAsFixed(2)),
+      );
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
         return {
@@ -31,7 +35,7 @@ class LocationService {
           'countryCode': place.isoCountryCode,
         };
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[location] Geocoding failed: $e'); }
     return {'city': null, 'country': null, 'countryCode': null};
   }
 
@@ -42,8 +46,8 @@ class LocationService {
     final info = await getCityFromCoordinates(position.latitude, position.longitude);
     return {
       ...info,
-      'lat': position.latitude,
-      'lng': position.longitude,
+      'lat': double.parse(position.latitude.toStringAsFixed(2)),
+      'lng': double.parse(position.longitude.toStringAsFixed(2)),
     };
   }
 }

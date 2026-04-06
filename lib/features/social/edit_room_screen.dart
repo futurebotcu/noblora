@@ -66,7 +66,7 @@ class _EditRoomScreenState extends ConsumerState<EditRoomScreen> {
         setState(() { _warning = 'This looks promotional.'; _submitting = false; });
         return;
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[room-edit] AI validation failed: $e'); }
 
     if (!isMockMode) {
       await Supabase.instance.client.from('rooms').update({

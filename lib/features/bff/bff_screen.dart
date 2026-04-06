@@ -165,23 +165,27 @@ class _SuggestionsTab extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final text = ctrl.text.trim();
               if (text.isEmpty) return;
               Navigator.pop(ctx);
-              ref.read(noteInboxProvider.notifier).sendNote(
-                receiverId: sug.otherUserId(uid),
-                targetType: 'profile',
-                targetId: sug.otherUserId(uid),
-                content: text,
-              );
-              ToastService.show(context, message: 'Note sent', type: ToastType.success);
+              try {
+                await ref.read(noteInboxProvider.notifier).sendNote(
+                  receiverId: sug.otherUserId(uid),
+                  targetType: 'profile',
+                  targetId: sug.otherUserId(uid),
+                  content: text,
+                );
+                if (ctx.mounted) ToastService.show(ctx, message: 'Note sent', type: ToastType.success);
+              } catch (e) {
+                if (ctx.mounted) ToastService.show(ctx, message: 'Could not send note', type: ToastType.error);
+              }
             },
             child: const Text('Send', style: TextStyle(color: _accent)),
           ),
         ],
       ),
-    );
+    ).then((_) => ctrl.dispose());
   }
 
   Future<void> _onAction(BuildContext context, WidgetRef ref, String id, String action) async {

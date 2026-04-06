@@ -42,7 +42,8 @@ class DeviceService {
           .eq('device_id', deviceId)
           .maybeSingle();
       return result != null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[device] Ban check failed: $e');
       return false;
     }
   }
@@ -56,7 +57,8 @@ class DeviceService {
           .eq('device_id', deviceId)
           .maybeSingle();
       return result != null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[device] Account check failed: $e');
       return false;
     }
   }
@@ -76,6 +78,6 @@ class DeviceService {
         'device_id': info['device_id'],
         'device_platform': info['platform'],
       }).eq('id', userId);
-    } catch (_) {}
+    } catch (e) { debugPrint('[device] Registration failed: $e'); }
   }
 }

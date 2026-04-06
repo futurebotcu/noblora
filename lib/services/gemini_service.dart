@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 
@@ -8,7 +9,7 @@ class GeminiService {
   /// Core method — sends prompt to Edge Function, returns parsed result.
   static Future<Map<String, dynamic>> analyzeText(String prompt) async {
     if (isMockMode) {
-      return {'mock': true, 'text': '[AI unavailable] Mock response'};
+      return {'mock': true, 'text': 'Mock response'};
     }
 
     try {
@@ -31,7 +32,7 @@ class GeminiService {
       if (jsonMatch != null) {
         try {
           return jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
-        } catch (_) {}
+        } catch (_) { /* non-JSON AI response, use raw text */ }
       }
       return {'text': text};
     } catch (e) {
@@ -80,12 +81,12 @@ Example: ["Hey! I noticed we both love hiking.", "Your taste in art caught my ey
         final list = jsonDecode(listMatch.group(0)!) as List<dynamic>;
         return list.map((e) => e.toString()).take(3).toList();
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
     return [
-      '[AI unavailable] Hey $otherName, nice to connect!',
-      '[AI unavailable] I noticed we have a lot in common.',
-      '[AI unavailable] Looking forward to getting to know you.',
+      'Hey $otherName, nice to connect!',
+      'I noticed we have a lot in common.',
+      'Looking forward to getting to know you.',
     ];
   }
 
@@ -115,9 +116,9 @@ Return ONLY the text, nothing else.
       final result = await analyzeText(prompt);
       final text = (result['text'] as String?)?.trim() ?? '';
       if (text.isNotEmpty) return text;
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
-    return '[AI unavailable] What do you enjoy doing on weekends?';
+    return 'What do you enjoy doing on weekends?';
   }
 
   // ---------------------------------------------------------------------------
@@ -146,9 +147,9 @@ Return ONLY the text, nothing else.
       final result = await analyzeText(prompt);
       final text = (result['text'] as String?)?.trim() ?? '';
       if (text.isNotEmpty) return text;
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
-    return '[AI unavailable] How has your week been?';
+    return 'How has your week been?';
   }
 
   // ---------------------------------------------------------------------------
@@ -183,9 +184,9 @@ Return ONLY a JSON array of 2-3 strings.
         final list = jsonDecode(listMatch.group(0)!) as List<dynamic>;
         return list.map((e) => e.toString()).take(3).toList();
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
-    return ['[AI unavailable] Common ground could not be generated'];
+    return ['You two might have more in common than you think'];
   }
 
   // ---------------------------------------------------------------------------
@@ -211,9 +212,9 @@ Rules: Warm, casual, non-romantic. 1-2 sentences, max 120 characters. No JSON.
       final result = await analyzeText(prompt);
       final text = (result['text'] as String?)?.trim() ?? '';
       if (text.isNotEmpty) return text.replaceAll('"', '');
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
-    return '[AI unavailable] Hey $otherName! Looks like we have some things in common.';
+    return 'Hey $otherName! Looks like we have some things in common.';
   }
 
   // ---------------------------------------------------------------------------
@@ -240,8 +241,8 @@ Do NOT mention numbers or percentages. Return ONLY the text.
       final result = await analyzeText(prompt);
       final text = (result['text'] as String?)?.trim() ?? '';
       if (text.isNotEmpty) return text;
-    } catch (_) {}
+    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
 
-    return '[AI unavailable] Keep engaging — your profile grows with every interaction.';
+    return 'Keep engaging — your profile grows with every interaction.';
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
@@ -66,7 +67,7 @@ class RoomListNotifier extends StateNotifier<RoomListState> {
               .maybeSingle();
           userLat = (profile?['location_lat'] as num?)?.toDouble();
           userLng = (profile?['location_lng'] as num?)?.toDouble();
-        } catch (_) {}
+        } catch (e) { debugPrint('[rooms] Location fetch failed: $e'); }
       }
 
       final rooms = await repo.fetchRooms(userLat: userLat, userLng: userLng);
@@ -110,7 +111,7 @@ class RoomListNotifier extends StateNotifier<RoomListState> {
             .maybeSingle();
         hostLat = (profile?['location_lat'] as num?)?.toDouble();
         hostLng = (profile?['location_lng'] as num?)?.toDouble();
-      } catch (_) {}
+      } catch (e) { debugPrint('[rooms] Host location fetch failed: $e'); }
     }
 
     final room = await repo.createRoom(
@@ -192,7 +193,8 @@ class RoomChatNotifier extends StateNotifier<RoomChatState> {
         participants: participants,
         isLoading: false,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[rooms] Initial load failed: $e');
       state = state.copyWith(isLoading: false);
     }
 
@@ -227,7 +229,7 @@ class RoomChatNotifier extends StateNotifier<RoomChatState> {
         }).toList();
         state = state.copyWith(messages: msgs);
       },
-      onError: (Object e) {},
+      onError: (Object e) { debugPrint('[rooms] Message stream error: $e'); },
     );
 
     // Subscribe to realtime participants — re-fetch full data with profile JOIN
@@ -238,13 +240,13 @@ class RoomChatNotifier extends StateNotifier<RoomChatState> {
         try {
           final participants = await repo.fetchParticipants(roomId);
           if (mounted) state = state.copyWith(participants: participants);
-        } catch (_) {
-          // Fallback: use raw stream data
+        } catch (e) {
+          debugPrint('[rooms] Participant refresh failed, using raw data: $e');
           final parts = rows.map((r) => RoomParticipant.fromJson(r)).toList();
           if (mounted) state = state.copyWith(participants: parts);
         }
       },
-      onError: (Object e) {},
+      onError: (Object e) { debugPrint('[rooms] Participant stream error: $e'); },
     );
   }
 

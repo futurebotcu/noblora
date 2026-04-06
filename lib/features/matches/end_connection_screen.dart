@@ -163,7 +163,7 @@ Respond with JSON only:
                   onChanged: (_) => setState(() {}),
                   style: TextStyle(color: context.textPrimary, fontSize: 15, height: 1.5),
                   decoration: InputDecoration(
-                    hintText: 'Write a few words before you go. This will be shared with ${widget.otherUserName}.',
+                    hintText: 'Write a few kind words before you go (at least 20 characters). This will be shared with ${widget.otherUserName}.',
                     hintStyle: TextStyle(color: context.textDisabled, fontSize: 14),
                     hintMaxLines: 3,
                     filled: true,
@@ -174,6 +174,16 @@ Respond with JSON only:
                   ),
                 ),
               ),
+
+              // Minimum length hint
+              if (_ctrl.text.trim().isNotEmpty && !_canSend)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    '${20 - _ctrl.text.trim().length} more characters needed',
+                    style: TextStyle(color: context.textMuted, fontSize: 12),
+                  ),
+                ),
 
               // AI note
               Padding(

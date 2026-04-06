@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -23,8 +21,6 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
   Timer? _debounce;
   List<_PlacePrediction> _results = [];
   bool _loading = false;
-
-  static String get _apiKey => dotenv.maybeGet('GOOGLE_PLACES_KEY') ?? '';
 
   @override
   void initState() {
@@ -53,64 +49,56 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
   Future<void> _search(String query) async {
     setState(() => _loading = true);
     try {
-      final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json'
-        '?input=${Uri.encodeComponent(query)}'
-        '&types=(cities)'
-        '&key=$_apiKey',
+      final res = await Supabase.instance.client.functions.invoke(
+        'places-proxy',
+        body: {'action': 'autocomplete', 'query': query},
       );
-      final resp = await http.get(url);
-      if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
-        final predictions = (data['predictions'] as List?) ?? [];
-        setState(() {
-          _results = predictions.map((p) => _PlacePrediction(
-            placeId: p['place_id'] ?? '',
-            description: p['description'] ?? '',
-            mainText: p['structured_formatting']?['main_text'] ?? '',
-            secondaryText: p['structured_formatting']?['secondary_text'] ?? '',
-          )).toList();
-        });
-      }
-    } catch (_) {}
-    setState(() => _loading = false);
+      final data = res.data as Map<String, dynamic>?;
+      final predictions = (data?['predictions'] as List?) ?? [];
+      setState(() {
+        _results = predictions.map((p) => _PlacePrediction(
+          placeId: p['place_id'] ?? '',
+          description: p['description'] ?? '',
+          mainText: p['structured_formatting']?['main_text'] ?? p['description'] ?? '',
+          secondaryText: p['structured_formatting']?['secondary_text'] ?? '',
+        )).toList();
+      });
+    } catch (e) {
+      debugPrint('City search error: $e');
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _selectPlace(_PlacePrediction prediction) async {
-    // Get place details for coordinates
     try {
-      final url = Uri.parse(
-        'https://maps.googleapis.com/maps/api/place/details/json'
-        '?place_id=${prediction.placeId}'
-        '&fields=geometry,address_components'
-        '&key=$_apiKey',
+      final res = await Supabase.instance.client.functions.invoke(
+        'places-proxy',
+        body: {'action': 'details', 'placeId': prediction.placeId},
       );
-      final resp = await http.get(url);
-      if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
-        final result = data['result'];
-        final loc = result?['geometry']?['location'];
-        final lat = loc?['lat'] as double?;
-        final lng = loc?['lng'] as double?;
+      final data = res.data as Map<String, dynamic>?;
+      final result = data?['result'];
+      final loc = result?['geometry']?['location'];
+      final lat = loc?['lat'] as double?;
+      final lng = loc?['lng'] as double?;
 
-        // Extract country from address_components
-        String country = '';
-        final components = result?['address_components'] as List? ?? [];
-        for (final c in components) {
-          final types = (c['types'] as List?) ?? [];
-          if (types.contains('country')) {
-            country = c['long_name'] ?? '';
-            break;
-          }
+      String country = '';
+      final components = result?['address_components'] as List? ?? [];
+      for (final c in components) {
+        final types = (c['types'] as List?) ?? [];
+        if (types.contains('country')) {
+          country = c['long_name'] ?? '';
+          break;
         }
-
-        if (mounted) {
-          widget.onSelected(prediction.mainText, country, lat, lng);
-          Navigator.pop(context);
-        }
-        return;
       }
-    } catch (_) {}
+
+      if (mounted) {
+        widget.onSelected(prediction.mainText, country, lat, lng);
+        Navigator.pop(context);
+      }
+      return;
+    } catch (e) {
+      debugPrint('Place details error: $e');
+    }
 
     // Fallback without coordinates
     if (mounted) {

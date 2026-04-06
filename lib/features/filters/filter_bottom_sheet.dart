@@ -56,7 +56,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
       final repo = ref.read(feedRepositoryProvider);
       final c = await repo.countFilteredProfiles(userId: uid, mode: ref.read(modeProvider).name, filters: _f);
       if (mounted) setState(() => _count = c);
-    } catch (_) {}
+    } catch (e) { debugPrint('[filters] Count fetch failed: $e'); }
   }
 
   @override

@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/bff_plan.dart';
+import '../../core/services/toast_service.dart';
 import '../../providers/bff_provider.dart';
 
 const _accent = AppColors.emerald500;
@@ -86,9 +87,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                     await ref.read(bffProvider.notifier).submitPlanCheckin(plan.id, opt.$1);
                     setState(() => _pendingCheckins.removeWhere((p) => p.id == plan.id));
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Thanks for your feedback!'), backgroundColor: _accent),
-                      );
+                      ToastService.show(context, message: 'Thanks for your feedback!', type: ToastType.success);
                     }
                   },
                 ),
@@ -165,12 +164,7 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
 
     if (!mounted) return;
     Navigator.pop(context, true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Plan sent!'),
-        backgroundColor: _accent,
-      ),
-    );
+    ToastService.show(context, message: 'Plan sent!', type: ToastType.success);
   }
 
   @override

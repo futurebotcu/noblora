@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -19,6 +20,17 @@ import '../../shared/widgets/city_search_screen.dart';
 // Onboarding Flow — step-based premium setup
 // Steps: Welcome → Basics → Occupation → City → Photo → Bio → Privacy → Preferences → Complete
 // ═══════════════════════════════════════════════════════════════════
+
+String? _detectImageType(List<int> bytes) {
+  if (bytes.length < 4) return null;
+  // JPEG: FF D8 FF
+  if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return 'image/jpeg';
+  // PNG: 89 50 4E 47
+  if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return 'image/png';
+  // WebP: RIFF....WEBP
+  if (bytes.length >= 12 && bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 && bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return 'image/webp';
+  return null;
+}
 
 class OnboardingFlowScreen extends ConsumerStatefulWidget {
   const OnboardingFlowScreen({super.key});
@@ -75,8 +87,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
     final error = _validateCompletion();
     if (error != null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: AppColors.error));
+        ToastService.show(context, message: error, type: ToastType.error);
       }
       return;
     }
@@ -90,63 +101,73 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
       if (_photoUrl != null && !_photoUrl!.startsWith('http')) {
         try {
           final bytes = await XFile(_photoUrl!).readAsBytes();
-          final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-          await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes,
-              fileOptions: const FileOptions(contentType: 'image/jpeg'));
-          remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
+          // Validate size (max 10MB)
+          if (bytes.length > 10 * 1024 * 1024) {
+            if (mounted) {
+              ToastService.show(context, message: 'Photo is too large (10 MB max)', type: ToastType.error);
+            }
+            remotePhotoUrl = null;
+          } else {
+            final contentType = _detectImageType(bytes) ?? 'image/jpeg';
+            final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+            await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes,
+                fileOptions: FileOptions(contentType: contentType));
+            remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
+          }
         } catch (e) {
           debugPrint('Onboarding photo upload error: $e');
           remotePhotoUrl = null;
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Photo upload failed. Your profile will use the selected avatar instead.')),
-            );
+            ToastService.show(context, message: 'Photo upload failed. Your profile will use the selected avatar instead.', type: ToastType.error);
           }
         }
       }
 
-      try {
-        await Supabase.instance.client.from('profiles').update({
-        'full_name': _nameCtrl.text.trim(),
-        'display_name': _nameCtrl.text.trim(),
-        'age': _age,
-        'gender': _gender,
-        'city': _city,
-        if (_country.isNotEmpty) 'country': _country,
-        if (_locationLat != null) 'location_lat': _locationLat,
-        if (_locationLng != null) 'location_lng': _locationLng,
-        'bio': '',
-        'date_avatar_url': remotePhotoUrl,
-        'bff_avatar_url': remotePhotoUrl,
-        'dating_active': true,
-        'dating_visible': true,
-        'bff_active': true,
-        'bff_visible': true,
-        'social_active': kSocialEnabled,
-        'social_visible': kSocialEnabled,
-        'looking_for': 'Serious relationship',
-        if (_occupation.isNotEmpty) 'occupation': _occupation,
-        if (_avatarId != null) 'avatar_id': _avatarId,
-        'is_onboarded': true,
-        // Privacy defaults (explicit, not null)
-        'incognito_mode': false,
-        'calm_mode': false,
-        'show_city_only': false,
-        'hide_exact_distance': false,
-        'show_last_active': true,
-        'show_status_badge': true,
-        'reach_permission': 'everyone',
-        'signal_permission': 'everyone',
-        'note_permission': 'everyone',
-        'message_preview': true,
-        'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
-      }).eq('id', uid);
-      } catch (e) {
-        debugPrint('Onboarding DB update error: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile save had an issue. Please check your profile later.')),
-          );
+      // Retry DB save up to 2 times
+      var saved = false;
+      for (var attempt = 0; attempt < 2 && !saved; attempt++) {
+        try {
+          await Supabase.instance.client.from('profiles').update({
+          'full_name': _nameCtrl.text.trim(),
+          'display_name': _nameCtrl.text.trim(),
+          'age': _age,
+          'gender': _gender,
+          'city': _city,
+          if (_country.isNotEmpty) 'country': _country,
+          if (_locationLat != null) 'location_lat': _locationLat,
+          if (_locationLng != null) 'location_lng': _locationLng,
+          'bio': '',
+          'date_avatar_url': remotePhotoUrl,
+          'bff_avatar_url': remotePhotoUrl,
+          'dating_active': true,
+          'dating_visible': true,
+          'bff_active': true,
+          'bff_visible': true,
+          'social_active': kSocialEnabled,
+          'social_visible': kSocialEnabled,
+          'looking_for': 'Serious relationship',
+          if (_occupation.isNotEmpty) 'occupation': _occupation,
+          if (_avatarId != null) 'avatar_id': _avatarId,
+          'is_onboarded': true,
+          // Privacy defaults (explicit, not null)
+          'incognito_mode': false,
+          'calm_mode': false,
+          'show_city_only': false,
+          'hide_exact_distance': false,
+          'show_last_active': true,
+          'show_status_badge': true,
+          'reach_permission': 'everyone',
+          'signal_permission': 'everyone',
+          'note_permission': 'everyone',
+          'message_preview': true,
+          'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
+        }).eq('id', uid);
+          saved = true;
+        } catch (e) {
+          debugPrint('Onboarding DB update error (attempt ${attempt + 1}): $e');
+          if (attempt == 1 && mounted) {
+            ToastService.show(context, message: 'Profile save failed. Please check your profile later.', type: ToastType.error);
+          }
         }
       }
     }
@@ -925,15 +946,13 @@ class _CompletePageState extends State<_CompletePage> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             onPressed: (_loading || widget.validationError != null) ? null : () async {
-              final messenger = ScaffoldMessenger.of(context);
               setState(() => _loading = true);
               try {
                 await widget.onComplete().timeout(const Duration(seconds: 15));
               } catch (e) {
-                if (!mounted) return;
+                if (!context.mounted) return;
                 setState(() => _loading = false);
-                messenger.showSnackBar(
-                  SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+                ToastService.show(context, message: 'Something went wrong. Please try again.', type: ToastType.error);
               }
             },
             child: _loading

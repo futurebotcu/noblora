@@ -58,7 +58,7 @@ class FilterNotifier extends StateNotifier<FilterState> {
         interests: (map['interests'] as List<dynamic>?)?.cast<String>() ?? [],
         strictFilters: (map['strict'] as List<dynamic>?)?.cast<String>().toSet() ?? {},
       );
-    } catch (_) {}
+    } catch (e) { debugPrint('[filters] Load from prefs failed: $e'); }
   }
 
   Future<void> _save() async {

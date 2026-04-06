@@ -64,6 +64,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         final repo = ref.read(messagesRepositoryProvider);
         repo.markRead(conversationId: widget.conversationId, userId: userId);
         repo.markDelivered(conversationId: widget.conversationId, userId: userId);
+        repo.markMessagesRead(conversationId: widget.conversationId, userId: userId);
       }
     });
   }
@@ -86,11 +87,11 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
           if (prefs != null && prefs['message_softening'] == false) {
             if (mounted) {
-              ToastService.show(context, message: 'AI opener help is disabled in Settings', type: ToastType.system);
+              ToastService.show(context, message: 'AI conversation help is turned off', type: ToastType.system);
             }
             return;
           }
-        } catch (_) {}
+        } catch (e) { debugPrint('[chat] AI prefs check failed: $e'); }
       }
     }
 
@@ -102,9 +103,10 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       if (mounted) {
         _msgCtrl.text = opener;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[chat] BFF opener generation failed: $e');
       if (mounted) {
-        _msgCtrl.text = '[AI unavailable] Hey ${_item.name}! Looks like we have some things in common.';
+        _msgCtrl.text = 'Hey ${_item.name}! Looks like we have some things in common.';
       }
     }
   }
@@ -186,6 +188,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   List<_Msg> _buildMessages(List<ChatMessage> chatMessages, String? currentUserId) {
     return chatMessages.map((m) {
       final isSelf = m.senderId != null && m.senderId == currentUserId;
+      final isPending = m.id.startsWith('pending-');
       return _Msg(
         sender: m.senderDisplayName,
         avatarSeed: m.senderId ?? '',
@@ -194,6 +197,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         time: m.createdAt,
         isSelf: isSelf,
         isSystem: m.isSystem,
+        isPending: isPending,
+        isDelivered: m.isDelivered,
+        isRead: m.isRead,
       );
     }).toList();
   }
@@ -336,6 +342,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 child: CachedNetworkImage(
                   imageUrl: _item.photoUrl ?? 'https://picsum.photos/seed/${_item.avatarSeed}/80/80',
                   fit: BoxFit.cover,
+                  memCacheWidth: 200,
                   placeholder: (_, __) => CircleAvatar(
                     backgroundColor: accent.withValues(alpha: 0.2),
                     child: const SizedBox(
@@ -452,7 +459,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                       color: AppColors.error, size: 14),
                   SizedBox(width: AppSpacing.xs),
                   Text(
-                    'This chat has ended',
+                    'This conversation has closed',
                     style: TextStyle(
                         color: AppColors.error,
                         fontSize: 12,
@@ -771,6 +778,7 @@ class _MsgBubble extends StatelessWidget {
                   width: 32,
                   height: 32,
                   fit: BoxFit.cover,
+                  memCacheWidth: 96,
                   placeholder: (_, __) => CircleAvatar(
                     radius: 16,
                     backgroundColor: accentColor.withValues(alpha: 0.25),
@@ -835,14 +843,26 @@ class _MsgBubble extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    _formatTime(msg.time),
-                    style: TextStyle(
-                      color: msg.isSelf
-                          ? AppColors.textOnEmerald.withValues(alpha: 0.6)
-                          : context.textDisabled,
-                      fontSize: 10,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatTime(msg.time),
+                        style: TextStyle(
+                          color: msg.isSelf
+                              ? AppColors.textOnEmerald.withValues(alpha: 0.6)
+                              : context.textDisabled,
+                          fontSize: 10,
+                        ),
+                      ),
+                      if (msg.isSelf) ...[
+                        const SizedBox(width: 3),
+                        _StatusIcon(
+                          msg: msg,
+                          color: AppColors.textOnEmerald.withValues(alpha: 0.6),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -951,6 +971,9 @@ class _Msg {
   final DateTime time;
   final bool isSelf;
   final bool isSystem;
+  final bool isPending;
+  final bool isDelivered;
+  final bool isRead;
 
   _Msg({
     required this.sender,
@@ -960,5 +983,34 @@ class _Msg {
     required this.time,
     this.isSelf = false,
     this.isSystem = false,
+    this.isPending = false,
+    this.isDelivered = false,
+    this.isRead = false,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Delivery / read status icon
+// ---------------------------------------------------------------------------
+
+class _StatusIcon extends StatelessWidget {
+  final _Msg msg;
+  final Color color;
+
+  const _StatusIcon({required this.msg, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (msg.isPending) {
+      return Icon(Icons.schedule_rounded, size: 12, color: color);
+    }
+    if (msg.isRead) {
+      return Icon(Icons.done_all_rounded, size: 12, color: AppColors.emerald500);
+    }
+    if (msg.isDelivered) {
+      return Icon(Icons.done_all_rounded, size: 12, color: color);
+    }
+    // Sent (reached server)
+    return Icon(Icons.done_rounded, size: 12, color: color);
+  }
 }

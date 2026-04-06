@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/toast_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
@@ -50,6 +51,7 @@ class PhotosMediaSection extends ConsumerWidget {
                       child: CachedNetworkImage(
                         imageUrl: draft.photoUrls[i],
                         fit: BoxFit.cover,
+                        memCacheWidth: 400,
                         placeholder: (_, __) => Container(
                           color: context.surfaceColor,
                           child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -114,8 +116,23 @@ class PhotosMediaSection extends ConsumerWidget {
     if (uid == null) return;
     try {
       final bytes = await img.readAsBytes();
+      // Validate file size (max 10MB)
+      if (bytes.length > 10 * 1024 * 1024) {
+        if (context.mounted) {
+          ToastService.show(context, message: 'Photo is too large (10 MB max)', type: ToastType.error);
+        }
+        return;
+      }
+      // Detect content type from magic bytes
+      final contentType = _detectImageType(bytes);
+      if (contentType == null) {
+        if (context.mounted) {
+          ToastService.show(context, message: 'Use JPG, PNG, or WebP format', type: ToastType.error);
+        }
+        return;
+      }
       final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes, fileOptions: const FileOptions(contentType: 'image/jpeg'));
+      await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
       final url = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
       ref.read(editProfileProvider.notifier).updateDraft((d) {
         final urls = List<String>.from(d.photoUrls);
@@ -124,8 +141,19 @@ class PhotosMediaSection extends ConsumerWidget {
         return d;
       });
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e'), backgroundColor: AppColors.error));
+      if (context.mounted) ToastService.show(context, message: 'Photo upload failed', type: ToastType.error);
     }
+  }
+
+  static String? _detectImageType(List<int> bytes) {
+    if (bytes.length < 4) return null;
+    // JPEG: FF D8 FF
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) return 'image/jpeg';
+    // PNG: 89 50 4E 47
+    if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return 'image/png';
+    // WebP: RIFF....WEBP
+    if (bytes.length >= 12 && bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 && bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return 'image/webp';
+    return null;
   }
 
   void _confirmRemove(BuildContext context, WidgetRef ref, int index) {

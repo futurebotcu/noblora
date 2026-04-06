@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Config for Noblara
+  - Blocks all cleartext (HTTP) traffic — HTTPS only
+  - In release builds: trusts only system CAs (blocks user-installed CAs)
+  - In debug builds: also trusts user CAs (for proxy debugging)
+  - Pin-sets omitted intentionally: Supabase/Google rotate certs frequently,
+    hard pins would cause app breakage. HTTPS-only + system-CA-only is the
+    practical balance for a mobile app.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

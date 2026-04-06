@@ -8,6 +8,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/services/toast_service.dart';
 import 'appearance_settings_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -325,9 +326,7 @@ class SettingsScreen extends ConsumerWidget {
     Supabase.instance.client.auth.resetPasswordForEmail(
       Supabase.instance.client.auth.currentUser?.email ?? '',
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset email sent')),
-    );
+    ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
   }
 
   void _pickLanguage(BuildContext context, WidgetRef ref, _SettingsNotifier n) {
@@ -404,11 +403,11 @@ class SettingsScreen extends ConsumerWidget {
           TextButton(onPressed: () {
             Navigator.pop(ctx);
             Clipboard.setData(ClipboardData(text: 'Bug report: ${ctrl.text.trim()}'));
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bug report copied. Send to support@noblara.com')));
+            ToastService.show(context, message: 'Bug report copied to clipboard', type: ToastType.success);
           }, child: const Text('Copy & Send', style: TextStyle(color: AppColors.emerald500))),
         ],
       ),
-    );
+    ).then((_) => ctrl.dispose());
   }
 
   void _confirmPause(BuildContext context, WidgetRef ref) {
@@ -424,7 +423,7 @@ class SettingsScreen extends ConsumerWidget {
           if (uid != null && !isMockMode) {
             await Supabase.instance.client.from('profiles').update({'is_paused': true}).eq('id', uid);
           }
-          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account paused')));
+          if (context.mounted) ToastService.show(context, message: 'Account paused', type: ToastType.system);
         }, child: const Text('Pause', style: TextStyle(color: AppColors.warning))),
       ],
     ));
@@ -463,7 +462,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-    ));
+    )).then((_) => ctrl.dispose());
   }
 }
 

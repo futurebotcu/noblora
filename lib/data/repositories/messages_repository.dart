@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/message.dart';
@@ -212,8 +213,29 @@ class MessagesRepository {
           .eq('conversation_id', conversationId)
           .neq('sender_id', userId)
           .isFilter('delivered_at', null);
-    } catch (_) {
-      // Column may not exist yet — silently ignore
+    } catch (e) {
+      debugPrint('[messages] Mark delivered failed: $e');
+    }
+  }
+
+  /// Mark all incoming messages in a conversation as read (sets read_at on
+  /// individual message rows). Called when the recipient opens the chat.
+  Future<void> markMessagesRead({
+    required String conversationId,
+    required String userId,
+  }) async {
+    if (isMockMode) return;
+    final db = _supabase;
+    if (db == null) return;
+    try {
+      await db
+          .from('messages')
+          .update({'read_at': DateTime.now().toIso8601String()})
+          .eq('conversation_id', conversationId)
+          .neq('sender_id', userId)
+          .isFilter('read_at', null);
+    } catch (e) {
+      debugPrint('[messages] Mark read failed: $e');
     }
   }
 }

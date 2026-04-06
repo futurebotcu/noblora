@@ -174,14 +174,18 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
         ],
         body: TabBarView(controller: _tabs, children: [
           _OverviewTab(p: p, tc: tc, animate: _animate, ai: _ai, aiLoading: _aiLoading,
+            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
             matchState: ref.watch(matchProvider),
             eventState: kSocialEnabled
                 ? ref.watch(eventListProvider)
                 : const EventListState()),
-          _InterestTab(p: p, tc: tc, matchState: ref.watch(matchProvider),
+          _InterestTab(p: p, tc: tc,
+            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
+            matchState: ref.watch(matchProvider),
             signalsReceived: _signalsReceived, signalsSent: _signalsSent,
             notesReceived: _notesReceived, notesSent: _notesSent, connections: _connectionCount),
           if (kSocialEnabled)
+            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
             _SocialTab(bffState: ref.watch(bffProvider), eventState: ref.watch(eventListProvider)),
           _ActivityTab(activity: _recentActivity),
           const _MarketTab(),

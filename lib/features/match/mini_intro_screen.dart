@@ -59,9 +59,9 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
     } catch (_) {
       // Fallback openers
       setState(() => _openers = [
-            '[AI unavailable] Hey $_otherName, nice to connect!',
-            '[AI unavailable] Looking forward to getting to know you.',
-            '[AI unavailable] What brought you to Noblara?',
+            'Hey $_otherName, nice to connect!',
+            'Looking forward to getting to know you.',
+            'What brought you to Noblara?',
           ]);
     }
     setState(() => _isLoadingOpeners = false);

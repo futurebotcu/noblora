@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
@@ -163,7 +164,7 @@ class EventDetailNotifier extends StateNotifier<EventDetailState> {
           if (row?['leave_event_chat_auto'] == true) {
             await repo.updateAttendance(eventId, uid, 'out');
           }
-        } catch (_) {}
+        } catch (e) { debugPrint('[events] Auto-leave check failed: $e'); }
       }
     }
   }

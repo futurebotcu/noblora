@@ -386,6 +386,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
         title: Text('Send a Note', style: TextStyle(color: context.textPrimary, fontSize: 16)),
         content: TextField(
           controller: ctrl,
@@ -403,23 +404,27 @@ class _ActionRowState extends ConsumerState<_ActionRow>
           TextButton(onPressed: () => Navigator.pop(ctx),
               child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final text = ctrl.text.trim();
               if (text.isEmpty) return;
               Navigator.pop(ctx);
-              ref.read(noteInboxProvider.notifier).sendNote(
-                receiverId: targetUserId,
-                targetType: 'profile',
-                targetId: targetUserId,
-                content: text,
-              );
-              ToastService.show(context, message: 'Note sent', type: ToastType.success);
+              try {
+                await ref.read(noteInboxProvider.notifier).sendNote(
+                  receiverId: targetUserId,
+                  targetType: 'profile',
+                  targetId: targetUserId,
+                  content: text,
+                );
+                if (ctx.mounted) ToastService.show(ctx, message: 'Note sent', type: ToastType.success);
+              } catch (e) {
+                if (ctx.mounted) ToastService.show(ctx, message: 'Could not send note', type: ToastType.error);
+              }
             },
             child: const Text('Send', style: TextStyle(color: AppColors.emerald600)),
           ),
         ],
       ),
-    );
+    ).then((_) => ctrl.dispose());
   }
 
   void _onConnect(String cardId) {
@@ -441,6 +446,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.feed.cards.isEmpty) return const SizedBox.shrink();
     final topCard = widget.feed.cards.first;
     final mode = widget.mode;
 
@@ -480,6 +486,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                       _showNoteDialog(context, topCard.id);
                     } else {
                       ref.read(feedProvider.notifier).sendSignal(topCard.id);
+                      ToastService.show(context, message: 'Signal sent', type: ToastType.signal);
                     }
                   }
                 },

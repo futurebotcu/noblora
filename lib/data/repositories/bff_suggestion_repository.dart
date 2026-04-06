@@ -187,13 +187,27 @@ class BffSuggestionRepository {
 
     final rows = await _supabase!
         .from('reach_outs')
-        .select('*, profiles!reach_outs_sender_id_fkey(display_name, date_avatar_url, bio)')
+        .select()
         .eq('receiver_id', userId)
         .eq('status', 'pending')
         .eq('mode', 'bff')
         .order('created_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(rows);
+    // Enrich with sender profile info
+    final senderIds = rows.map((r) => r['sender_id'] as String).toSet().toList();
+    final profiles = senderIds.isEmpty ? <Map<String, dynamic>>[] : await _supabase
+        .from('profiles')
+        .select('id, display_name, date_avatar_url, bio')
+        .inFilter('id', senderIds);
+    final profileMap = {for (final p in profiles) p['id'] as String: p};
+
+    return rows.map((r) {
+      final profile = profileMap[r['sender_id'] as String];
+      return {
+        ...r,
+        'profiles': profile,
+      };
+    }).toList();
   }
 
   // ─── Plans ───────────────────────────────────────────────────────
