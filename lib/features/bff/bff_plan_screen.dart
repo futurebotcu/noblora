@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/constants/scheduling.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -126,20 +127,15 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
+    final result = await showModalBottomSheet<TimeOfDay>(
       context: context,
-      initialTime: _selectedTime,
-      builder: (c, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: _accent,
-            surface: AppColors.surface,
-          ),
-        ),
-        child: child!,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (_) => _TimePickerSheet(initial: _selectedTime),
     );
-    if (picked != null) setState(() => _selectedTime = picked);
+    if (result != null) setState(() => _selectedTime = result);
   }
 
   Future<void> _submit() async {
@@ -451,6 +447,161 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Time picker sheet — 5-minute step, consistent with video scheduling
+// ---------------------------------------------------------------------------
+
+class _TimePickerSheet extends StatefulWidget {
+  final TimeOfDay initial;
+  const _TimePickerSheet({required this.initial});
+
+  @override
+  State<_TimePickerSheet> createState() => _TimePickerSheetState();
+}
+
+class _TimePickerSheetState extends State<_TimePickerSheet> {
+  late int _hour;
+  late int _minute;
+
+  @override
+  void initState() {
+    super.initState();
+    _hour = widget.initial.hour.clamp(
+        SchedulingConfig.startHour, SchedulingConfig.endHour);
+    _minute = SchedulingConfig.snapMinute(widget.initial.minute);
+  }
+
+  String _pad(int n) => n.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = List.generate(
+      SchedulingConfig.endHour - SchedulingConfig.startHour + 1,
+      (i) => SchedulingConfig.startHour + i,
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Select time',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: hours.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: AppSpacing.xs),
+              itemBuilder: (_, i) {
+                final h = hours[i];
+                final isSel = h == _hour;
+                return GestureDetector(
+                  onTap: () => setState(() => _hour = h),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: isSel ? _accent : AppColors.surface,
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusSm),
+                      border: Border.all(
+                          color: isSel ? _accent : AppColors.border),
+                    ),
+                    child: Text(
+                      '${_pad(h)}:__',
+                      style: TextStyle(
+                        color: isSel ? AppColors.bg : AppColors.textPrimary,
+                        fontWeight:
+                            isSel ? FontWeight.w700 : FontWeight.w400,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (int row = 0; row < 2; row++) ...[
+            if (row > 0) const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: SchedulingConfig.minutes
+                  .sublist(row * 6, row * 6 + 6)
+                  .map((m) {
+                final isSel = m == _minute;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.xs),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _minute = m),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 140),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: isSel
+                              ? _accent.withValues(alpha: 0.15)
+                              : AppColors.surfaceAlt,
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusSm),
+                          border: Border.all(
+                              color: isSel ? _accent : AppColors.border),
+                        ),
+                        child: Text(
+                          ':${_pad(m)}',
+                          style: TextStyle(
+                            color: isSel ? _accent : AppColors.textMuted,
+                            fontWeight:
+                                isSel ? FontWeight.w700 : FontWeight.w400,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accent,
+                foregroundColor: AppColors.bg,
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: () =>
+                  Navigator.pop(context, TimeOfDay(hour: _hour, minute: _minute)),
+              child: Text(
+                'Confirm ${_pad(_hour)}:${_pad(_minute)}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

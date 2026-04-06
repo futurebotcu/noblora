@@ -1,5 +1,7 @@
 # Secrets
 .env
+android/app/google-services.json
+service-account*.json
 
 # Local config & screenshots
 .claude/settings.local.json

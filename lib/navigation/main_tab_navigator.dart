@@ -5,6 +5,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/utils/mock_mode.dart';
 import '../providers/auth_provider.dart';
+import '../services/push_notification_service.dart';
 import '../features/admin/admin_screen.dart';
 import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
@@ -59,6 +60,28 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       _visitedTabs
         ..clear()
         ..add(1);
+    }
+
+    // Push notification tap routing
+    PushNotificationService.onNotificationTapped = _handleNotificationTap;
+  }
+
+  void _handleNotificationTap(Map<String, dynamic> data) {
+    final type = data['type'] as String? ?? '';
+    switch (type) {
+      case 'new_message':
+      case 'chat_opened':
+        _switchTo(2); // Chats tab
+      case 'video_proposed':
+      case 'video_confirmed':
+        _switchTo(2); // Chats tab (scheduling is inside chat)
+      case 'note_received':
+      case 'signal_received':
+        _switchTo(2); // Requests tab inside Chats
+      case 'tier_promoted':
+        _switchTo(4); // Profile tab
+      default:
+        _switchTo(2); // Default to Chats
     }
   }
 

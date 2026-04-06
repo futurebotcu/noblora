@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/message.dart';
+import '../models/message_reaction.dart';
 
 class MessagesRepository {
   final SupabaseClient? _supabase;
@@ -169,7 +170,7 @@ class MessagesRepository {
     if (cp == null) return 0;
     final lastRead = cp['last_read_at'] as String?;
 
-    // Use count query instead of fetching all rows
+    // Fetch only IDs to minimize data transfer
     var query = db
         .from('messages')
         .select('id')
@@ -237,5 +238,155 @@ class MessagesRepository {
     } catch (e) {
       debugPrint('[messages] Mark read failed: $e');
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Media upload
+  // ---------------------------------------------------------------------------
+
+  /// Upload an image to chat-media bucket and return the public URL.
+  Future<String?> uploadChatImage({
+    required String conversationId,
+    required String senderId,
+    required Uint8List bytes,
+    required String mimeType,
+  }) async {
+    if (isMockMode) return null;
+    final db = _supabase;
+    if (db == null) return null;
+    final ext = mimeType.contains('png') ? 'png' : 'jpg';
+    final path = '$conversationId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    try {
+      await db.storage.from('chat-media').uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(contentType: mimeType),
+      );
+      return db.storage.from('chat-media').getPublicUrl(path);
+    } catch (e) {
+      debugPrint('[messages] Image upload failed: $e');
+      return null;
+    }
+  }
+
+  /// Send a media message (image).
+  Future<void> sendMediaMessage({
+    required String conversationId,
+    required String senderId,
+    required String senderDisplayName,
+    required String mode,
+    required String mediaUrl,
+    required String mediaType,
+    String caption = '',
+  }) async {
+    if (isMockMode) return;
+    final db = _supabase;
+    if (db == null) return;
+    await db.from('messages').insert({
+      'conversation_id': conversationId,
+      'sender_id': senderId,
+      'sender_display_name': senderDisplayName,
+      'content': caption.isNotEmpty ? caption : ' ',
+      'mode': mode,
+      'media_url': mediaUrl,
+      'media_type': mediaType,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------------
+
+  /// Search messages in a conversation by text content.
+  Future<List<ChatMessage>> searchMessages({
+    required String conversationId,
+    required String query,
+  }) async {
+    if (isMockMode) return [];
+    final db = _supabase;
+    if (db == null) return [];
+    final escaped = query
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
+    final rows = await db
+        .from('messages')
+        .select()
+        .eq('conversation_id', conversationId)
+        .ilike('content', '%$escaped%')
+        .order('created_at', ascending: false)
+        .limit(50);
+    return (rows as List).map((r) => ChatMessage.fromJson(r)).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reactions
+  // ---------------------------------------------------------------------------
+
+  /// Add a reaction to a message.
+  Future<void> addReaction({
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    if (isMockMode) return;
+    final db = _supabase;
+    if (db == null) return;
+    await db.from('message_reactions').upsert({
+      'message_id': messageId,
+      'user_id': userId,
+      'emoji': emoji,
+    }, onConflict: 'message_id,user_id,emoji');
+  }
+
+  /// Remove a reaction from a message.
+  Future<void> removeReaction({
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    if (isMockMode) return;
+    final db = _supabase;
+    if (db == null) return;
+    await db
+        .from('message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', userId)
+        .eq('emoji', emoji);
+  }
+
+  /// Stream reactions for all messages in a conversation.
+  Stream<List<MessageReaction>> reactionsStream(String conversationId) {
+    final db = _supabase;
+    if (isMockMode || db == null) return const Stream.empty();
+    // Get message IDs in this conversation and stream their reactions
+    return db
+        .from('message_reactions')
+        .stream(primaryKey: ['id'])
+        .order('created_at')
+        .map((rows) {
+          return rows
+              .map((r) => MessageReaction.fromJson(r))
+              .toList();
+        });
+  }
+
+  /// Fetch reactions for specific messages (batch).
+  Future<Map<String, List<MessageReaction>>> fetchReactionsForMessages(
+      List<String> messageIds) async {
+    if (isMockMode || messageIds.isEmpty) return {};
+    final db = _supabase;
+    if (db == null) return {};
+    final rows = await db
+        .from('message_reactions')
+        .select()
+        .inFilter('message_id', messageIds);
+    final result = <String, List<MessageReaction>>{};
+    for (final r in rows as List) {
+      final reaction = MessageReaction.fromJson(r);
+      result.putIfAbsent(reaction.messageId, () => []).add(reaction);
+    }
+    return result;
   }
 }

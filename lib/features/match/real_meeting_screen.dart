@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/constants/scheduling.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -608,41 +609,150 @@ class _DateSelector extends StatelessWidget {
   }
 }
 
-class _TimeSelector extends StatelessWidget {
+class _TimeSelector extends StatefulWidget {
   final TimeOfDay selected;
   final ValueChanged<TimeOfDay> onSelected;
   const _TimeSelector({required this.selected, required this.onSelected});
 
   @override
+  State<_TimeSelector> createState() => _TimeSelectorState();
+}
+
+class _TimeSelectorState extends State<_TimeSelector> {
+  static const _startHour = SchedulingConfig.startHour;
+  static const _endHour = SchedulingConfig.endHour;
+  static const _minutes = SchedulingConfig.minutes;
+
+  late int _selectedHour;
+  late int _selectedMinute;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedHour = widget.selected.hour.clamp(_startHour, _endHour);
+    _selectedMinute = SchedulingConfig.snapMinute(widget.selected.minute);
+  }
+
+  void _pickHour(int h) {
+    setState(() => _selectedHour = h);
+    widget.onSelected(TimeOfDay(hour: h, minute: _selectedMinute));
+  }
+
+  void _pickMinute(int m) {
+    setState(() => _selectedMinute = m);
+    widget.onSelected(TimeOfDay(hour: _selectedHour, minute: m));
+  }
+
+  String _pad(int n) => n.toString().padLeft(2, '0');
+
+  @override
   Widget build(BuildContext context) {
-    final times =
-        List.generate(16, (i) => TimeOfDay(hour: 8 + i, minute: 0));
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: times.map((t) {
-        final isSel = t.hour == selected.hour;
-        return GestureDetector(
-          onTap: () => onSelected(t),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: isSel ? AppColors.emerald600 : AppColors.surface,
-              borderRadius:
-                  BorderRadius.circular(AppSpacing.radiusSm),
-              border: Border.all(
-                  color: isSel ? AppColors.emerald600 : AppColors.border),
-            ),
-            child: Text(t.format(context),
-                style: TextStyle(
-                    color: isSel ? AppColors.bg : AppColors.textPrimary,
-                    fontWeight:
-                        isSel ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: 13)),
+    final hours =
+        List.generate(_endHour - _startHour + 1, (i) => _startHour + i);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: hours.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(width: AppSpacing.xs),
+            itemBuilder: (_, i) {
+              final h = hours[i];
+              final isSel = h == _selectedHour;
+              return GestureDetector(
+                onTap: () => _pickHour(h),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: isSel ? AppColors.emerald600 : AppColors.surface,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(
+                        color:
+                            isSel ? AppColors.emerald600 : AppColors.border),
+                  ),
+                  child: Text(
+                    '${_pad(h)}:__',
+                    style: TextStyle(
+                      color: isSel ? AppColors.bg : AppColors.textPrimary,
+                      fontWeight: isSel
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        for (int row = 0; row < 2; row++) ...[
+          if (row > 0) const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: _minutes.sublist(row * 6, row * 6 + 6).map((m) {
+              final isSel = m == _selectedMinute;
+              return Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.only(right: AppSpacing.xs),
+                  child: GestureDetector(
+                    onTap: () => _pickMinute(m),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? AppColors.emerald600.withValues(alpha: 0.15)
+                            : AppColors.surfaceAlt,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusSm),
+                        border: Border.all(
+                            color: isSel
+                                ? AppColors.emerald600
+                                : AppColors.border),
+                      ),
+                      child: Text(
+                        ':${_pad(m)}',
+                        style: TextStyle(
+                          color: isSel
+                              ? AppColors.emerald600
+                              : AppColors.textMuted,
+                          fontWeight: isSel
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            const Icon(Icons.access_time_rounded,
+                color: AppColors.textDisabled, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              'Selected: ${_pad(_selectedHour)}:${_pad(_selectedMinute)}',
+              style: const TextStyle(
+                  color: AppColors.textDisabled, fontSize: 12),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

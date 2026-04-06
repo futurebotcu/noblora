@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, isDevMode;
 import '../data/repositories/auth_repository.dart';
+import '../services/push_notification_service.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -238,6 +239,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
     try {
+      await PushNotificationService.unregisterTokens();
       await _repo.signOut();
       state = const AuthState(isInitialized: true);
     } catch (e) {

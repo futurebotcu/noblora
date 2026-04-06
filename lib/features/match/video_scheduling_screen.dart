@@ -9,6 +9,7 @@ import '../../data/models/match.dart';
 import '../../data/models/video_session.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/video_provider.dart';
+import '../../core/constants/scheduling.dart';
 import 'short_intro_rules_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -337,56 +338,28 @@ class _DeclineCounterSheet extends ConsumerStatefulWidget {
 
 class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
   int? _selectedIndex;
-  DateTime? _counterTime;
   bool _submitting = false;
 
-  Future<void> _onReasonTapped(int index) async {
-    setState(() => _selectedIndex = index);
-    // Auto-open time picker after selecting a reason
-    final ctx = context;
-    final picked = await showDatePicker(
-      context: ctx,
-      initialDate: DateTime.now().add(const Duration(hours: 2)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 7)),
-      builder: (c, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.emerald600,
-            surface: AppColors.surface,
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked == null || !context.mounted) return;
+  late DateTime _counterDate;
+  late TimeOfDay _counterTimeOfDay;
 
-    final pickedTime = await showTimePicker(
-      // ignore: use_build_context_synchronously
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (c, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.emerald600,
-            surface: AppColors.surface,
-          ),
-        ),
-        child: child!,
-      ),
+  @override
+  void initState() {
+    super.initState();
+    final soon = DateTime.now().add(const Duration(hours: 2));
+    _counterDate = soon;
+    _counterTimeOfDay = SchedulingConfig.snapTime(
+      TimeOfDay(hour: soon.hour, minute: soon.minute),
     );
-    if (pickedTime == null || !context.mounted) return;
-
-    setState(() {
-      _counterTime = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-        pickedTime.hour,
-        pickedTime.minute,
-      );
-    });
   }
+
+  DateTime get _counterDateTime => DateTime(
+        _counterDate.year,
+        _counterDate.month,
+        _counterDate.day,
+        _counterTimeOfDay.hour,
+        _counterTimeOfDay.minute,
+      );
 
   Future<void> _submit() async {
     if (_selectedIndex == null) return;
@@ -395,7 +368,7 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
           sessionId: widget.session.id,
           responderId: widget.responderId,
           reason: _declineReasons[_selectedIndex!],
-          counterTime: _counterTime,
+          counterTime: _counterDateTime,
         );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -405,11 +378,11 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final hasCounter = _counterTime != null;
+    final hasReason = _selectedIndex != null;
     return DraggableScrollableSheet(
-      initialChildSize: 0.62,
+      initialChildSize: 0.65,
       minChildSize: 0.4,
-      maxChildSize: 0.85,
+      maxChildSize: 0.92,
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -462,11 +435,29 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                     _ReasonTile(
                       reason: _declineReasons[i],
                       selected: _selectedIndex == i,
-                      onTap: () => _onReasonTapped(i),
+                      onTap: () => setState(() => _selectedIndex = i),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                   ],
-                  if (hasCounter) ...[
+                  if (hasReason) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    Text('Suggest a new date',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: AppSpacing.sm),
+                    _DateSelector(
+                      selected: _counterDate,
+                      onSelected: (d) =>
+                          setState(() => _counterDate = d),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text('Suggest a new time',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: AppSpacing.sm),
+                    _TimeSelector(
+                      selected: _counterTimeOfDay,
+                      onSelected: (t) =>
+                          setState(() => _counterTimeOfDay = t),
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
@@ -483,19 +474,10 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                         const SizedBox(width: AppSpacing.sm),
                         Text(
                           DateFormat('EEE, d MMM · HH:mm')
-                              .format(_counterTime!),
+                              .format(_counterDateTime),
                           style: const TextStyle(
                               color: AppColors.emerald600,
                               fontWeight: FontWeight.w600),
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () =>
-                              _onReasonTapped(_selectedIndex ?? 0),
-                          child: const Text('Change',
-                              style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12)),
                         ),
                       ]),
                     ),
@@ -504,13 +486,11 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (_selectedIndex == null ||
-                              _submitting ||
-                              !hasCounter)
+                      onPressed: (!hasReason || _submitting)
                           ? null
                           : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: hasCounter
+                        backgroundColor: hasReason
                             ? AppColors.emerald600
                             : AppColors.surface,
                         foregroundColor: AppColors.bg,
@@ -528,9 +508,9 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                                   strokeWidth: 2,
                                   color: AppColors.bg))
                           : Text(
-                              hasCounter
+                              hasReason
                                   ? 'Send Counter-Proposal'
-                                  : 'Pick a time to continue',
+                                  : 'Select a reason first',
                               style: const TextStyle(
                                   fontWeight: FontWeight.w700)),
                     ),
@@ -539,7 +519,7 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                   // Just decline (no counter)
                   Center(
                     child: TextButton(
-                      onPressed: _submitting || _selectedIndex == null
+                      onPressed: _submitting || !hasReason
                           ? null
                           : () async {
                               setState(() => _submitting = true);
@@ -1040,9 +1020,9 @@ class _TimeSelector extends StatefulWidget {
 }
 
 class _TimeSelectorState extends State<_TimeSelector> {
-  static const _startHour = 8;
-  static const _endHour = 22;
-  static const _minutes = [0, 10, 20, 30, 40, 50];
+  static const _startHour = SchedulingConfig.startHour;
+  static const _endHour = SchedulingConfig.endHour;
+  static const _minutes = SchedulingConfig.minutes;
 
   late int _selectedHour;
   late int _selectedMinute;
@@ -1051,8 +1031,7 @@ class _TimeSelectorState extends State<_TimeSelector> {
   void initState() {
     super.initState();
     _selectedHour = widget.selected.hour.clamp(_startHour, _endHour);
-    _selectedMinute =
-        _minutes.contains(widget.selected.minute) ? widget.selected.minute : 0;
+    _selectedMinute = SchedulingConfig.snapMinute(widget.selected.minute);
   }
 
   void _pickHour(int h) {
@@ -1116,49 +1095,52 @@ class _TimeSelectorState extends State<_TimeSelector> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
-          children: _minutes.map((m) {
-            final isSel = m == _selectedMinute;
-            return Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(right: AppSpacing.xs),
-                child: GestureDetector(
-                  onTap: () => _pickMinute(m),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 140),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: isSel
-                          ? AppColors.emerald600.withValues(alpha: 0.15)
-                          : AppColors.surfaceAlt,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
-                      border: Border.all(
+        for (int row = 0; row < 2; row++) ...[
+          if (row > 0) const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: _minutes.sublist(row * 6, row * 6 + 6).map((m) {
+              final isSel = m == _selectedMinute;
+              return Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.only(right: AppSpacing.xs),
+                  child: GestureDetector(
+                    onTap: () => _pickMinute(m),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 140),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? AppColors.emerald600.withValues(alpha: 0.15)
+                            : AppColors.surfaceAlt,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusSm),
+                        border: Border.all(
+                            color: isSel
+                                ? AppColors.emerald600
+                                : AppColors.border),
+                      ),
+                      child: Text(
+                        ':${_pad(m)}',
+                        style: TextStyle(
                           color: isSel
                               ? AppColors.emerald600
-                              : AppColors.border),
-                    ),
-                    child: Text(
-                      ':${_pad(m)}',
-                      style: TextStyle(
-                        color: isSel
-                            ? AppColors.emerald600
-                            : AppColors.textMuted,
-                        fontWeight: isSel
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        fontSize: 13,
+                              : AppColors.textMuted,
+                          fontWeight: isSel
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
-        ),
+              );
+            }).toList(),
+          ),
+        ],
         const SizedBox(height: AppSpacing.sm),
         Row(
           children: [
