@@ -3,10 +3,18 @@
 android/app/google-services.json
 service-account*.json
 
-# Local config & screenshots
+# Local config
 .claude/settings.local.json
-*.png
-!assets/**/*.png
+
+# Junk artifacts
+Get
+Process
+Run
+flutter
+flutter_log.txt
+
+# Screenshots (dev only)
+screenshots/
 
 # Miscellaneous
 *.class
@@ -37,11 +45,19 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
-/build/
+build/
 /coverage/
+
+# Supabase temp
+supabase/.temp/
+
+# Noblara nested project (if unused)
+noblara_flutter/
 
 # Symbolication related
 app.*.symbols
