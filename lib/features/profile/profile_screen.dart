@@ -7,12 +7,13 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../data/models/post.dart';
+import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../providers/posts_provider.dart';
-import '../../navigation/main_tab_navigator.dart';
 import '../noblara_feed/nob_drafts_screen.dart';
 import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
@@ -126,11 +127,13 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xxl),
                 const _ActiveModesSection(),
                 const SizedBox(height: AppSpacing.xxxl),
-                const _PersonaSection(),
+                _ProfileFactsSection(profile: p),
                 const SizedBox(height: AppSpacing.xxxl),
-                const _GallerySection(),
+                _PersonaSection(profile: p),
                 const SizedBox(height: AppSpacing.xxxl),
-                const _BadgesSection(),
+                _RealGallerySection(profile: p),
+                const SizedBox(height: AppSpacing.xxxl),
+                _EarnedBadgesSection(profile: p),
                 const SizedBox(height: AppSpacing.xxxl),
                 const _LastNobsSection(),
                 const SizedBox(height: AppSpacing.xxxxl),
@@ -509,17 +512,135 @@ class _ActiveModesSection extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Persona Section — Multi-mode bio + photo editor
+// Profile Facts — zodiac, country, occupation, interests
 // ---------------------------------------------------------------------------
 
-class _PersonaData {
-  String bio;
-  String avatarSeed;
-  _PersonaData({required this.bio, required this.avatarSeed});
+class _ProfileFactsSection extends StatelessWidget {
+  final Profile? profile;
+  const _ProfileFactsSection({this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = profile;
+    if (p == null) return const SizedBox.shrink();
+
+    final facts = <(IconData, String, String)>[];
+    if (p.occupation != null && p.occupation!.isNotEmpty) {
+      facts.add((Icons.work_outline_rounded, 'Work', p.occupation!));
+    }
+    if (p.fromCountry != null && p.fromCountry!.isNotEmpty) {
+      facts.add((Icons.public_rounded, 'From', p.fromCountry!));
+    }
+    if (p.zodiac != null && p.zodiac!.isNotEmpty) {
+      facts.add((Icons.auto_awesome_outlined, 'Zodiac', p.zodiac!));
+    }
+    if (p.languages.isNotEmpty) {
+      facts.add((Icons.translate_rounded, 'Languages', p.languages.join(', ')));
+    }
+
+    final hasInterests = p.interests.isNotEmpty;
+
+    if (facts.isEmpty && !hasInterests) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(color: context.borderSubtleColor, width: 0.5),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.person_outline_rounded,
+                  color: AppColors.emerald600.withValues(alpha: 0.4), size: 28),
+              const SizedBox(height: AppSpacing.sm),
+              Text('Complete your profile',
+                  style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('Add your details so others can get to know you',
+                  style: TextStyle(color: context.textMuted, fontSize: 12),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ABOUT',
+            style: TextStyle(
+              color: context.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (facts.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: context.borderSubtleColor, width: 0.5),
+              ),
+              child: Column(
+                children: facts.map((f) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      Icon(f.$1, size: 16, color: AppColors.emerald500),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(f.$2, style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(f.$3,
+                            style: TextStyle(color: context.textPrimary, fontSize: 13),
+                            textAlign: TextAlign.end),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ),
+            ),
+          if (hasInterests) ...[
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: p.interests.map((interest) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.emerald600.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
+                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
+                ),
+                child: Text(interest,
+                    style: const TextStyle(color: AppColors.emerald500, fontSize: 12, fontWeight: FontWeight.w500)),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
+// ---------------------------------------------------------------------------
+// Persona Section — shows real mode-specific bios from profile
+// ---------------------------------------------------------------------------
+
 class _PersonaSection extends StatefulWidget {
-  const _PersonaSection();
+  final Profile? profile;
+  const _PersonaSection({this.profile});
 
   @override
   State<_PersonaSection> createState() => _PersonaSectionState();
@@ -528,30 +649,8 @@ class _PersonaSection extends StatefulWidget {
 class _PersonaSectionState extends State<_PersonaSection> {
   NobleMode _selectedMode = NobleMode.date;
 
-  final Map<NobleMode, _PersonaData> _personas = {
-    NobleMode.date: _PersonaData(
-      bio: 'Art lover & sunset chaser. Looking for someone to explore hidden '
-          'galleries and share quiet evenings with. Probably overthinking the '
-          'next travel destination.',
-      avatarSeed: 'noble_me_date',
-    ),
-    NobleMode.bff: _PersonaData(
-      bio: 'Design Lead obsessed with user psychology and minimalism. Always '
-          'up for a coffee to talk product, creativity, or the best running '
-          'trails in the city.',
-      avatarSeed: 'noble_me_bff',
-    ),
-    NobleMode.social: _PersonaData(
-      bio: 'Rooftop dinners, jazz bars, and spontaneous gallery openings. I '
-          'curate experiences as carefully as my playlist. Let\'s build '
-          'something memorable.',
-      avatarSeed: 'noble_me_social',
-    ),
-  };
-
   @override
   Widget build(BuildContext context) {
-    final persona = _personas[_selectedMode]!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -633,34 +732,36 @@ class _PersonaSectionState extends State<_PersonaSection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            child: _PersonaCard(
-              key: ValueKey(_selectedMode),
-              persona: persona,
-              mode: _selectedMode,
-            ),
+            child: _buildPersonaCard(context, _selectedMode),
           ),
         ),
       ],
     );
   }
-}
 
-class _PersonaCard extends StatelessWidget {
-  final _PersonaData persona;
-  final NobleMode mode;
+  Widget _buildPersonaCard(BuildContext context, NobleMode mode) {
+    final p = widget.profile;
+    final bio = switch (mode) {
+      NobleMode.date => p?.dateBio,
+      NobleMode.bff => p?.bffBio,
+      NobleMode.social => p?.socialBio,
+      _ => null,
+    };
+    final avatarUrl = switch (mode) {
+      NobleMode.date => p?.dateAvatarUrl,
+      NobleMode.bff => p?.bffAvatarUrl,
+      NobleMode.social => p?.socialAvatarUrl,
+      _ => null,
+    };
+    final hasBio = bio != null && bio.trim().isNotEmpty;
 
-  const _PersonaCard(
-      {super.key, required this.persona, required this.mode});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
+      key: ValueKey(mode),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border:
-            Border.all(color: mode.accentColor.withValues(alpha: 0.25)),
+        border: Border.all(color: mode.accentColor.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,14 +774,19 @@ class _PersonaCard extends StatelessWidget {
               border: Border.all(color: mode.accentColor, width: 1.5),
             ),
             child: ClipOval(
-              child: Image.network(
-                'https://picsum.photos/seed/${persona.avatarSeed}/100/100',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: mode.accentColor.withValues(alpha: 0.15),
-                  child: Icon(mode.icon, color: mode.accentColor, size: 24),
-                ),
-              ),
+              child: avatarUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: avatarUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Container(
+                        color: mode.accentColor.withValues(alpha: 0.15),
+                        child: Icon(mode.icon, color: mode.accentColor, size: 24),
+                      ),
+                    )
+                  : Container(
+                      color: mode.accentColor.withValues(alpha: 0.15),
+                      child: Icon(mode.icon, color: mode.accentColor, size: 24),
+                    ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -705,11 +811,12 @@ class _PersonaCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  persona.bio,
+                  hasBio ? bio : 'No ${mode.label.toLowerCase()} bio yet. Tap Edit Profile to add one.',
                   style: TextStyle(
-                    color: context.textSecondary,
+                    color: hasBio ? context.textSecondary : context.textDisabled,
                     fontSize: 13,
                     height: 1.5,
+                    fontStyle: hasBio ? FontStyle.normal : FontStyle.italic,
                   ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
@@ -967,578 +1074,129 @@ class _ScoreBarRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Gallery Section — Mode-specific photo layouts
+// Real Gallery — user's actual photos
 // ---------------------------------------------------------------------------
 
-class _GallerySection extends StatefulWidget {
-  const _GallerySection();
-
-  @override
-  State<_GallerySection> createState() => _GallerySectionState();
-}
-
-class _GallerySectionState extends State<_GallerySection> {
-  NobleMode _galleryMode = NobleMode.date;
+class _RealGallerySection extends StatelessWidget {
+  final Profile? profile;
+  const _RealGallerySection({this.profile});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Row(
-            children: [
-              Text(
-                'THE GALLERY',
-                style: TextStyle(
-                  color: context.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: NobleMode.values
-                    .where((m) => kSocialEnabled || m != NobleMode.social)
-                    .map((mode) {
-                  final isActive = mode == _galleryMode;
-                  return GestureDetector(
-                    onTap: () => setState(() => _galleryMode = mode),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin:
-                          const EdgeInsets.only(left: AppSpacing.xs),
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isActive
-                            ? mode.accentColor
-                            : context.surfaceColor,
-                        border: Border.all(
-                          color: isActive
-                              ? mode.accentColor
-                              : context.borderColor,
-                        ),
-                      ),
-                      child: Icon(
-                        mode.icon,
-                        size: 13,
-                        color: isActive
-                            ? context.bgColor
-                            : context.textMuted,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 280),
-            child: _buildGallery(_galleryMode),
-          ),
-        ),
-      ],
-    );
-  }
+    final photos = profile?.photoUrls ?? [];
 
-  Widget _buildGallery(NobleMode mode) {
-    switch (mode) {
-      case NobleMode.date:
-        return const _DateGallery(key: ValueKey('date'));
-      case NobleMode.bff:
-        return const _BffGallery(key: ValueKey('bff'));
-      case NobleMode.social:
-        return const _SocialGallery(key: ValueKey('social'));
-      case NobleMode.noblara:
-        return const _NoblaraGallery(key: ValueKey('noblara'));
-    }
-  }
-}
-
-// Art Gallery — Date mode
-class _DateGallery extends StatelessWidget {
-  const _DateGallery({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _GalleryFrame(
-          seed: 'noble_date_1',
-          caption: 'Santorini, 2024',
-          title: 'Golden Hour',
-          height: 260,
-          accentColor: AppColors.emerald500,
-          featured: true,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _GalleryFrame(
-                seed: 'noble_date_2',
-                caption: 'Istanbul Modern, 2024',
-                title: 'Gallery Opening',
-                height: 140,
-                accentColor: AppColors.emerald500,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _GalleryFrame(
-                seed: 'noble_date_3',
-                caption: 'Bebek, Istanbul',
-                title: 'Rooftop Soirée',
-                height: 140,
-                accentColor: AppColors.emerald500,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _GalleryFrame extends StatelessWidget {
-  final String seed;
-  final String title;
-  final String caption;
-  final double height;
-  final Color accentColor;
-  final bool featured;
-
-  const _GalleryFrame({
-    required this.seed,
-    required this.title,
-    required this.caption,
-    required this.height,
-    required this.accentColor,
-    this.featured = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border:
-            Border.all(color: accentColor.withValues(alpha: 0.4), width: 1.5),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipRRect(
-            borderRadius:
-                BorderRadius.circular(AppSpacing.radiusMd - 1),
-            child: Image.network(
-              'https://picsum.photos/seed/$seed/400/${height.toInt()}',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: context.surfaceAltColor,
-                child: Icon(Icons.image_outlined,
-                    color: context.textDisabled),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(AppSpacing.radiusMd - 1)),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 24, 10, 8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.82),
-                    ],
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (featured)
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: accentColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    Text(
-                      caption,
-                      style: TextStyle(
-                          color: context.textMuted, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Professional Portfolio — BFF mode
-class _BffGallery extends StatelessWidget {
-  const _BffGallery({super.key});
-
-  static const _seeds = [
-    'noble_bff_1',
-    'noble_bff_2',
-    'noble_bff_3',
-    'noble_bff_4',
-  ];
-  static const _labels = [
-    'Product Launch',
-    'Panel Talk',
-    'Studio Session',
-    'Team Offsite',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    const teal = AppColors.emerald500;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppSpacing.md,
-        mainAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: 4,
-      itemBuilder: (_, i) => Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: teal.withValues(alpha: 0.25)),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(AppSpacing.radiusMd - 1),
-              child: Image.network(
-                'https://picsum.photos/seed/${_seeds[i]}/300/300',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    Container(color: context.surfaceAltColor),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                    bottom:
-                        Radius.circular(AppSpacing.radiusMd - 1)),
-                child: Container(
-                  padding:
-                      const EdgeInsets.fromLTRB(8, 18, 8, 6),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.78),
-                      ],
-                    ),
-                  ),
-                  child: Text(
-                    _labels[i],
-                    style: TextStyle(
-                      color: context.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Social Scene — Social mode
-// Noblara Gallery — shows user's own nobs or redirect
-class _NoblaraGallery extends ConsumerWidget {
-  const _NoblaraGallery({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final postsState = ref.watch(postsProvider);
-    final uid = ref.watch(authProvider).userId;
-    final myPosts = postsState.posts.where((p) => p.userId == uid).toList();
-
-    if (myPosts.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.borderSubtleColor, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.auto_awesome_outlined,
-                color: AppColors.emerald600.withValues(alpha: 0.4), size: 32),
-            const SizedBox(height: 12),
-            Text('No nobs yet',
-                style: TextStyle(
-                    color: context.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            Text('Share your thoughts with the community',
-                style: TextStyle(color: context.textMuted, fontSize: 13),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => MainTabNavigator.switchTab(1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.3)),
-                ),
-                child: Text('Go to Gallery',
-                    style: TextStyle(
-                        color: AppColors.emerald500,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: myPosts.take(3).map((post) => Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: context.borderSubtleColor, width: 0.5),
-        ),
-        child: Text(
-          post.content,
-          style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.4),
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-        ),
-      )).toList(),
-    );
-  }
-}
-
-class _SocialGallery extends StatelessWidget {
-  const _SocialGallery({super.key});
-
-  static const _thumbSeeds = [
-    'noble_social_1',
-    'noble_social_2',
-    'noble_social_3',
-    'noble_social_4',
-  ];
-  static const _thumbLabels = ['Jazz Night', 'Art Walk', 'Wine Club', 'Rooftop'];
-
-  @override
-  Widget build(BuildContext context) {
-    const accent = AppColors.emerald700;
-    return Column(
-      children: [
-        // Wide event cover
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(
-                color: accent.withValues(alpha: 0.4), width: 1.5),
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(AppSpacing.radiusMd - 1),
-                child: Image.network(
-                  'https://picsum.photos/seed/noble_social_cover/800/400',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Container(color: context.surfaceAltColor),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                      bottom:
-                          Radius.circular(AppSpacing.radiusMd - 1)),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.88),
-                        ],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'FEATURED EVENT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Rooftop Sessions · Nişantaşı',
-                          style: TextStyle(
-                            color: context.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        // Event thumbnail strip
-        SizedBox(
-          height: 90,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 4,
-            separatorBuilder: (_, __) =>
-                const SizedBox(width: AppSpacing.md),
-            itemBuilder: (_, i) => Container(
-              width: 90,
-              decoration: BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(AppSpacing.radiusSm),
-                border: Border.all(
-                    color: accent.withValues(alpha: 0.25)),
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusSm - 1),
-                    child: Image.network(
-                      'https://picsum.photos/seed/${_thumbSeeds[i]}/200/200',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          Container(color: context.surfaceAltColor),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 4,
-                    left: 4,
-                    right: 4,
-                    child: Text(
-                      _thumbLabels[i],
-                      style: TextStyle(
-                        color: context.textSecondary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        shadows: [
-                          Shadow(color: Colors.black, blurRadius: 4),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Badges Section — Elite credentials
-// ---------------------------------------------------------------------------
-
-class _BadgesSection extends StatelessWidget {
-  const _BadgesSection();
-
-  static const _badges = [
-    _Badge(Icons.verified_rounded, 'Verified', AppColors.emerald500),
-    _Badge(
-        Icons.rocket_launch_rounded, 'Verified Founder', AppColors.emerald500),
-    _Badge(Icons.flight_rounded, 'World Traveler', Color(0xFF7986CB)),
-    _Badge(Icons.palette_rounded, 'Art Collector', Color(0xFFAB47BC)),
-    _Badge(Icons.star_rounded, 'Early Member', AppColors.emerald500),
-    _Badge(Icons.emoji_events_rounded, 'Top 10%', AppColors.emerald200),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Text(
-            'ELITE CREDENTIALS',
+            'PHOTOS',
+            style: TextStyle(
+              color: context.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (photos.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                border: Border.all(color: context.borderSubtleColor, width: 0.5),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.add_a_photo_outlined,
+                      color: AppColors.emerald600.withValues(alpha: 0.4), size: 32),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('No photos yet',
+                      style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Add photos to make your profile stand out',
+                      style: TextStyle(color: context.textMuted, fontSize: 13),
+                      textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: photos.length == 1 ? 1 : 2,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: photos.length == 1 ? 1.4 : 0.85,
+              ),
+              itemCount: photos.length,
+              itemBuilder: (_, i) => ClipRRect(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                child: CachedNetworkImage(
+                  imageUrl: photos[i],
+                  fit: BoxFit.cover,
+                  memCacheWidth: 400,
+                  placeholder: (_, __) => Container(color: context.surfaceAltColor),
+                  errorWidget: (_, __, ___) => Container(
+                    color: context.surfaceAltColor,
+                    child: Icon(Icons.broken_image, color: context.textDisabled),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// (NoblaraGallery removed — LastNobsSection handles nob display)
+
+// ---------------------------------------------------------------------------
+// Earned Badges — only real, earned badges
+// ---------------------------------------------------------------------------
+
+class _EarnedBadgesSection extends StatelessWidget {
+  final Profile? profile;
+  const _EarnedBadgesSection({this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = <_Badge>[];
+    final p = profile;
+    if (p == null) return const SizedBox.shrink();
+
+    // Only show badges that are actually earned
+    badges.add(const _Badge(Icons.star_rounded, 'Early Member', AppColors.emerald500));
+    if ((p.trustScore) > 60) {
+      badges.add(const _Badge(Icons.verified_rounded, 'Verified', AppColors.emerald500));
+    }
+    if (p.nobTier == NobTier.explorer || p.nobTier == NobTier.noble) {
+      badges.add(_Badge(Icons.explore_rounded, p.nobTier.label, AppColors.emerald500));
+    }
+    if (p.profileCompletenessScore >= 80) {
+      badges.add(const _Badge(Icons.workspace_premium_rounded, 'Complete Profile', Color(0xFFAB47BC)));
+    }
+
+    if (badges.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: Text(
+            'BADGES',
             style: TextStyle(
               color: context.textMuted,
               fontSize: 11,
@@ -1553,8 +1211,7 @@ class _BadgesSection extends StatelessWidget {
           child: Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
-            children:
-                _badges.map((b) => _BadgeChip(badge: b)).toList(),
+            children: badges.map((b) => _BadgeChip(badge: b)).toList(),
           ),
         ),
       ],
