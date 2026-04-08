@@ -164,12 +164,22 @@ class PhotosMediaSection extends ConsumerWidget {
         TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
         TextButton(onPressed: () {
           Navigator.pop(ctx);
+          final draft = ref.read(editProfileProvider).draft;
+          final removedUrl = index < draft.photoUrls.length ? draft.photoUrls[index] : null;
           ref.read(editProfileProvider.notifier).updateDraft((d) {
             final urls = List<String>.from(d.photoUrls);
             urls.removeAt(index);
             d.photoUrls = urls;
             return d;
           });
+          // Cleanup storage orphan
+          if (removedUrl != null && removedUrl.contains('profile-photos') && !isMockMode) {
+            final path = Uri.parse(removedUrl).pathSegments;
+            final storagePath = path.length >= 2 ? path.sublist(path.length - 2).join('/') : null;
+            if (storagePath != null) {
+              Supabase.instance.client.storage.from('profile-photos').remove([storagePath]);
+            }
+          }
         }, child: const Text('Remove', style: TextStyle(color: AppColors.error))),
       ],
     ));

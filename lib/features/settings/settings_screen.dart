@@ -253,10 +253,10 @@ class SettingsScreen extends ConsumerWidget {
           _Card(children: [
             _Row(Icons.block_rounded, 'Blocked Users',
                 value: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0}',
-                onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?)),
+                onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?, ref, 'blocked_users')),
             _Row(Icons.visibility_off_outlined, 'Hidden Users',
                 value: '${(s['hidden_users'] as List<dynamic>?)?.length ?? 0}',
-                onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?)),
+                onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?, ref, 'hidden_users')),
           ]),
           const SizedBox(height: AppSpacing.xs),
           _Card(children: [
@@ -462,31 +462,12 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showListSheet(BuildContext context, String title, List<dynamic>? items) {
+  void _showListSheet(BuildContext context, String title, List<dynamic>? items, WidgetRef ref, String column) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _sheetHandle(context),
-          const SizedBox(height: AppSpacing.lg),
-          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: AppSpacing.lg),
-          if (items == null || items.isEmpty)
-            Text('None yet', style: TextStyle(color: context.textMuted, fontSize: 13))
-          else
-            ...items.take(20).map((id) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text('$id', style: TextStyle(color: context.textMuted, fontSize: 12, fontFamily: 'monospace')),
-            )),
-          const SizedBox(height: AppSpacing.xxl),
-        ]),
-      ),
+      isScrollControlled: true,
+      builder: (_) => _BlockedListSheet(title: title, items: items, ref: ref, column: column),
     );
   }
 
@@ -624,6 +605,82 @@ class SettingsScreen extends ConsumerWidget {
 // ═══════════════════════════════════════════════════════════════════
 // Reusable widgets — premium card-grouped design
 // ═══════════════════════════════════════════════════════════════════
+
+// Blocked / Hidden users sheet with unblock/unhide actions
+class _BlockedListSheet extends StatefulWidget {
+  final String title;
+  final List<dynamic>? items;
+  final WidgetRef ref;
+  final String column; // 'blocked_users' or 'hidden_users'
+
+  const _BlockedListSheet({required this.title, this.items, required this.ref, required this.column});
+
+  @override
+  State<_BlockedListSheet> createState() => _BlockedListSheetState();
+}
+
+class _BlockedListSheetState extends State<_BlockedListSheet> {
+  late List<dynamic> _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List.from(widget.items ?? []);
+  }
+
+  Future<void> _remove(String userId) async {
+    final uid = widget.ref.read(authProvider).userId;
+    if (uid == null || isMockMode) return;
+    final updated = List<dynamic>.from(_items)..remove(userId);
+    try {
+      await Supabase.instance.client.from('profiles')
+          .update({widget.column: updated}).eq('id', uid);
+      setState(() => _items = updated);
+      if (mounted) {
+        ToastService.show(context,
+            message: widget.column == 'blocked_users' ? 'User unblocked' : 'User unhidden',
+            type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) ToastService.show(context, message: 'Failed to update', type: ToastType.error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final actionLabel = widget.column == 'blocked_users' ? 'Unblock' : 'Unhide';
+    return Container(
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SettingsScreen._sheetHandle(context),
+        const SizedBox(height: AppSpacing.lg),
+        Text(widget.title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+        const SizedBox(height: AppSpacing.lg),
+        if (_items.isEmpty)
+          Text('None yet', style: TextStyle(color: context.textMuted, fontSize: 13))
+        else
+          ..._items.take(20).map((id) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(child: Text('$id', style: TextStyle(color: context.textMuted, fontSize: 12, fontFamily: 'monospace'))),
+                TextButton(
+                  onPressed: () => _remove(id as String),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.emerald500, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  child: Text(actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          )),
+        const SizedBox(height: AppSpacing.xxl),
+      ]),
+    );
+  }
+}
 
 // Section header (above card)
 class _Section extends StatelessWidget {

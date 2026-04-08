@@ -151,6 +151,13 @@ class BffNotifier extends StateNotifier<BffState> {
     await repo.submitPlanCheckin(planId, response);
   }
 
+  Future<void> cancelPlan(String planId) async {
+    final uid = _ref.read(authProvider).userId;
+    if (uid == null) return;
+    final repo = _ref.read(bffRepositoryProvider);
+    await repo.cancelPlan(planId: planId, userId: uid);
+  }
+
   Future<List<BffPlan>> fetchPlans(String conversationId) async {
     final repo = _ref.read(bffRepositoryProvider);
     return repo.fetchPlans(conversationId);

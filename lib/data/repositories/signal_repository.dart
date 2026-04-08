@@ -97,4 +97,14 @@ class SignalRepository {
 
     return rows.map((r) => Signal.fromJson(r)).toList();
   }
+
+  /// Recall a sent signal (only sender can delete).
+  Future<void> deleteSignal({required String signalId, required String senderId}) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('signals')
+        .delete()
+        .eq('id', signalId)
+        .eq('sender_id', senderId);
+  }
 }

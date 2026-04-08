@@ -121,4 +121,14 @@ class NoteRepository {
         .update({'is_read': true})
         .eq('id', noteId);
   }
+
+  /// Delete a sent note (only sender can delete).
+  Future<void> deleteNote({required String noteId, required String senderId}) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('notes')
+        .delete()
+        .eq('id', noteId)
+        .eq('sender_id', senderId);
+  }
 }

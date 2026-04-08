@@ -283,6 +283,15 @@ class BffSuggestionRepository {
     }).eq('id', planId);
   }
 
+  /// Cancel a plan (only creator can cancel).
+  Future<void> cancelPlan({required String planId, required String userId}) async {
+    if (isMockMode) return;
+    await _supabase!.from('bff_plans')
+        .update({'status': 'cancelled'})
+        .eq('id', planId)
+        .eq('created_by', userId);
+  }
+
   // ─── Mock data ───────────────────────────────────────────────────
 
   List<BffSuggestion> _mockSuggestions(String userId) {
