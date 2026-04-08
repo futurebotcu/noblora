@@ -5,6 +5,7 @@ import '../core/services/toast_service.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_tokens.dart';
+import '../core/theme/premium.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 
@@ -83,41 +84,57 @@ void showGatingPopup(BuildContext context, String title, String message, {GatePo
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: context.surfaceColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
-    ),
-    builder: (_) => Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, AppSpacing.xxxl),
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+          colors: [context.surfaceColor, context.bgColor],
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.1))),
+      ),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, AppSpacing.xxxxl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 36, height: 4, decoration: BoxDecoration(
-              color: context.surfaceAltColor, borderRadius: BorderRadius.circular(999))),
+              color: AppColors.emerald600.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999))),
           const SizedBox(height: AppSpacing.xxxl),
           Container(
-            width: 64, height: 64,
+            width: 72, height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.emerald600.withValues(alpha: 0.08),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                colors: [AppColors.emerald600.withValues(alpha: 0.15), AppColors.emerald600.withValues(alpha: 0.05)],
+              ),
               border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
+              boxShadow: [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.1), blurRadius: 24, spreadRadius: 2)],
             ),
-            child: Icon(icon, color: AppColors.emerald600, size: 28),
+            child: Icon(icon, color: AppColors.emerald500, size: 30),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
           const SizedBox(height: AppSpacing.md),
           Text(message, textAlign: TextAlign.center,
-              style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
-          const SizedBox(height: AppSpacing.xxl),
-          SizedBox(width: double.infinity, child: ElevatedButton(
+              style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
+          const SizedBox(height: AppSpacing.xxxl),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: Premium.emeraldGlow(intensity: 0.5),
+            ),
+            child: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.emerald600, foregroundColor: AppColors.textOnEmerald,
-                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  minimumSize: const Size.fromHeight(54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
               onPressed: () {
                 Navigator.pop(context);
                 ToastService.show(context, message: 'Head to your Profile to add a photo', type: ToastType.system);
               },
-              child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.3)))),
+              child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3))),
+          ),
         ],
       ),
     ),

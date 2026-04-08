@@ -689,16 +689,8 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xxl, AppSpacing.xxl, AppSpacing.sm),
-    child: Text(
-      title.toUpperCase(),
-      style: TextStyle(
-        color: context.textMuted,
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1.2,
-      ),
-    ),
+    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xxxl, AppSpacing.xxl, AppSpacing.sm),
+    child: Text(title.toUpperCase(), style: Premium.sectionHeader(context.textMuted)),
   );
 }
 
@@ -714,9 +706,10 @@ class _Card extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: context.borderSubtleColor, width: 0.5),
+        gradient: Premium.surfaceGradient,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: context.borderSubtleColor.withValues(alpha: 0.3)),
+        boxShadow: Premium.shadowSm,
       ),
       child: Column(
         children: [

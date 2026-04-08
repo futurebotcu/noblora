@@ -545,22 +545,32 @@ class _ProfileFactsSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.xxl),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
           decoration: BoxDecoration(
-            color: context.surfaceColor,
+            gradient: Premium.surfaceGradient,
             borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: context.borderSubtleColor, width: 0.5),
+            border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
+            boxShadow: Premium.shadowSm,
           ),
           child: Column(
             children: [
-              Icon(Icons.person_outline_rounded,
-                  color: AppColors.emerald600.withValues(alpha: 0.4), size: 28),
-              const SizedBox(height: AppSpacing.sm),
-              Text('Complete your profile',
-                  style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text('Add your details so others can get to know you',
-                  style: TextStyle(color: context.textMuted, fontSize: 12),
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.emerald600.withValues(alpha: 0.12), AppColors.emerald600.withValues(alpha: 0.04)],
+                  ),
+                ),
+                child: Icon(Icons.auto_awesome_outlined,
+                    color: AppColors.emerald500.withValues(alpha: 0.6), size: 24),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Build your story',
+                  style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+              const SizedBox(height: 6),
+              Text('The details you add shape how others discover you',
+                  style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.4),
                   textAlign: TextAlign.center),
             ],
           ),
@@ -573,58 +583,63 @@ class _ProfileFactsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'ABOUT',
-            style: TextStyle(
-              color: context.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
+          Text('ABOUT', style: Premium.sectionHeader(context.textMuted)),
           const SizedBox(height: AppSpacing.lg),
           if (facts.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: context.surfaceColor,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: context.borderSubtleColor, width: 0.5),
+                gradient: Premium.surfaceGradient,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
+                boxShadow: Premium.shadowSm,
               ),
               child: Column(
-                children: facts.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Icon(f.$1, size: 16, color: AppColors.emerald500),
-                      const SizedBox(width: AppSpacing.md),
-                      Text(f.$2, style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(f.$3,
-                            style: TextStyle(color: context.textPrimary, fontSize: 13),
-                            textAlign: TextAlign.end),
+                children: facts.asMap().entries.map((entry) {
+                  final f = entry.value;
+                  final isLast = entry.key == facts.length - 1;
+                  return Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32, height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.emerald600.withValues(alpha: 0.08),
+                            ),
+                            child: Icon(f.$1, size: 15, color: AppColors.emerald500),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Text(f.$2, style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2)),
+                          const Spacer(),
+                          Text(f.$3,
+                              style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
                       ),
-                    ],
-                  ),
-                )).toList(),
+                    ),
+                    if (!isLast) Divider(height: 1, color: context.borderSubtleColor, indent: 44),
+                  ]);
+                }).toList(),
               ),
             ),
           if (hasInterests) ...[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.lg),
             Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
+              spacing: 6,
+              runSpacing: 6,
               children: p.interests.map((interest) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: AppColors.emerald600.withValues(alpha: 0.08),
+                  color: AppColors.emerald600.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
+                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.15)),
+                  boxShadow: [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.04), blurRadius: 8)],
                 ),
                 child: Text(interest,
-                    style: const TextStyle(color: AppColors.emerald500, fontSize: 12, fontWeight: FontWeight.w500)),
+                    style: TextStyle(color: AppColors.emerald500, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.1)),
               )).toList(),
             ),
           ],
@@ -658,15 +673,7 @@ class _PersonaSectionState extends State<_PersonaSection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Row(
             children: [
-              Text(
-                'YOUR PERSONAS',
-                style: TextStyle(
-                  color: context.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                ),
-              ),
+              Text('YOUR PERSONAS', style: Premium.sectionHeader(context.textMuted)),
               const Spacer(),
             ],
           ),
@@ -759,9 +766,10 @@ class _PersonaSectionState extends State<_PersonaSection> {
       key: ValueKey(mode),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
+        gradient: Premium.surfaceGradient,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: mode.accentColor.withValues(alpha: 0.25)),
+        border: Border.all(color: mode.accentColor.withValues(alpha: 0.15)),
+        boxShadow: Premium.shadowSm,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -811,7 +819,7 @@ class _PersonaSectionState extends State<_PersonaSection> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  hasBio ? bio : 'No ${mode.label.toLowerCase()} bio yet. Tap Edit Profile to add one.',
+                  hasBio ? bio : 'Tell the world who you are in ${mode.label} mode.',
                   style: TextStyle(
                     color: hasBio ? context.textSecondary : context.textDisabled,
                     fontSize: 13,
@@ -1090,15 +1098,7 @@ class _RealGallerySection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Text(
-            'PHOTOS',
-            style: TextStyle(
-              color: context.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
+          child: Text('PHOTOS', style: Premium.sectionHeader(context.textMuted)),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (photos.isEmpty)
@@ -1106,22 +1106,32 @@ class _RealGallerySection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.xxl),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
               decoration: BoxDecoration(
-                color: context.surfaceColor,
+                gradient: Premium.surfaceGradient,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: context.borderSubtleColor, width: 0.5),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
+                boxShadow: Premium.shadowSm,
               ),
               child: Column(
                 children: [
-                  Icon(Icons.add_a_photo_outlined,
-                      color: AppColors.emerald600.withValues(alpha: 0.4), size: 32),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('No photos yet',
-                      style: TextStyle(color: context.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Add photos to make your profile stand out',
-                      style: TextStyle(color: context.textMuted, fontSize: 13),
+                  Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.emerald600.withValues(alpha: 0.12), AppColors.emerald600.withValues(alpha: 0.04)],
+                      ),
+                    ),
+                    child: Icon(Icons.camera_alt_outlined,
+                        color: AppColors.emerald500.withValues(alpha: 0.6), size: 24),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Add your photos',
+                      style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+                  const SizedBox(height: 6),
+                  Text('Profiles with photos get 10x more attention',
+                      style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.4),
                       textAlign: TextAlign.center),
                 ],
               ),
@@ -1135,21 +1145,56 @@ class _RealGallerySection extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: photos.length == 1 ? 1 : 2,
-                crossAxisSpacing: AppSpacing.sm,
-                mainAxisSpacing: AppSpacing.sm,
-                childAspectRatio: photos.length == 1 ? 1.4 : 0.85,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: photos.length == 1 ? 1.3 : 0.8,
               ),
               itemCount: photos.length,
-              itemBuilder: (_, i) => ClipRRect(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                child: CachedNetworkImage(
-                  imageUrl: photos[i],
-                  fit: BoxFit.cover,
-                  memCacheWidth: 400,
-                  placeholder: (_, __) => Container(color: context.surfaceAltColor),
-                  errorWidget: (_, __, ___) => Container(
-                    color: context.surfaceAltColor,
-                    child: Icon(Icons.broken_image, color: context.textDisabled),
+              itemBuilder: (_, i) => Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  boxShadow: Premium.shadowSm,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: photos[i],
+                        fit: BoxFit.cover,
+                        memCacheWidth: 500,
+                        placeholder: (_, __) => Container(
+                          decoration: BoxDecoration(
+                            gradient: Premium.surfaceGradient,
+                          ),
+                          child: Center(child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.emerald500.withValues(alpha: 0.3))),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: context.surfaceAltColor,
+                          child: Icon(Icons.image_outlined, color: context.textDisabled, size: 28),
+                        ),
+                      ),
+                      // Subtle vignette for depth
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const [0.0, 0.6, 1.0],
+                              colors: [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.15),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1195,15 +1240,7 @@ class _EarnedBadgesSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Text(
-            'BADGES',
-            style: TextStyle(
-              color: context.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
+          child: Text('BADGES', style: Premium.sectionHeader(context.textMuted)),
         ),
         const SizedBox(height: AppSpacing.lg),
         Padding(
@@ -1236,21 +1273,30 @@ class _BadgeChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: badge.color.withValues(alpha: 0.08),
+        color: badge.color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-        border: Border.all(color: badge.color.withValues(alpha: 0.35)),
+        border: Border.all(color: badge.color.withValues(alpha: 0.2)),
+        boxShadow: [BoxShadow(color: badge.color.withValues(alpha: 0.06), blurRadius: 12, spreadRadius: 1)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(badge.icon, size: 13, color: badge.color),
-          const SizedBox(width: AppSpacing.xs),
+          Container(
+            width: 20, height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: badge.color.withValues(alpha: 0.1),
+            ),
+            child: Icon(badge.icon, size: 11, color: badge.color),
+          ),
+          const SizedBox(width: 6),
           Text(
             badge.label,
             style: TextStyle(
               color: badge.color,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
           ),
         ],
