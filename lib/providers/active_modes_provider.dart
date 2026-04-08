@@ -85,8 +85,6 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
     if (!_allowedModes.contains(mode)) return;
     final current = {...state.modes};
     if (current.contains(mode)) {
-      // Prevent deselecting all — at least one must remain
-      if (current.length == 1) return;
       current.remove(mode);
     } else {
       current.add(mode);
