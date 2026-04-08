@@ -14,7 +14,6 @@ import 'sections/interests_section.dart';
 import 'sections/culture_social_section.dart';
 import 'sections/travel_section.dart';
 import 'sections/career_section.dart';
-import 'sections/digital_life_section.dart';
 import 'sections/lifestyle_section.dart';
 import 'sections/prompts_section.dart';
 import 'sections/visibility_section.dart';
@@ -103,14 +102,17 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                   // ═══ COMPLETION ═══
                   _CompletionStrip(score: score),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // ═══ SECTION CARDS ═══
+                  // ═══════════════════════════════════════════════
+                  // GROUP 1 — ESSENTIALS
+                  // ═══════════════════════════════════════════════
+                  _GroupHeader(title: 'ESSENTIALS', subtitle: 'The foundation of your profile'),
                   ProfileSectionCard(
                     staggerIndex: idx++,
                     icon: Icons.person_outline_rounded,
                     title: 'The Basics',
-                    subtitle: _sub(d.basicInfoCount(), 9, 'People want to know the real you'),
+                    subtitle: _sub(d.basicInfoCount(), 9, 'Name, age, location, zodiac'),
                     progress: d.sectionProgress(d.basicInfoCount(), 9),
                     isEmpty: d.basicInfoCount() == 0,
                     previewChips: _chips(d.basicInfoPreview()),
@@ -121,7 +123,7 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                     staggerIndex: idx++,
                     icon: Icons.auto_awesome_outlined,
                     title: 'In Your Own Words',
-                    subtitle: _sub(d.aboutCount(), 4, 'This is where connections begin'),
+                    subtitle: _sub(d.aboutCount(), 4, 'Bio, tagline, what drives you'),
                     progress: d.sectionProgress(d.aboutCount(), 4),
                     isEmpty: d.aboutCount() == 0,
                     previewChips: d.aboutPreview() != null ? [d.aboutPreview()!] : [],
@@ -130,20 +132,29 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,
-                    icon: Icons.favorite_outline_rounded,
-                    title: 'What You\'re Looking For',
-                    subtitle: _sub(d.relationshipCount(), 6, 'Honesty attracts the right people'),
-                    progress: d.sectionProgress(d.relationshipCount(), 6),
-                    isEmpty: d.relationshipCount() == 0,
-                    previewChips: _chips(d.relationshipPreview()),
-                    boostHint: '+12 → better matches',
-                    onTap: () => _push(context, const RelationshipSection()),
+                    icon: Icons.format_quote_rounded,
+                    title: 'Conversation Starters',
+                    subtitle: d.prompts.where((p) => p.answer.isNotEmpty).isEmpty
+                        ? 'Answer 3 prompts to spark interest'
+                        : '${d.prompts.where((p) => p.answer.isNotEmpty).length}/3 answered',
+                    progress: d.prompts.where((p) => p.answer.isNotEmpty).length / 3,
+                    isEmpty: d.prompts.where((p) => p.answer.isNotEmpty).isEmpty,
+                    previewChips: d.promptsPreview() != null ? [d.promptsPreview()!] : [],
+                    boostHint: '+10 → spark real conversations',
+                    onTap: () => _push(context, const PromptsSection()),
                   ),
+
+                  const SizedBox(height: 8),
+
+                  // ═══════════════════════════════════════════════
+                  // GROUP 2 — EXPRESS YOURSELF
+                  // ═══════════════════════════════════════════════
+                  _GroupHeader(title: 'EXPRESS YOURSELF', subtitle: 'What makes you, you'),
                   ProfileSectionCard(
                     staggerIndex: idx++,
                     icon: Icons.local_fire_department_outlined,
-                    title: 'Things You Love',
-                    subtitle: d.interests.isEmpty ? 'The spark that makes you interesting' : '${d.interests.length} interests',
+                    title: 'Interests',
+                    subtitle: d.interests.isEmpty ? 'What gets you excited' : '${d.interests.length} selected',
                     progress: d.interests.isEmpty ? 0 : (d.interests.length / 20).clamp(0.0, 1.0),
                     isEmpty: d.interests.isEmpty,
                     previewChips: d.interests.take(5).toList(),
@@ -152,9 +163,20 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,
+                    icon: Icons.favorite_outline_rounded,
+                    title: 'What You\'re Looking For',
+                    subtitle: _sub(d.relationshipCount(), 6, 'Intentions, style, love language'),
+                    progress: d.sectionProgress(d.relationshipCount(), 6),
+                    isEmpty: d.relationshipCount() == 0,
+                    previewChips: _chips(d.relationshipPreview()),
+                    boostHint: '+12 → better matches',
+                    onTap: () => _push(context, const RelationshipSection()),
+                  ),
+                  ProfileSectionCard(
+                    staggerIndex: idx++,
                     icon: Icons.fingerprint_rounded,
-                    title: 'Who You Are',
-                    subtitle: _sub(d.identityCount(), 8, 'Your values shape your connections'),
+                    title: 'Identity & Values',
+                    subtitle: _sub(d.identityCount(), 8, 'Gender, beliefs, habits'),
                     progress: d.sectionProgress(d.identityCount(), 8),
                     isEmpty: d.identityCount() == 0,
                     previewChips: _chips(d.identityPreview()),
@@ -166,7 +188,7 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                     icon: Icons.music_note_outlined,
                     title: 'Culture & Taste',
                     subtitle: (d.musicGenres.length + d.movieGenres.length) == 0
-                        ? 'Shared taste creates instant chemistry'
+                        ? 'Music, movies, humor, weekends'
                         : '${d.musicGenres.length + d.movieGenres.length} tastes',
                     progress: (d.musicGenres.length + d.movieGenres.length) == 0 ? 0 : 0.5,
                     isEmpty: d.musicGenres.isEmpty && d.movieGenres.isEmpty,
@@ -174,70 +196,52 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                     boostHint: '+6 → vibe matching',
                     onTap: () => _push(context, const CultureSocialSection()),
                   ),
+
+                  const SizedBox(height: 8),
+
+                  // ═══════════════════════════════════════════════
+                  // GROUP 3 — GO DEEPER
+                  // ═══════════════════════════════════════════════
+                  _GroupHeader(title: 'GO DEEPER', subtitle: 'Optional — adds depth to your profile'),
                   ProfileSectionCard(
                     staggerIndex: idx++,
                     icon: Icons.coffee_outlined,
-                    title: 'Daily Rhythm',
-                    subtitle: _sub(d.lifestyleCount, 5, 'Are you a sunrise or midnight soul?'),
+                    title: 'Lifestyle',
+                    subtitle: _sub(d.lifestyleCount, 5, 'Sleep, diet, fitness, spending'),
                     progress: d.sectionProgress(d.lifestyleCount, 5),
                     isEmpty: d.lifestyleCount == 0,
                     previewChips: _chips(d.lifestylePreview()),
-                    boostHint: '+6 → lifestyle compatibility',
                     onTap: () => _push(context, const LifestyleSection()),
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,
                     icon: Icons.flight_outlined,
-                    title: 'Your World',
+                    title: 'Travel',
                     subtitle: d.visitedCountries.isEmpty
-                        ? 'Every place you\'ve been tells a story'
-                        : '${d.visitedCountries.length} countries explored',
+                        ? 'Countries, travel style, relocation'
+                        : '${d.visitedCountries.length} countries',
                     progress: d.visitedCountries.isEmpty ? 0 : 0.5,
                     isEmpty: d.visitedCountries.isEmpty,
                     previewChips: d.visitedCountries.take(4).toList(),
-                    boostHint: '+6 → travel compatibility',
                     onTap: () => _push(context, const TravelSection()),
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,
                     icon: Icons.rocket_launch_outlined,
-                    title: 'What You\'re Building',
-                    subtitle: _sub(d.careerCount(), 4, 'Ambition is attractive'),
-                    progress: d.sectionProgress(d.careerCount(), 4),
-                    isEmpty: d.careerCount() == 0,
-                    previewChips: _chips(d.careerPreview()),
-                    boostHint: '+8 → stand out from the crowd',
+                    title: 'Career & Digital',
+                    subtitle: d.careerCount() == 0 && d.aiTools.isEmpty
+                        ? 'Work, projects, tech'
+                        : [if (d.primaryRole != null) d.primaryRole!, if (d.aiTools.isNotEmpty) '${d.aiTools.length} tools'].join(' · '),
+                    progress: d.careerCount() > 0 || d.aiTools.isNotEmpty ? 0.5 : 0,
+                    isEmpty: d.careerCount() == 0 && d.aiTools.isEmpty,
+                    previewChips: [..._chips(d.careerPreview()), ...d.aiTools.take(2)],
                     onTap: () => _push(context, const CareerSection()),
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,
-                    icon: Icons.smart_toy_outlined,
-                    title: 'Digital World',
-                    subtitle: d.aiTools.isEmpty ? 'Show your modern side' : '${d.aiTools.length} tools',
-                    progress: d.aiTools.isEmpty ? 0 : 0.5,
-                    isEmpty: d.aiTools.isEmpty,
-                    previewChips: d.aiTools.take(4).toList(),
-                    boostHint: '+6 → attract tech-savvy people',
-                    onTap: () => _push(context, const DigitalLifeSection()),
-                  ),
-                  ProfileSectionCard(
-                    staggerIndex: idx++,
-                    icon: Icons.format_quote_rounded,
-                    title: 'Conversation Starters',
-                    subtitle: d.prompts.where((p) => p.answer.isNotEmpty).isEmpty
-                        ? 'The best icebreaker is your story'
-                        : '${d.prompts.where((p) => p.answer.isNotEmpty).length}/3 answered',
-                    progress: d.prompts.where((p) => p.answer.isNotEmpty).length / 3,
-                    isEmpty: d.prompts.where((p) => p.answer.isNotEmpty).isEmpty,
-                    previewChips: d.promptsPreview() != null ? [d.promptsPreview()!] : [],
-                    boostHint: '+10 → spark real conversations',
-                    onTap: () => _push(context, const PromptsSection()),
-                  ),
-                  ProfileSectionCard(
-                    staggerIndex: idx++,
                     icon: Icons.shield_outlined,
-                    title: 'Privacy',
-                    subtitle: 'You decide who sees what',
+                    title: 'Privacy & Visibility',
+                    subtitle: 'Control who sees what',
                     progress: d.visibility.isEmpty ? 0 : 0.5,
                     isEmpty: d.visibility.isEmpty,
                     onTap: () => _push(context, const VisibilitySection()),
@@ -658,5 +662,30 @@ class _CompletionStrip extends StatelessWidget {
           style: TextStyle(color: context.textMuted, fontSize: 12)),
       ])),
     ]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Group Header — section group divider with title + subtitle
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _GroupHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  const _GroupHeader({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Premium.sectionHeader(context.accent)),
+          const SizedBox(height: 3),
+          Text(subtitle, style: TextStyle(color: context.textDisabled, fontSize: 12, height: 1.3)),
+        ],
+      ),
+    );
   }
 }
