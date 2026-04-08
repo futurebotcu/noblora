@@ -8,7 +8,7 @@ class VideoSessionRepository {
 
   VideoSessionRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
-  /// Female proposes a time for the video call.
+  /// Propose a time for the video call.
   /// [recipientId] is the other user who should receive the notification.
   Future<VideoSession> proposeTime({
     required String matchId,

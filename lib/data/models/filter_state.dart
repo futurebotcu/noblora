@@ -25,11 +25,8 @@ class FilterState {
   final bool sixPlusPhotos;
   final bool pinnedNobExists;
   final bool sameCityOnly;
-  final List<String> fromCountries;
-
   // ── BFF ──
   final String? bffLookingFor; // New friends / Activity buddy / City companion / Social circle
-  final List<String> vibes;
   final List<String> interests;
 
   // ── Strict mode ──
@@ -58,9 +55,7 @@ class FilterState {
     this.sixPlusPhotos = false,
     this.pinnedNobExists = false,
     this.sameCityOnly = false,
-    this.fromCountries = const [],
     this.bffLookingFor,
-    this.vibes = const [],
     this.interests = const [],
     this.strictFilters = const {},
     this.activePreset,
@@ -86,9 +81,7 @@ class FilterState {
     bool? sixPlusPhotos,
     bool? pinnedNobExists,
     bool? sameCityOnly,
-    List<String>? fromCountries,
     String? bffLookingFor,
-    List<String>? vibes,
     List<String>? interests,
     Set<String>? strictFilters,
     String? activePreset,
@@ -123,9 +116,7 @@ class FilterState {
       sixPlusPhotos: sixPlusPhotos ?? this.sixPlusPhotos,
       pinnedNobExists: pinnedNobExists ?? this.pinnedNobExists,
       sameCityOnly: sameCityOnly ?? this.sameCityOnly,
-      fromCountries: fromCountries ?? this.fromCountries,
       bffLookingFor: clearBffLookingFor ? null : (bffLookingFor ?? this.bffLookingFor),
-      vibes: vibes ?? this.vibes,
       interests: interests ?? this.interests,
       strictFilters: strictFilters ?? this.strictFilters,
       activePreset: clearPreset ? null : (activePreset ?? this.activePreset),
@@ -156,10 +147,8 @@ class FilterState {
       if (sixPlusPhotos) c++;
       if (pinnedNobExists) c++;
       if (sameCityOnly) c++;
-      if (fromCountries.isNotEmpty) c++;
     } else if (mode == NobleMode.bff) {
       if (bffLookingFor != null) c++;
-      if (vibes.isNotEmpty) c++;
       if (interests.isNotEmpty) c++;
       if (socialEnergy != null) c++;
       if (routine != null) c++;
@@ -241,7 +230,6 @@ const socialEnergyOptions = ['Quiet', 'Balanced', 'Social'];
 const bffSocialEnergyOptions = ['Quiet', 'Balanced', 'Very social'];
 const routineOptions = ['Structured', 'Flexible', 'Spontaneous'];
 const faithOptions = ['Not important', 'Somewhat', 'Important'];
-const vibeOptions = ['Calm', 'Reflective', 'Social', 'Grounded', 'Structured', 'Curious', 'Creative', 'Playful'];
 const bffInterestOptions = [
   'Reading', 'Coffee', 'Walking', 'Gym', 'Running', 'Coding',
   'Design', 'Startups', 'Gaming', 'Museums', 'Travel', 'Writing',

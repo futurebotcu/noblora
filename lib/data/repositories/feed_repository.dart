@@ -13,6 +13,8 @@ class FeedRepository {
     required String mode,
     required Set<String> excludeIds,
     FilterState? filters,
+    Set<String> blockedIds = const {},
+    Set<String> hiddenIds = const {},
   }) async {
     final client = _supabase!;
 
@@ -23,7 +25,7 @@ class FeedRepository {
         .eq('is_entry_approved', true);
 
     final approvedIds = {for (final r in gatingData) r['user_id'] as String};
-    final excluded = {userId, ...excludeIds};
+    final excluded = {userId, ...excludeIds, ...blockedIds, ...hiddenIds};
     if (approvedIds.isEmpty) return [];
     var toFetch = approvedIds.difference(excluded);
     if (toFetch.isEmpty) return [];
@@ -81,8 +83,7 @@ class FeedRepository {
             .inFilter('nob_tier', ['explorer', 'noble']);
       }
 
-      // Verified / Complete
-      if (filters.verifiedOnly) query = query.eq('is_verified', true);
+      // Complete profiles only
       if (filters.completeOnly) query = query.eq('is_onboarded', true);
 
       // Tier badge

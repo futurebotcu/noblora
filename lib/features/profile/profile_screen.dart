@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,13 +10,13 @@ import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
-import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../providers/posts_provider.dart';
 import '../../navigation/main_tab_navigator.dart';
 import '../noblara_feed/nob_drafts_screen.dart';
 import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
+import '../verification/verification_hub_screen.dart';
 import 'edit/edit_profile_main_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -31,29 +30,37 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     final profile = ref.watch(profileProvider);
+    final p = profile.profile;
     final displayName =
-        profile.profile?.fullName.isNotEmpty == true
-            ? profile.profile!.fullName
+        p?.fullName.isNotEmpty == true
+            ? p!.fullName
             : (auth.email?.split('@').first ?? 'Noblara User');
-    final city = profile.profile?.city ?? '';
+    final city = p?.city ?? '';
+    final age = p?.age;
+    final completeness = p?.profileCompletenessScore ?? 0;
+    final isVerified = (p?.trustScore ?? 0) > 60;
 
     return Scaffold(
       backgroundColor: context.bgColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 260,
+            expandedHeight: 280,
             pinned: true,
             backgroundColor: context.bgColor,
             elevation: 0,
             title: Text(
               'Profile',
-              style: TextStyle(color: context.textPrimary, fontSize: 16),
+              style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3),
             ),
             actions: [
               IconButton(
                 icon: Icon(Icons.settings_outlined,
-                    color: context.textPrimary),
+                    color: context.textPrimary, size: 22),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -66,9 +73,14 @@ class ProfileScreen extends ConsumerWidget {
               background: _ProfileHeader(
                 displayName: displayName,
                 city: city,
-                tierLabel: profile.profile?.nobTier.label ?? 'Observer',
-                avatarUrl: profile.profile?.dateAvatarUrl ?? profile.profile?.bffAvatarUrl,
+                age: age,
+                tierLabel: p?.nobTier.label ?? 'Observer',
+                tier: p?.nobTier,
+                avatarUrl: p?.dateAvatarUrl ?? p?.bffAvatarUrl,
                 userId: auth.userId,
+                completeness: completeness,
+                isVerified: isVerified,
+                strengthLabel: p?.strengthLabel ?? 'Just starting',
               ),
             ),
           ),
@@ -76,41 +88,43 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: AppSpacing.xxl),
-                // Edit Profile button
+                const SizedBox(height: AppSpacing.xl),
+                // Quick Actions Row
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Edit Profile'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.emerald500,
-                      side: const BorderSide(color: AppColors.emerald500, width: 0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
-                      minimumSize: const Size.fromHeight(44),
-                    ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileMainScreen()),
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _QuickAction(
+                          icon: Icons.edit_outlined,
+                          label: 'Edit Profile',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const EditProfileMainScreen())),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: _QuickAction(
+                          icon: Icons.verified_outlined,
+                          label: 'Verification',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const VerificationHubScreen())),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: _QuickAction(
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 const _ActiveModesSection(),
-                const SizedBox(height: AppSpacing.xxxl),
-                // Compact tier badge (full details in Status tab)
-                if (profile.profile != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                    child: Row(
-                      children: [
-                        TierBadge(tier: profile.profile!.nobTier, showLabel: true),
-                        const Spacer(),
-                        Text('${profile.profile!.strengthLabel} profile',
-                            style: TextStyle(color: context.textMuted, fontSize: 12)),
-                      ],
-                    ),
-                  ),
                 const SizedBox(height: AppSpacing.xxxl),
                 const _PersonaSection(),
                 const SizedBox(height: AppSpacing.xxxl),
@@ -119,19 +133,6 @@ class ProfileScreen extends ConsumerWidget {
                 const _BadgesSection(),
                 const SizedBox(height: AppSpacing.xxxl),
                 const _LastNobsSection(),
-                const SizedBox(height: AppSpacing.xxxl),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                  child: AppButton(
-                    label: 'Sign Out',
-                    variant: AppButtonVariant.outline,
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).signOut();
-                      ref.read(profileProvider.notifier).clear();
-                    },
-                  ),
-                ),
                 const SizedBox(height: AppSpacing.xxxxl),
               ],
             ),
@@ -149,16 +150,26 @@ class ProfileScreen extends ConsumerWidget {
 class _ProfileHeader extends StatelessWidget {
   final String displayName;
   final String city;
+  final int? age;
   final String tierLabel;
+  final dynamic tier; // NobTier
   final String? avatarUrl;
   final String? userId;
+  final int completeness;
+  final bool isVerified;
+  final String strengthLabel;
 
   const _ProfileHeader({
     required this.displayName,
     required this.city,
+    this.age,
     required this.tierLabel,
+    this.tier,
     this.avatarUrl,
     this.userId,
+    this.completeness = 0,
+    this.isVerified = false,
+    this.strengthLabel = '',
   });
 
   @override
@@ -166,112 +177,156 @@ class _ProfileHeader extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Cinematic gradient cover — premium depth
-        Container(
-          decoration: BoxDecoration(
-            gradient: Premium.heroGradient(),
-          ),
-        ),
-        // Avatar + info block
+        Container(decoration: BoxDecoration(gradient: Premium.heroGradient())),
         Positioned(
           bottom: 12,
           left: 0,
           right: 0,
           child: Column(
             children: [
-              Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    ...Premium.shadowMd,
-                    BoxShadow(
-                      color: AppColors.emerald600.withValues(alpha: 0.15),
-                      blurRadius: 24,
-                      spreadRadius: 2,
+              // Avatar with completeness ring + verification badge
+              SizedBox(
+                width: 108,
+                height: 108,
+                child: Stack(
+                  children: [
+                    // Completeness ring
+                    Positioned.fill(
+                      child: CircularProgressIndicator(
+                        value: completeness / 100,
+                        strokeWidth: 2.5,
+                        backgroundColor: AppColors.border.withValues(alpha: 0.3),
+                        valueColor: AlwaysStoppedAnimation(
+                            completeness >= 80
+                                ? AppColors.emerald500
+                                : completeness >= 40
+                                    ? AppColors.emerald600
+                                    : AppColors.textMuted),
+                      ),
                     ),
-                  ],
-                  border:
-                      Border.all(color: AppColors.emerald600, width: 2.5),
-                ),
-                child: ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
-                    fit: BoxFit.cover,
-                    memCacheWidth: 600,
-                    errorWidget: (_, __, ___) => Container(
-                      color: AppColors.emerald600.withValues(alpha: 0.2),
-                      child: Center(
-                        child: Text(
-                          displayName.isNotEmpty
-                              ? displayName[0].toUpperCase()
-                              : 'N',
-                          style: TextStyle(
-                            fontSize: 36,
-                            color: AppColors.emerald600,
-                            fontWeight: FontWeight.w700,
+                    // Avatar
+                    Center(
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            ...Premium.shadowMd,
+                            BoxShadow(
+                              color: AppColors.emerald600.withValues(alpha: 0.12),
+                              blurRadius: 20,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: avatarUrl ?? 'https://picsum.photos/seed/${userId ?? 'me'}/200/200',
+                            fit: BoxFit.cover,
+                            memCacheWidth: 600,
+                            errorWidget: (_, __, ___) => Container(
+                              color: AppColors.emerald600.withValues(alpha: 0.15),
+                              child: Center(
+                                child: Text(
+                                  displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
+                                      : 'N',
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    color: AppColors.emerald600,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                    // Verified badge
+                    if (isVerified)
+                      Positioned(
+                        bottom: 2,
+                        right: 4,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: AppColors.emerald600,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: context.bgColor, width: 2.5),
+                            boxShadow: Premium.shadowSm,
+                          ),
+                          child: const Icon(Icons.check_rounded,
+                              color: Colors.white, size: 13),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(
-                displayName,
-                style: TextStyle(
-                  color: context.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
+              // Name + age
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    displayName,
+                    style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  if (age != null) ...[
+                    Text(
+                      ', $age',
+                      style: TextStyle(
+                        color: context.textSecondary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: AppSpacing.xs),
+              // City + Tier badge + strength
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (city.isNotEmpty) ...[
-                    Icon(Icons.location_on,
-                        size: 13, color: context.textMuted),
-                    const SizedBox(width: 3),
-                    Text(
-                      city,
-                      style: TextStyle(
-                          color: context.textMuted, fontSize: 13),
+                    Icon(Icons.location_on, size: 12, color: context.textMuted),
+                    const SizedBox(width: 2),
+                    Text(city, style: TextStyle(color: context.textMuted, fontSize: 12)),
+                    Container(
+                      width: 3, height: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: context.textDisabled,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    const SizedBox(width: AppSpacing.md),
                   ],
-                  // Tier badge (Noble / Explorer / Observer)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.emerald600.withValues(alpha: 0.15),
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusCircle),
-                      border: Border.all(
-                          color: AppColors.emerald600.withValues(alpha: 0.5)),
+                  if (tier != null)
+                    TierBadge(tier: tier, showLabel: true, size: 18),
+                  if (strengthLabel.isNotEmpty) ...[
+                    Container(
+                      width: 3, height: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: context.textDisabled,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.verified_outlined,
-                            size: 10, color: AppColors.emerald500),
-                        const SizedBox(width: 4),
-                        Text(
-                          tierLabel,
-                          style: TextStyle(
-                            color: AppColors.emerald500,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    Text(strengthLabel,
+                        style: TextStyle(
+                            color: context.textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500)),
+                  ],
                 ],
               ),
             ],
@@ -281,6 +336,46 @@ class _ProfileHeader extends StatelessWidget {
     );
   }
 }
+
+// Quick action button for profile
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: context.borderSubtleColor, width: 0.5),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.emerald500, size: 20),
+            const SizedBox(height: AppSpacing.xs),
+            Text(label,
+                style: TextStyle(
+                    color: context.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 
 // ---------------------------------------------------------------------------
@@ -623,155 +718,6 @@ class _PersonaCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EditPersonaSheet extends StatefulWidget {
-  final NobleMode mode;
-  final String initialBio;
-  final String initialSeed;
-  final void Function(String bio, String seed) onSave;
-
-  const _EditPersonaSheet({
-    required this.mode,
-    required this.initialBio,
-    required this.initialSeed,
-    required this.onSave,
-  });
-
-  @override
-  State<_EditPersonaSheet> createState() => _EditPersonaSheetState();
-}
-
-class _EditPersonaSheetState extends State<_EditPersonaSheet> {
-  late final TextEditingController _bioCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _bioCtrl = TextEditingController(text: widget.initialBio);
-  }
-
-  @override
-  void dispose() {
-    _bioCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mode = widget.mode;
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.xxl,
-            AppSpacing.xxl,
-            AppSpacing.xxl,
-            MediaQuery.of(context).viewInsets.bottom + AppSpacing.xxl,
-          ),
-          decoration: BoxDecoration(
-            color: context.surfaceColor.withValues(alpha: 0.96),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(
-              top: BorderSide(
-                  color: mode.accentColor.withValues(alpha: 0.4), width: 1),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.borderColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  Icon(mode.icon, color: mode.accentColor, size: 18),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    'Edit ${mode.label} Persona',
-                    style: TextStyle(
-                      color: mode.accentColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              Text(
-                'BIO',
-                style: TextStyle(
-                  color: context.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: _bioCtrl,
-                maxLines: 4,
-                maxLength: 300,
-                style: TextStyle(
-                    color: context.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText:
-                      'Write your ${mode.label.toLowerCase()} persona bio...',
-                  hintStyle:
-                      TextStyle(color: context.textDisabled),
-                  filled: true,
-                  fillColor: context.surfaceAltColor,
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppSpacing.radiusMd),
-                    borderSide: BorderSide.none,
-                  ),
-                  counterStyle: TextStyle(
-                      color: context.textMuted, fontSize: 11),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    widget.onSave(_bioCtrl.text.trim(), widget.initialSeed);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: mode.accentColor,
-                    foregroundColor: context.bgColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusMd),
-                    ),
-                  ),
-                  child: const Text(
-                    'Save Persona',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

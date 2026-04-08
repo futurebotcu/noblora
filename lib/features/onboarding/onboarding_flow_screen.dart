@@ -146,7 +146,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
           'social_active': kSocialEnabled,
           'social_visible': kSocialEnabled,
           'looking_for': 'Serious relationship',
-          if (_occupation.isNotEmpty) 'occupation': _occupation,
+          if (_occupation.isNotEmpty) 'profession': _occupation,
           if (_avatarId != null) 'avatar_id': _avatarId,
           'is_onboarded': true,
           // Privacy defaults (explicit, not null)

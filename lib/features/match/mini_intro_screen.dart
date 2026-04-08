@@ -82,8 +82,8 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
       message: text,
     );
 
-    // Advance to pending_video
-    await notifier.advanceToVideo(widget.match.id);
+    // Advance to pending_video (authorized + state-checked)
+    await notifier.advanceToVideo(widget.match.id, userId);
 
     if (!mounted) return;
     setState(() => _isSending = false);

@@ -9,7 +9,6 @@ import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/services/toast_service.dart';
-import 'appearance_settings_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Settings provider — loads/saves ALL settings from profiles
@@ -33,13 +32,11 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
       final row = await Supabase.instance.client
           .from('profiles')
           .select('notification_preferences, incognito_mode, calm_mode, '
-              'dating_active, dating_visible, bff_active, bff_visible, '
-              'social_active, social_visible, show_city_only, hide_exact_distance, '
+              'dating_visible, bff_visible, social_visible, '
               'show_last_active, show_status_badge, message_preview, '
               'reach_permission, signal_permission, note_permission, '
-              'city, travel_mode, travel_city, is_paused, '
-              'auto_save_media, call_reminders, leave_event_chat_auto, language, '
-              'ai_writing_help, ai_suggestions, ai_insights, '
+              'city, is_paused, leave_event_chat_auto, '
+              'ai_writing_help, '
               'is_verified, selfie_verified, photos_verified, verification_status, '
               'blocked_users, hidden_users')
           .eq('id', uid)
@@ -49,20 +46,15 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
   }
 
   Map<String, dynamic> _defaults() => {
-    'notification_preferences': {'new_match': true, 'new_message': true, 'video_proposed': true,
+    'notification_preferences': {'new_match': true, 'new_message': true,
       'bff_suggestion': true, 'event_activity': true, 'safety': true, 'signals': true,
       'notes': true, 'event_chat': true, 'verification': true, 'updates': true},
     'incognito_mode': false, 'calm_mode': false, 'is_paused': false,
-    'dating_active': true, 'dating_visible': true, 'bff_active': true, 'bff_visible': true,
-    'social_active': true, 'social_visible': true,
-    'show_city_only': false, 'hide_exact_distance': false,
+    'dating_visible': true, 'bff_visible': true, 'social_visible': true,
     'show_last_active': true, 'show_status_badge': true, 'message_preview': true,
     'reach_permission': 'everyone', 'signal_permission': 'everyone', 'note_permission': 'everyone',
-    'auto_save_media': false, 'call_reminders': true, 'leave_event_chat_auto': true,
-    'language': 'en',
-    'ai_writing_help': {'nob_cleanup': true, 'bio_cleanup': true, 'event_cleanup': true, 'message_softening': true},
-    'ai_suggestions': {'bff_explanations': true, 'event_recommendations': true, 'profile_resonance': true, 'filter_suggestions': true},
-    'ai_insights': {'show_resonance': true, 'show_standout': true, 'show_performance': true},
+    'leave_event_chat_auto': true,
+    'ai_writing_help': {'nob_cleanup': true, 'message_softening': true},
     'is_verified': false, 'selfie_verified': false, 'photos_verified': false,
     'verification_status': 'not_started',
     'blocked_users': <dynamic>[], 'hidden_users': <dynamic>[],
@@ -78,7 +70,6 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
       await Supabase.instance.client.from('profiles').update({column: value}).eq('id', uid);
     } catch (e) {
       debugPrint('[settings] save failed for $column: $e');
-      // Revert the optimistic update so UI reflects the persisted state.
       state = {...state, column: previous};
     }
   }
@@ -103,7 +94,7 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Settings Screen — 10 sections
+// Settings Screen — premium card-grouped layout
 // ═══════════════════════════════════════════════════════════════════
 
 class SettingsScreen extends ConsumerWidget {
@@ -118,208 +109,314 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.bgColor,
       appBar: AppBar(
-        backgroundColor: context.bgColor, surfaceTintColor: Colors.transparent,
-        title: Text('Settings', style: TextStyle(color: context.textPrimary)),
+        backgroundColor: context.bgColor,
+        surfaceTintColor: Colors.transparent,
+        title: Text('Settings',
+            style: TextStyle(
+                color: context.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3)),
         iconTheme: IconThemeData(color: context.textPrimary),
+        elevation: 0,
       ),
       body: ListView(
+        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: 80),
         children: [
-          // ════════════════════════════════════════════════════════════
-          // 1. ACCOUNT
-          // ════════════════════════════════════════════════════════════
-          _H('Account'),
-          _Tile(Icons.email_outlined, 'Email', sub: auth.email ?? 'Not set'),
-          _Tile(Icons.lock_outlined, 'Change Password', onTap: () => _changePassword(context)),
-          _Tile(Icons.language_rounded, 'Language', sub: (s['language'] as String? ?? 'en') == 'en' ? 'English' : 'Türkçe',
-              onTap: () => _pickLanguage(context, ref, n)),
-          _Tile(Icons.logout_rounded, 'Sign Out', color: AppColors.error,
-              onTap: () => ref.read(authProvider.notifier).signOut()),
-
-          // ════════════════════════════════════════════════════════════
-          // 2. APPEARANCE
-          // ════════════════════════════════════════════════════════════
-          _H('Appearance'),
-          _Tile(Icons.palette_rounded, 'Accent & Theme',
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const AppearanceSettingsScreen()))),
-
-          // ════════════════════════════════════════════════════════════
-          // 3. MODES
-          // ════════════════════════════════════════════════════════════
-          _H('Modes'),
-          _T(Icons.favorite_rounded, 'Dating Active', s['dating_active'] as bool? ?? true, (_) => n.toggleBool('dating_active')),
-          _T(Icons.favorite_outline, 'Dating Visible', s['dating_visible'] as bool? ?? true, (_) => n.toggleBool('dating_visible')),
-          _T(Icons.people_rounded, 'BFF Active', s['bff_active'] as bool? ?? true, (_) => n.toggleBool('bff_active')),
-          _T(Icons.people_outline, 'BFF Visible', s['bff_visible'] as bool? ?? true, (_) => n.toggleBool('bff_visible')),
-          if (kSocialEnabled) ...[
-            _T(Icons.explore_rounded, 'Social Active', s['social_active'] as bool? ?? true, (_) => n.toggleBool('social_active')),
-            _T(Icons.explore_outlined, 'Social Visible', s['social_visible'] as bool? ?? true, (_) => n.toggleBool('social_visible')),
-          ],
-
-          // ════════════════════════════════════════════════════════════
-          // 4. PRIVACY & VISIBILITY
-          // ════════════════════════════════════════════════════════════
-          _H('Privacy & Visibility'),
-          _T(Icons.visibility_off_rounded, 'Incognito Mode', s['incognito_mode'] as bool? ?? false, (_) => n.toggleBool('incognito_mode'),
-              sub: 'Only connections can discover you'),
-          _T(Icons.shield_rounded, 'Calm Mode', s['calm_mode'] as bool? ?? false, (_) => n.toggleBool('calm_mode'),
-              sub: 'Only Verified + Complete + Explorer+ can reach you'),
-          _T(Icons.location_city_rounded, 'Show city only', s['show_city_only'] as bool? ?? false, (_) => n.toggleBool('show_city_only')),
-          _T(Icons.straighten_rounded, 'Hide exact distance', s['hide_exact_distance'] as bool? ?? false, (_) => n.toggleBool('hide_exact_distance')),
-          _T(Icons.access_time_rounded, 'Show last active', s['show_last_active'] as bool? ?? true, (_) => n.toggleBool('show_last_active'),
-              sub: 'Let others see when you were last online'),
-          _T(Icons.workspace_premium_rounded, 'Show status badge', s['show_status_badge'] as bool? ?? true, (_) => n.toggleBool('show_status_badge'),
-              sub: 'Show your tier badge on your profile card'),
-          _PermSelector(icon: Icons.person_search_rounded, label: 'Who can reach me',
-              value: s['reach_permission'] as String? ?? 'everyone', onChanged: (v) => n.setString('reach_permission', v)),
-          _PermSelector(icon: Icons.bolt_rounded, label: 'Who can send Signals',
-              value: s['signal_permission'] as String? ?? 'everyone', onChanged: (v) => n.setString('signal_permission', v)),
-          _PermSelector(icon: Icons.mail_outline_rounded, label: 'Who can leave Notes',
-              value: s['note_permission'] as String? ?? 'everyone', onChanged: (v) => n.setString('note_permission', v)),
-
-          // ════════════════════════════════════════════════════════════
-          // 5. NOTIFICATIONS
-          // ════════════════════════════════════════════════════════════
-          _H('Notifications'),
-          _T(Icons.chat_bubble_outline, 'Messages', n.notif('new_message'), (_) => n.toggleNotif('new_message')),
-          _T(Icons.favorite_outline, 'Connections', n.notif('new_match'), (_) => n.toggleNotif('new_match')),
-          _T(Icons.bolt_outlined, 'Signals', n.notif('signals'), (_) => n.toggleNotif('signals')),
-          _T(Icons.mail_outline, 'Notes', n.notif('notes'), (_) => n.toggleNotif('notes')),
-          _T(Icons.people_outline, 'BFF Suggestions', n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-          if (kSocialEnabled) ...[
-            _T(Icons.event_outlined, 'Event Activity', n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
-            _T(Icons.forum_outlined, 'Event Chat', n.notif('event_chat'), (_) => n.toggleNotif('event_chat')),
-          ],
-          _T(Icons.verified_outlined, 'Verification Alerts', n.notif('verification'), (_) => n.toggleNotif('verification')),
-          _T(Icons.shield_outlined, 'Safety Alerts', n.notif('safety'), (_) => n.toggleNotif('safety')),
-          _T(Icons.system_update_outlined, 'Product Updates', n.notif('updates'), (_) => n.toggleNotif('updates')),
-
-          // ════════════════════════════════════════════════════════════
-          // 6. SAFETY & VERIFICATION
-          // ════════════════════════════════════════════════════════════
-          _H('Safety & Verification'),
-          _Tile(Icons.camera_alt_outlined, 'Photo Verification',
-              sub: (s['photos_verified'] as bool? ?? false) ? 'Verified' : (s['verification_status'] as String? ?? 'Not started')),
-          _Tile(Icons.face_rounded, 'Selfie Verification',
-              sub: (s['selfie_verified'] as bool? ?? false) ? 'Verified' : 'Not verified'),
-          _Tile(Icons.badge_outlined, 'ID Verification', sub: 'Coming soon', color: context.textDisabled),
-          _Tile(Icons.block_rounded, 'Blocked Users',
-              sub: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0} blocked',
-              onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?)),
-          _Tile(Icons.visibility_off_outlined, 'Hidden Users',
-              sub: '${(s['hidden_users'] as List<dynamic>?)?.length ?? 0} hidden',
-              onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?)),
-          _Tile(Icons.security_rounded, 'Safety Tips', onTap: () => _showStaticContent(context, 'Safety Tips',
-              'Trust your instincts. Meet in public places. Tell someone where you\'re going. '
-              'Don\'t share personal info too early. Report any suspicious behavior.')),
-          _Tile(Icons.rule_rounded, 'Community Rules', onTap: () => _showStaticContent(context, 'Community Rules',
-              'Be respectful. No harassment. No spam. No fake profiles. No commercial content. '
-              'Noblara is a space for genuine human connections.')),
-
-          // ════════════════════════════════════════════════════════════
-          // 7. CHATS & CALLS
-          // ════════════════════════════════════════════════════════════
-          _H('Chats & Calls'),
-          _T(Icons.preview_rounded, 'Message Previews', s['message_preview'] as bool? ?? true, (_) => n.toggleBool('message_preview'),
-              sub: 'Show message content in inbox list'),
-          _Tile(Icons.save_alt_rounded, 'Auto-save Media', sub: 'Available in a future update', color: context.textDisabled),
-          _Tile(Icons.alarm_rounded, 'Call Reminders', sub: 'Available in a future update', color: context.textDisabled),
-          if (kSocialEnabled)
-            _T(Icons.exit_to_app_rounded, 'Leave Event Chat After End', s['leave_event_chat_auto'] as bool? ?? true, (_) => n.toggleBool('leave_event_chat_auto')),
-
-          // ════════════════════════════════════════════════════════════
-          // 8. AI PREFERENCES
-          // ════════════════════════════════════════════════════════════
-          _H('AI Writing Help'),
-          _T(Icons.auto_fix_high_rounded, 'Nob Text Cleanup', n.aiVal('ai_writing_help', 'nob_cleanup'), (_) => n.toggleAi('ai_writing_help', 'nob_cleanup')),
-          _Tile(Icons.person_outline, 'Bio Cleanup', sub: 'Available in a future update', color: context.textDisabled),
-          _Tile(Icons.event_note_rounded, 'Event Description Cleanup', sub: 'Available in a future update', color: context.textDisabled),
-          _T(Icons.chat_outlined, 'First Message Softening', n.aiVal('ai_writing_help', 'message_softening'), (_) => n.toggleAi('ai_writing_help', 'message_softening')),
-          _H('AI Suggestions'),
-          _T(Icons.people_outline, 'BFF Suggestion Explanations', n.aiVal('ai_suggestions', 'bff_explanations'), (_) => n.toggleAi('ai_suggestions', 'bff_explanations')),
-          _Tile(Icons.event_outlined, 'Event Recommendations', sub: 'Available in a future update', color: context.textDisabled),
-          _Tile(Icons.insights_rounded, 'Profile Resonance', sub: 'Available in a future update', color: context.textDisabled),
-          _Tile(Icons.tune_rounded, 'Filter Suggestions', sub: 'Available in a future update', color: context.textDisabled),
-          _H('AI Insights'),
-          _Tile(Icons.visibility_rounded, 'Show Resonance', sub: 'Coming in a future update', color: context.textDisabled),
-          _Tile(Icons.star_outline_rounded, 'Show Highlights', sub: 'Coming in a future update', color: context.textDisabled),
-          _Tile(Icons.bar_chart_rounded, 'Show Performance', sub: 'Coming in a future update', color: context.textDisabled),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [AppColors.emerald600.withValues(alpha: 0.04), AppColors.surface],
+          // ── Deletion recovery banner ────────────────────────────
+          if ((s['verification_status'] as String?) == 'deletion_requested')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                 ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
-                boxShadow: Premium.shadowSm,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(Icons.warning_rounded, color: AppColors.error, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: Text('Account deletion requested',
+                          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600, fontSize: 14))),
+                    ]),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text('Your account is queued for deletion within 30 days. You can cancel this and keep your account.',
+                        style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4)),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(width: double.infinity, child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(40),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                      ),
+                      onPressed: () async {
+                        final uid = ref.read(authProvider).userId;
+                        if (uid != null && !isMockMode) {
+                          await Supabase.instance.client.from('profiles').update({
+                            'is_paused': false,
+                            'verification_status': 'not_started',
+                          }).eq('id', uid);
+                        }
+                        n.toggleBool('is_paused'); // force UI refresh
+                        if (context.mounted) ToastService.show(context, message: 'Deletion cancelled — welcome back!', type: ToastType.success);
+                      },
+                      child: const Text('Cancel Deletion', style: TextStyle(fontWeight: FontWeight.w600)),
+                    )),
+                  ],
+                ),
               ),
-              child: Column(
+            ),
+
+          // ── 1. ACCOUNT ──────────────────────────────────────────
+          const _Section('Account'),
+          _Card(children: [
+            _Row(Icons.email_outlined, 'Email', value: auth.email ?? 'Not set'),
+            _Row(Icons.lock_outlined, 'Change Password',
+                onTap: () => _changePassword(context)),
+          ]),
+
+          // ── 4. PRIVACY & VISIBILITY ─────────────────────────────
+          const _Section('Privacy & Visibility'),
+          _Card(children: [
+            _Toggle(Icons.visibility_off_rounded, 'Incognito Mode',
+                s['incognito_mode'] as bool? ?? false,
+                (_) => n.toggleBool('incognito_mode'),
+                sub: 'Only connections can discover you'),
+            _Toggle(Icons.shield_rounded, 'Calm Mode',
+                s['calm_mode'] as bool? ?? false,
+                (_) => n.toggleBool('calm_mode'),
+                sub: 'Verified + Explorer+ only'),
+            _Toggle(Icons.access_time_rounded, 'Show last active',
+                s['show_last_active'] as bool? ?? true,
+                (_) => n.toggleBool('show_last_active')),
+            _Toggle(Icons.workspace_premium_rounded, 'Show status badge',
+                s['show_status_badge'] as bool? ?? true,
+                (_) => n.toggleBool('show_status_badge')),
+          ]),
+          const SizedBox(height: AppSpacing.xs),
+          _Card(children: [
+            _PermRow(Icons.person_search_rounded, 'Who can reach me',
+                s['reach_permission'] as String? ?? 'everyone',
+                (v) => n.setString('reach_permission', v)),
+            _PermRow(Icons.bolt_rounded, 'Who can send Signals',
+                s['signal_permission'] as String? ?? 'everyone',
+                (v) => n.setString('signal_permission', v)),
+            _PermRow(Icons.mail_outline_rounded, 'Who can leave Notes',
+                s['note_permission'] as String? ?? 'everyone',
+                (v) => n.setString('note_permission', v)),
+          ]),
+
+          // ── 5. NOTIFICATIONS ────────────────────────────────────
+          const _Section('Notifications'),
+          _Card(children: [
+            _Toggle(Icons.chat_bubble_outline, 'Messages',
+                n.notif('new_message'), (_) => n.toggleNotif('new_message')),
+            _Toggle(Icons.favorite_outline, 'Connections',
+                n.notif('new_match'), (_) => n.toggleNotif('new_match')),
+            _Toggle(Icons.bolt_outlined, 'Signals',
+                n.notif('signals'), (_) => n.toggleNotif('signals')),
+            _Toggle(Icons.mail_outline, 'Notes',
+                n.notif('notes'), (_) => n.toggleNotif('notes')),
+            _Toggle(Icons.people_outline, 'BFF Suggestions',
+                n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
+            if (kSocialEnabled) ...[
+              _Toggle(Icons.event_outlined, 'Event Activity',
+                  n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
+              _Toggle(Icons.forum_outlined, 'Event Chat',
+                  n.notif('event_chat'), (_) => n.toggleNotif('event_chat')),
+            ],
+            _Toggle(Icons.verified_outlined, 'Verification',
+                n.notif('verification'), (_) => n.toggleNotif('verification')),
+            _Toggle(Icons.shield_outlined, 'Safety Alerts',
+                n.notif('safety'), (_) => n.toggleNotif('safety')),
+            _Toggle(Icons.system_update_outlined, 'Product Updates',
+                n.notif('updates'), (_) => n.toggleNotif('updates')),
+          ]),
+
+          // ── 6. SAFETY & VERIFICATION ────────────────────────────
+          const _Section('Safety & Verification'),
+          _Card(children: [
+            _Row(Icons.camera_alt_outlined, 'Photo Verification',
+                value: (s['photos_verified'] as bool? ?? false) ? 'Verified' : _verifLabel(s)),
+            _Row(Icons.face_rounded, 'Selfie Verification',
+                value: (s['selfie_verified'] as bool? ?? false) ? 'Verified' : 'Not verified'),
+            _Row(Icons.badge_outlined, 'ID Verification',
+                value: 'Coming soon', disabled: true),
+          ]),
+          const SizedBox(height: AppSpacing.xs),
+          _Card(children: [
+            _Row(Icons.block_rounded, 'Blocked Users',
+                value: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0}',
+                onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?)),
+            _Row(Icons.visibility_off_outlined, 'Hidden Users',
+                value: '${(s['hidden_users'] as List<dynamic>?)?.length ?? 0}',
+                onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?)),
+          ]),
+          const SizedBox(height: AppSpacing.xs),
+          _Card(children: [
+            _Row(Icons.security_rounded, 'Safety Tips',
+                onTap: () => _showContent(context, 'Safety Tips',
+                    'Trust your instincts. Meet in public places. Tell someone where you\'re going. '
+                    'Don\'t share personal info too early. Report any suspicious behavior.')),
+            _Row(Icons.rule_rounded, 'Community Rules',
+                onTap: () => _showContent(context, 'Community Rules',
+                    'Be respectful. No harassment. No spam. No fake profiles. No commercial content. '
+                    'Noblara is a space for genuine human connections.')),
+          ]),
+
+          // ── 7. CHATS ────────────────────────────────────────────
+          const _Section('Chats'),
+          _Card(children: [
+            _Toggle(Icons.preview_rounded, 'Message Previews',
+                s['message_preview'] as bool? ?? true,
+                (_) => n.toggleBool('message_preview'),
+                sub: 'Show content in inbox list'),
+            if (kSocialEnabled)
+              _Toggle(Icons.exit_to_app_rounded, 'Leave Event Chat After End',
+                  s['leave_event_chat_auto'] as bool? ?? true,
+                  (_) => n.toggleBool('leave_event_chat_auto')),
+          ]),
+
+          // ── 8. AI PREFERENCES ───────────────────────────────────
+          const _Section('AI Preferences'),
+          _Card(children: [
+            _Toggle(Icons.auto_fix_high_rounded, 'Nob Text Cleanup',
+                n.aiVal('ai_writing_help', 'nob_cleanup'),
+                (_) => n.toggleAi('ai_writing_help', 'nob_cleanup')),
+            _Toggle(Icons.chat_outlined, 'Message Softening',
+                n.aiVal('ai_writing_help', 'message_softening'),
+                (_) => n.toggleAi('ai_writing_help', 'message_softening')),
+          ]),
+          // AI privacy note
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.emerald600.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
+              ),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Icon(Icons.shield_outlined, color: AppColors.emerald500, size: 14),
-                    const SizedBox(width: 6),
-                    Text('AI Privacy', style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-                  ]),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text('AI uses: profile text, behavior patterns, interaction quality.\n'
-                      'AI never uses: private messages, call audio/video.\n'
-                      'Text cleanup: sent for processing, not stored.\n'
-                      'Resonance: anonymous pattern matching only.',
-                      style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.5)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Icon(Icons.shield_outlined,
+                        color: AppColors.emerald500, size: 13),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'AI uses profile text and behavior patterns. Never accesses private messages or calls.',
+                      style: TextStyle(
+                          color: context.textMuted,
+                          fontSize: 11,
+                          height: 1.4),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // ════════════════════════════════════════════════════════════
-          // 9. TRAVEL & LOCATION
-          // ════════════════════════════════════════════════════════════
-          _H('Travel & Location'),
-          _EditCity(city: s['city'] as String? ?? '', onChanged: (v) => n.setString('city', v)),
-          _T(Icons.flight_rounded, 'Travel Mode', s['travel_mode'] as bool? ?? false, (_) => n.toggleBool('travel_mode'),
-              sub: 'Show profiles from destination city'),
-          if (s['travel_mode'] as bool? ?? false)
-            _EditCity(label: 'Destination city', city: s['travel_city'] as String? ?? '', onChanged: (v) => n.setString('travel_city', v)),
+          // ── 9. SUPPORT & LEGAL ──────────────────────────────────
+          const _Section('Support'),
+          _Card(children: [
+            _Row(Icons.help_outline_rounded, 'Help Center',
+                onTap: () => _showContent(context, 'Help Center',
+                    'Noblara Guide is a context-aware help system. For now, contact support for any questions.')),
+            _Row(Icons.email_outlined, 'Contact Support',
+                onTap: () => _showContent(context, 'Contact', 'Email: support@noblara.com')),
+            _Row(Icons.bug_report_outlined, 'Report a Bug',
+                onTap: () => _showBugReport(context, ref)),
+            _Row(Icons.download_outlined, 'Request My Data',
+                onTap: () => _showContent(context, 'Data Request',
+                    'Under GDPR/KVKK, you have the right to request your data. Send an email to privacy@noblara.com with your account email.')),
+          ]),
+          const SizedBox(height: AppSpacing.xs),
+          _Card(children: [
+            _Row(Icons.rule_rounded, 'Community Guidelines',
+                onTap: () => _showContent(context, 'Community Guidelines',
+                    'Be real. Be respectful. No spam, no ads, no fake profiles. Noblara is built for genuine connections.')),
+            _Row(Icons.privacy_tip_outlined, 'Privacy Policy',
+                onTap: () => _showContent(context, 'Privacy Policy',
+                    'Your privacy matters. We collect only what\'s needed. We never sell data. Full policy at noblara.com/privacy.')),
+            _Row(Icons.article_outlined, 'Terms of Service',
+                onTap: () => _showContent(context, 'Terms of Service',
+                    'By using Noblara you agree to our community standards. Full terms at noblara.com/terms.')),
+          ]),
+          // Version
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.lg),
+            child: Center(
+              child: Text('Noblara v1.0.0',
+                  style: TextStyle(
+                      color: context.textDisabled,
+                      fontSize: 12,
+                      letterSpacing: 0.3)),
+            ),
+          ),
 
-          // ════════════════════════════════════════════════════════════
-          // 10. SUPPORT & LEGAL
-          // ════════════════════════════════════════════════════════════
-          _H('Support & Legal'),
-          _Tile(Icons.help_outline_rounded, 'Help Center', sub: 'Noblara Guide',
-              onTap: () => _showStaticContent(context, 'Help Center', 'Noblara Guide is a context-aware help system. For now, contact support for any questions.')),
-          _Tile(Icons.email_outlined, 'Contact Support', onTap: () => _showStaticContent(context, 'Contact', 'Email: support@noblara.com')),
-          _Tile(Icons.bug_report_outlined, 'Report a Bug', onTap: () => _showBugReport(context, ref)),
-          _Tile(Icons.download_outlined, 'Request My Data', onTap: () => _showStaticContent(context, 'Data Request',
-              'Under GDPR/KVKK, you have the right to request your data. Send an email to privacy@noblara.com with your account email.')),
-          _Tile(Icons.rule_rounded, 'Community Guidelines', onTap: () => _showStaticContent(context, 'Community Guidelines',
-              'Be real. Be respectful. No spam, no ads, no fake profiles. Noblara is built for genuine connections.')),
-          _Tile(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () => _showStaticContent(context, 'Privacy Policy',
-              'Your privacy matters. We collect only what\'s needed. We never sell data. Full policy at noblara.com/privacy.')),
-          _Tile(Icons.article_outlined, 'Terms of Service', onTap: () => _showStaticContent(context, 'Terms of Service',
-              'By using Noblara you agree to our community standards. Full terms at noblara.com/terms.')),
-          const _Tile(Icons.info_outline_rounded, 'Version', sub: '1.0.0'),
-
-          // ════════════════════════════════════════════════════════════
-          // DANGER ZONE
-          // ════════════════════════════════════════════════════════════
-          _H('Danger Zone'),
-          _Tile(Icons.pause_circle_outline, 'Pause Account', sub: 'Hide from discovery, keep your data', color: AppColors.warning,
-              onTap: () => _confirmPause(context, ref)),
-          _Tile(Icons.delete_outline, 'Delete Account', color: AppColors.error,
-              onTap: () => _confirmDelete(context, ref)),
-
-          const SizedBox(height: AppSpacing.xxxxl),
+          // ── 11. DANGER ZONE ─────────────────────────────────────
+          const SizedBox(height: AppSpacing.xxxl),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.4), width: 0.5),
+              ),
+              child: Column(
+                children: [
+                  if (s['is_paused'] as bool? ?? false)
+                    _Row(Icons.play_circle_outline, 'Resume Account',
+                        sub: 'Your account is paused — tap to reactivate',
+                        iconColor: AppColors.success,
+                        onTap: () => _confirmResume(context, ref))
+                  else
+                    _Row(Icons.pause_circle_outline, 'Pause Account',
+                        sub: 'Hide from discovery, keep your data',
+                        iconColor: AppColors.warning,
+                        onTap: () => _confirmPause(context, ref)),
+                  _divider(context),
+                  _Row(Icons.delete_outline, 'Delete Account',
+                      iconColor: AppColors.error,
+                      titleColor: AppColors.error,
+                      onTap: () => _confirmDelete(context, ref)),
+                  _divider(context),
+                  _Row(Icons.logout_rounded, 'Sign Out',
+                      iconColor: AppColors.error,
+                      titleColor: AppColors.error,
+                      showChevron: false,
+                      onTap: () => ref.read(authProvider.notifier).signOut()),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ── Helpers ──
+  // ── Helpers ──────────────────────────────────────────────────────
+
+  static String _verifLabel(Map<String, dynamic> s) {
+    final status = s['verification_status'] as String? ?? 'not_started';
+    return switch (status) {
+      'pending' => 'Pending',
+      'manual_review' => 'In review',
+      _ => 'Not started',
+    };
+  }
 
   void _changePassword(BuildContext context) {
     if (isMockMode) return;
@@ -329,37 +426,32 @@ class SettingsScreen extends ConsumerWidget {
     ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
   }
 
-  void _pickLanguage(BuildContext context, WidgetRef ref, _SettingsNotifier n) {
-    showModalBottomSheet(
-      context: context, backgroundColor: context.surfaceColor,
-      builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(title: Text('English', style: TextStyle(color: context.textPrimary)),
-            onTap: () { Navigator.pop(ctx); n.setString('language', 'en'); }),
-        ListTile(title: Text('Türkçe', style: TextStyle(color: context.textPrimary)),
-            onTap: () { Navigator.pop(ctx); n.setString('language', 'tr'); }),
-        const SizedBox(height: AppSpacing.xxl),
-      ]),
-    );
-  }
-
-  void _showStaticContent(BuildContext context, String title, String body) {
+  void _showContent(BuildContext context, String title, String body) {
     showModalBottomSheet(
       context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.6, expand: false,
+        initialChildSize: 0.55, expand: false,
         builder: (ctx, scroll) => Container(
           decoration: BoxDecoration(
             color: context.surfaceColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
           ),
           child: ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-            Center(child: Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.emerald600.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)))),
+            _sheetHandle(context),
             const SizedBox(height: AppSpacing.xxl),
-            Text(title, style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+            Text(title,
+                style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3)),
             const SizedBox(height: AppSpacing.lg),
-            Text(body, style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
+            Text(body,
+                style: TextStyle(
+                    color: context.textMuted,
+                    fontSize: 14,
+                    height: 1.6)),
           ]),
         ),
       ),
@@ -368,14 +460,21 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showListSheet(BuildContext context, String title, List<dynamic>? items) {
     showModalBottomSheet(
-      context: context, backgroundColor: context.surfaceColor,
-      builder: (_) => Padding(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
         padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _sheetHandle(context),
+          const SizedBox(height: AppSpacing.lg),
           Text(title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: AppSpacing.lg),
           if (items == null || items.isEmpty)
-            Text('None', style: TextStyle(color: context.textMuted))
+            Text('None yet', style: TextStyle(color: context.textMuted, fontSize: 13))
           else
             ...items.take(20).map((id) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -394,12 +493,15 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: context.surfaceColor,
         shape: Premium.dialogShape(),
-        title: Text('Report a Bug', style: TextStyle(color: context.textPrimary, fontSize: 16)),
+        title: Text('Report a Bug', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
         content: TextField(controller: ctrl, maxLines: 4, style: TextStyle(color: context.textPrimary),
-            decoration: InputDecoration(hintText: 'Describe the issue...', hintStyle: TextStyle(color: context.textDisabled),
-                filled: true, fillColor: context.bgColor, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
+            decoration: InputDecoration(hintText: 'Describe the issue...',
+                hintStyle: TextStyle(color: context.textDisabled),
+                filled: true, fillColor: context.bgColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXs)))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(onPressed: () {
             Navigator.pop(ctx);
             Clipboard.setData(ClipboardData(text: 'Bug report: ${ctrl.text.trim()}'));
@@ -413,10 +515,13 @@ class SettingsScreen extends ConsumerWidget {
   void _confirmPause(BuildContext context, WidgetRef ref) {
     showDialog(context: context, builder: (_) => AlertDialog(
       backgroundColor: context.surfaceColor,
-      title: const Text('Pause Account', style: TextStyle(color: AppColors.warning)),
-      content: Text('Your profile will be hidden. Your data stays safe. You can return anytime.', style: TextStyle(color: context.textMuted)),
+      shape: Premium.dialogShape(),
+      title: Text('Pause Account', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600)),
+      content: Text('Your profile will be hidden from discovery. Your data stays safe and you can return anytime.',
+          style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
+        TextButton(onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: context.textMuted))),
         TextButton(onPressed: () async {
           Navigator.pop(context);
           final uid = ref.read(authProvider).userId;
@@ -429,30 +534,56 @@ class SettingsScreen extends ConsumerWidget {
     ));
   }
 
+  void _confirmResume(BuildContext context, WidgetRef ref) {
+    showDialog(context: context, builder: (_) => AlertDialog(
+      backgroundColor: context.surfaceColor,
+      shape: Premium.dialogShape(),
+      title: Text('Resume Account', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+      content: Text('Your profile will be visible again in discovery. Welcome back!',
+          style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: context.textMuted))),
+        TextButton(onPressed: () async {
+          Navigator.pop(context);
+          final uid = ref.read(authProvider).userId;
+          if (uid != null && !isMockMode) {
+            await Supabase.instance.client.from('profiles').update({'is_paused': false}).eq('id', uid);
+          }
+          ref.read(_settingsProvider.notifier).toggleBool('is_paused');
+          if (context.mounted) ToastService.show(context, message: 'Account resumed', type: ToastType.success);
+        }, child: const Text('Resume', style: TextStyle(color: AppColors.success))),
+      ],
+    ));
+  }
+
   void _confirmDelete(BuildContext context, WidgetRef ref) {
     final ctrl = TextEditingController();
     showDialog(context: context, builder: (_) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
         backgroundColor: context.surfaceColor,
-        title: const Text('Delete Account', style: TextStyle(color: AppColors.error)),
+        shape: Premium.dialogShape(),
+        title: Text('Delete Account', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('This will permanently delete your account and all data. This cannot be undone.', style: TextStyle(color: context.textMuted)),
+          Text('Your account will be queued for permanent deletion. All data will be removed within 30 days. You will be signed out immediately.',
+              style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
           const SizedBox(height: AppSpacing.lg),
           Text('Type DELETE to confirm:', style: TextStyle(color: context.textMuted, fontSize: 12)),
           const SizedBox(height: AppSpacing.sm),
           TextField(controller: ctrl, style: TextStyle(color: context.textPrimary), onChanged: (_) => setState(() {}),
               decoration: InputDecoration(hintText: 'DELETE', hintStyle: TextStyle(color: context.textDisabled),
-                  filled: true, fillColor: context.bgColor, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))),
+                  filled: true, fillColor: context.bgColor,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXs)))),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: ctrl.text == 'DELETE' ? () async {
               Navigator.pop(ctx);
               if (!isMockMode) {
                 final uid = ref.read(authProvider).userId;
                 if (uid != null) {
-                  // Mark for deletion + sign out (admin completes actual deletion)
                   await Supabase.instance.client.from('profiles').update({'is_paused': true, 'verification_status': 'deletion_requested'}).eq('id', uid);
                 }
               }
@@ -464,99 +595,301 @@ class SettingsScreen extends ConsumerWidget {
       ),
     )).then((_) => ctrl.dispose());
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════
-// Reusable widgets
-// ═══════════════════════════════════════════════════════════════════
+  // ── Sheet helpers ──
 
-class _H extends StatelessWidget {
-  final String t;
-  const _H(this.t);
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 32, 20, 8),
-    child: Text(t.toUpperCase(), style: Premium.sectionHeader(context.textMuted)),
+  static Widget _sheetHandle(BuildContext context) => Center(
+    child: Container(
+      width: 36, height: 4,
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: context.borderColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+    ),
+  );
+
+  static Widget _divider(BuildContext context) => Divider(
+    height: 0.5, thickness: 0.5, indent: 52,
+    color: context.borderSubtleColor,
   );
 }
 
-class _Tile extends StatelessWidget {
-  final IconData icon; final String title; final String? sub; final Color? color; final VoidCallback? onTap;
-  const _Tile(this.icon, this.title, {this.sub, this.color, this.onTap});
+// ═══════════════════════════════════════════════════════════════════
+// Reusable widgets — premium card-grouped design
+// ═══════════════════════════════════════════════════════════════════
+
+// Section header (above card)
+class _Section extends StatelessWidget {
+  final String title;
+  const _Section(this.title);
+
   @override
-  Widget build(BuildContext context) {
-    final c = color ?? context.textPrimary;
-    return ListTile(tileColor: Colors.transparent, leading: Icon(icon, color: context.textMuted, size: 20),
-      title: Text(title, style: TextStyle(color: c, fontSize: 14)),
-      subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 12)) : null,
-      trailing: Icon(Icons.chevron_right_rounded, color: context.textMuted, size: 20),
-      onTap: onTap);
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xxl, AppSpacing.xxl, AppSpacing.sm),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        color: context.textMuted,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
+      ),
+    ),
+  );
 }
 
-class _T extends StatelessWidget {
-  final IconData icon; final String title; final bool value; final ValueChanged<bool> onChanged; final String? sub;
-  const _T(this.icon, this.title, this.value, this.onChanged, {this.sub});
-  @override
-  Widget build(BuildContext context) => ListTile(tileColor: Colors.transparent,
-    leading: Icon(icon, color: context.textMuted, size: 20),
-    title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 14)),
-    subtitle: sub != null ? Text(sub!, style: TextStyle(color: context.textDisabled, fontSize: 11)) : null,
-    trailing: Switch.adaptive(
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: Colors.white,
-      activeTrackColor: AppColors.emerald600,
-      inactiveThumbColor: AppColors.textMuted,
-      inactiveTrackColor: AppColors.borderStrong,
-    ));
-}
-
-class _PermSelector extends StatelessWidget {
-  final IconData icon; final String label; final String value; final ValueChanged<String> onChanged;
-  const _PermSelector({required this.icon, required this.label, required this.value, required this.onChanged});
+// Card group container
+class _Card extends StatelessWidget {
+  final List<Widget> children;
+  const _Card({required this.children});
 
   @override
   Widget build(BuildContext context) {
-    final options = ['everyone', 'verified', 'explorer_plus', 'noble_only', 'nobody'];
-    final labels = {'everyone': 'Everyone', 'verified': 'Verified only', 'explorer_plus': 'Explorer+ only', 'noble_only': 'Noble only', 'nobody': 'Nobody'};
-    return ListTile(tileColor: Colors.transparent,
-      leading: Icon(icon, color: context.textMuted, size: 20),
-      title: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 14)),
-      trailing: DropdownButton<String>(
-        value: options.contains(value) ? value : 'everyone',
-        dropdownColor: context.surfaceColor,
-        style: const TextStyle(color: AppColors.emerald500, fontSize: 12),
-        underline: const SizedBox.shrink(),
-        items: options.map((o) => DropdownMenuItem(value: o, child: Text(labels[o] ?? o))).toList(),
-        onChanged: (v) { if (v != null) onChanged(v); },
+    final filtered = children.where((c) => c is! SizedBox).toList();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: context.borderSubtleColor, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < filtered.length; i++) ...[
+            filtered[i],
+            if (i < filtered.length - 1)
+              Divider(
+                height: 0.5, thickness: 0.5, indent: 52,
+                color: context.borderSubtleColor,
+              ),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _EditCity extends StatefulWidget {
-  final String city; final ValueChanged<String> onChanged; final String label;
-  const _EditCity({required this.city, required this.onChanged, this.label = 'Current city'});
+// Standard menu row
+class _Row extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? sub;
+  final String? value;
+  final Color? iconColor;
+  final Color? titleColor;
+  final bool disabled;
+  final bool showChevron;
+  final VoidCallback? onTap;
+
+  const _Row(this.icon, this.title, {
+    this.sub,
+    this.value,
+    this.iconColor,
+    this.titleColor,
+    this.disabled = false,
+    this.showChevron = true,
+    this.onTap,
+  });
+
   @override
-  State<_EditCity> createState() => _EditCityState();
+  Widget build(BuildContext context) {
+    final tc = disabled ? context.textDisabled : (titleColor ?? context.textPrimary);
+    final ic = disabled ? context.textDisabled : (iconColor ?? context.textMuted);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: disabled ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, color: ic, size: 20),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            color: tc,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400)),
+                    if (sub != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(sub!,
+                            style: TextStyle(
+                                color: context.textDisabled,
+                                fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ),
+              if (value != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Text(value!,
+                      style: TextStyle(
+                          color: context.textMuted,
+                          fontSize: 13)),
+                ),
+              if (showChevron && onTap != null)
+                Icon(Icons.chevron_right_rounded,
+                    color: context.textDisabled, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _EditCityState extends State<_EditCity> {
-  late final TextEditingController _c;
-  @override void initState() { super.initState(); _c = TextEditingController(text: widget.city); }
-  @override void dispose() { _c.dispose(); super.dispose(); }
+// Toggle row with switch
+class _Toggle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String? sub;
+
+  const _Toggle(this.icon, this.title, this.value, this.onChanged, {this.sub});
+
   @override
-  Widget build(BuildContext context) => ListTile(tileColor: Colors.transparent,
-    leading: Icon(Icons.location_on_rounded, color: context.textPrimary, size: 20),
-    title: Text(widget.label, style: TextStyle(color: context.textPrimary, fontSize: 14)),
-    subtitle: SizedBox(height: 34, child: TextField(controller: _c,
-      style: TextStyle(color: context.textPrimary, fontSize: 13),
-      decoration: InputDecoration(hintText: 'e.g. Istanbul', hintStyle: TextStyle(color: context.textDisabled, fontSize: 13),
-        isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: context.borderColor)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.emerald500))),
-      onSubmitted: widget.onChanged, onEditingComplete: () => widget.onChanged(_c.text.trim()))));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
+    child: Row(
+      children: [
+        Icon(icon, color: context.textMuted, size: 20),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 14)),
+              if (sub != null)
+                Text(sub!,
+                    style: TextStyle(
+                        color: context.textDisabled,
+                        fontSize: 11)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 48,
+          child: Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.emerald600,
+            inactiveThumbColor: AppColors.textMuted,
+            inactiveTrackColor: AppColors.borderStrong,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Permission selector — tap to open sheet
+class _PermRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  const _PermRow(this.icon, this.label, this.value, this.onChanged);
+
+  static const _labels = {
+    'everyone': 'Everyone',
+    'verified': 'Verified only',
+    'explorer_plus': 'Explorer+',
+    'noble_only': 'Noble only',
+    'nobody': 'Nobody',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return _Row(icon, label,
+      value: _labels[value] ?? 'Everyone',
+      onTap: () => _showSheet(context),
+    );
+  }
+
+  void _showSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
+        ),
+        child: SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Center(child: Container(
+              width: 36, height: 4,
+              margin: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.lg),
+              decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)),
+            )),
+            Text(label,
+                style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: AppSpacing.lg),
+            for (final e in _labels.entries)
+              _SheetOption(e.value, selected: e.key == value,
+                  onTap: () { Navigator.pop(ctx); onChanged(e.key); }),
+            const SizedBox(height: AppSpacing.lg),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+// Sheet option row (checkmark-style)
+class _SheetOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SheetOption(this.label, {required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      color: selected ? AppColors.emerald500 : context.textPrimary,
+                      fontSize: 15,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+            ),
+            if (selected)
+              Icon(Icons.check_rounded, color: AppColors.emerald500, size: 20),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 

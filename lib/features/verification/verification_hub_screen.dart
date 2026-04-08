@@ -29,14 +29,7 @@ class VerificationHubScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: context.bgColor,
         elevation: 0,
-        actions: [
-          TextButton.icon(
-            icon: Icon(Icons.logout, size: 16, color: context.textMuted),
-            label: Text('Sign Out',
-                style: TextStyle(color: context.textMuted, fontSize: 12)),
-            onPressed: () => ref.read(authProvider.notifier).signOut(),
-          ),
-        ],
+        actions: const [],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

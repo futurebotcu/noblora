@@ -207,13 +207,6 @@ class _State extends ConsumerState<FilterBottomSheet> {
               ],
 
               if (mode == NobleMode.bff) ...[
-                _Label('Vibe (preference)'),
-                Wrap(spacing: 6, runSpacing: 6, children: vibeOptions.map((v) {
-                  final sel = _f.vibes.contains(v);
-                  return _Chip(v, sel, () { final next = [..._f.vibes]; sel ? next.remove(v) : next.add(v); _set(_f.copyWith(vibes: next)); }, accent);
-                }).toList()),
-                const SizedBox(height: AppSpacing.lg),
-
                 _Label('Interests (preference)'),
                 Wrap(spacing: 6, runSpacing: 6, children: bffInterestOptions.map((i) {
                   final sel = _f.interests.contains(i);

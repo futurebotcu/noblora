@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/mock_mode.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/interaction_gate_provider.dart';
 import '../../../providers/profile_provider.dart';
 import 'profile_draft.dart';
 
@@ -70,8 +71,9 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
           .from('profiles')
           .update(state.draft.toUpdateMap())
           .eq('id', uid);
-      // Reload the main profile provider to sync
+      // Reload the main profile provider and interaction gate to sync
       await _ref.read(profileProvider.notifier).loadProfile();
+      _ref.invalidate(interactionGateProvider);
       state = state.copyWith(isSaving: false);
       return true;
     } catch (e) {

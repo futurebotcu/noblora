@@ -90,7 +90,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
     final displayName =
         ref.read(profileProvider).profile?.displayName ?? '';
 
-    // Open call (audio-only config for first 60s, then video)
+    // Open call in Jitsi (external browser)
     VideoService.openCall(widget.match.id, displayName: displayName)
         .catchError((e) {
       if (mounted) {
@@ -103,7 +103,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       }
     });
 
-    // Audio→video phase transition after 60 seconds
+    // UI phase transition after 60 seconds (visual guide only)
     _phaseTimer?.cancel();
     _phaseTimer = Timer(const Duration(seconds: 60), () {
       if (mounted && _callStarted && !_callEnded) {
@@ -278,7 +278,7 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                     border: Border.all(color: (_isAudioPhase ? AppColors.emerald500 : AppColors.emerald600).withValues(alpha: 0.3)),
                   ),
                   child: Text(
-                    _isAudioPhase ? 'Audio Only — Video starts soon' : 'Video Phase',
+                    _isAudioPhase ? 'Warm-up — turn on video when ready' : 'Video time',
                     style: TextStyle(
                       color: _isAudioPhase ? AppColors.emerald500 : AppColors.emerald600,
                       fontSize: 12, fontWeight: FontWeight.w600,

@@ -44,6 +44,8 @@ class FilterNotifier extends StateNotifier<FilterState> {
         hasNobs: map['hasNobs'] as bool? ?? false,
         hasPrompts: map['hasPrompts'] as bool? ?? false,
         sixPlusPhotos: map['sixPlusPhotos'] as bool? ?? false,
+        pinnedNobExists: map['pinnedNobExists'] as bool? ?? false,
+        sameCityOnly: map['sameCityOnly'] as bool? ?? false,
         lookingFor: map['lookingFor'] as String?,
         drinks: map['drinks'] as String?,
         smokes: map['smokes'] as String?,
@@ -54,7 +56,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
         statusBadge: map['statusBadge'] as String?,
         bffLookingFor: map['bffLookingFor'] as String?,
         languages: (map['languages'] as List<dynamic>?)?.cast<String>() ?? [],
-        vibes: (map['vibes'] as List<dynamic>?)?.cast<String>() ?? [],
         interests: (map['interests'] as List<dynamic>?)?.cast<String>() ?? [],
         strictFilters: (map['strict'] as List<dynamic>?)?.cast<String>().toSet() ?? {},
       );
@@ -73,6 +74,8 @@ class FilterNotifier extends StateNotifier<FilterState> {
       'hasNobs': state.hasNobs,
       'hasPrompts': state.hasPrompts,
       'sixPlusPhotos': state.sixPlusPhotos,
+      'pinnedNobExists': state.pinnedNobExists,
+      'sameCityOnly': state.sameCityOnly,
       'lookingFor': state.lookingFor,
       'drinks': state.drinks,
       'smokes': state.smokes,
@@ -83,7 +86,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
       'statusBadge': state.statusBadge,
       'bffLookingFor': state.bffLookingFor,
       'languages': state.languages,
-      'vibes': state.vibes,
       'interests': state.interests,
       'strict': state.strictFilters.toList(),
     };

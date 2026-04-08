@@ -501,6 +501,12 @@ class _ReachOutsTab extends ConsumerWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
                   ),
                 onPressed: () async {
+                  final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
+                  if (!gate.canBffInteract) {
+                    showGatingPopup(context, 'Add a photo first',
+                        'Upload at least one photo to connect.');
+                    return;
+                  }
                   final roId = ro['id'] as String;
                   final repo = ref.read(bffRepositoryProvider);
                   final result = await repo.acceptReachOut(roId);

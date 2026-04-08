@@ -56,12 +56,12 @@ class MiniIntroRepository {
         .map((rows) => rows.map((r) => MiniIntro.fromJson(r)).toList());
   }
 
-  /// Advance match from pending_intro to pending_video.
-  Future<void> advanceToVideo(String matchId) async {
+  /// Advance match from pending_intro to pending_video (authorized + state-checked).
+  Future<void> advanceToVideo(String matchId, String userId) async {
     if (isMockMode) return;
-    await _supabase!
-        .from('matches')
-        .update({'status': 'pending_video'})
-        .eq('id', matchId);
+    await _supabase!.rpc('safe_advance_to_video', params: {
+      'p_match_id': matchId,
+      'p_user_id': userId,
+    });
   }
 }

@@ -385,6 +385,20 @@ class _CardInfo extends ConsumerWidget {
                 ),
               ),
             ],
+            if (card.showLastActive && card.lastActiveAt != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text('·', style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35), fontSize: 13)),
+              ),
+              Text(
+                _timeAgo(card.lastActiveAt!),
+                style: TextStyle(
+                  color: AppColors.emerald500.withValues(alpha: 0.8),
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ],
         ),
         if (card.bio != null) ...[
@@ -862,4 +876,13 @@ class _ProfessionalPill extends StatelessWidget {
       ),
     );
   }
+}
+
+String _timeAgo(DateTime dt) {
+  final diff = DateTime.now().toUtc().difference(dt);
+  if (diff.inMinutes < 1) return 'Active now';
+  if (diff.inMinutes < 60) return 'Active ${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return 'Active ${diff.inHours}h ago';
+  if (diff.inDays < 7) return 'Active ${diff.inDays}d ago';
+  return '';
 }

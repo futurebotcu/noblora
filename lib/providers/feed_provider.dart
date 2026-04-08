@@ -119,12 +119,29 @@ class FeedNotifier extends StateNotifier<FeedState> {
       // Read current filters and pass to repository
       final filters = _ref.read(filterProvider);
 
+      // Load blocked/hidden users to exclude from feed
+      Set<String> blockedIds = {};
+      Set<String> hiddenIds = {};
+      try {
+        final row = await Supabase.instance.client
+            .from('profiles')
+            .select('blocked_users, hidden_users')
+            .eq('id', userId)
+            .maybeSingle();
+        if (row != null) {
+          blockedIds = {for (final id in (row['blocked_users'] as List<dynamic>? ?? [])) id as String};
+          hiddenIds = {for (final id in (row['hidden_users'] as List<dynamic>? ?? [])) id as String};
+        }
+      } catch (_) {}
+
       final feedRepo = _ref.read(feedRepositoryProvider);
       final cards = await feedRepo.fetchFeedProfiles(
         userId: userId,
         mode: resolved.name,
         excludeIds: swipedIds,
         filters: filters,
+        blockedIds: blockedIds,
+        hiddenIds: hiddenIds,
       );
 
       state = state.copyWith(cards: cards, isLoading: false);

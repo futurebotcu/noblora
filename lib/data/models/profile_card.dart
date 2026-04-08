@@ -22,6 +22,8 @@ class ProfileCard {
   // Privacy display settings (from target user)
   final bool showCityOnly;
   final bool showStatusBadge;
+  final bool showLastActive;
+  final DateTime? lastActiveAt;
 
   const ProfileCard({
     required this.id,
@@ -41,6 +43,8 @@ class ProfileCard {
     this.connectionGoal,
     this.showCityOnly = false,
     this.showStatusBadge = true,
+    this.showLastActive = true,
+    this.lastActiveAt,
   });
 
   /// Maps a public.profiles DB row to a ProfileCard for the feed.
@@ -76,7 +80,7 @@ class ProfileCard {
       city: (row['city'] as String?) ?? '',
       bio: bio,
       photoUrl: photoUrl,
-      education: row['education'] as String?,
+      education: (row['profile_data'] as Map<String, dynamic>?)?['education_level'] as String?,
       profession: row['profession'] as String?,
       interests:
           (row['hobbies'] as List<dynamic>?)?.cast<String>() ?? [],
@@ -86,6 +90,10 @@ class ProfileCard {
       mode: mode,
       showCityOnly: (row['show_city_only'] as bool?) ?? false,
       showStatusBadge: (row['show_status_badge'] as bool?) ?? true,
+      showLastActive: (row['show_last_active'] as bool?) ?? true,
+      lastActiveAt: row['last_active_at'] != null
+          ? DateTime.tryParse(row['last_active_at'] as String)
+          : null,
     );
   }
 

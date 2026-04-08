@@ -284,6 +284,30 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
+
+    // Guard: check match status before sending
+    if (widget.matchId != null && !isMockMode) {
+      try {
+        final match = await Supabase.instance.client
+            .from('matches')
+            .select('status, chat_expires_at')
+            .eq('id', widget.matchId!)
+            .maybeSingle();
+        if (match != null) {
+          final status = match['status'] as String?;
+          if (status == 'expired' || status == 'closed') {
+            if (mounted) ToastService.show(context, message: 'This conversation has ended', type: ToastType.error);
+            return;
+          }
+          final expiresAt = match['chat_expires_at'] as String?;
+          if (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true) {
+            if (mounted) ToastService.show(context, message: 'Chat time has expired', type: ToastType.error);
+            return;
+          }
+        }
+      } catch (_) {} // Proceed on error — server will reject if truly expired
+    }
+
     _msgCtrl.clear();
 
     final authState = ref.read(authProvider);

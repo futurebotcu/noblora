@@ -83,8 +83,8 @@ class MiniIntroNotifier extends StateNotifier<MiniIntroState> {
   }
 
   /// Advance match to pending_video status (after intro sent).
-  Future<void> advanceToVideo(String matchId) async {
-    await _repo.advanceToVideo(matchId);
+  Future<void> advanceToVideo(String matchId, String userId) async {
+    await _repo.advanceToVideo(matchId, userId);
   }
 }
 

@@ -11,6 +11,7 @@ import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/note_provider.dart';
+import '../../providers/interaction_gate_provider.dart';
 import 'nob_compose_screen.dart';
 import 'nob_drafts_screen.dart';
 import 'note_inbox_screen.dart';
@@ -196,13 +197,35 @@ class NoblaraFeedScreen extends ConsumerWidget {
                             ? () => ref.read(postsProvider.notifier).deletePost(post.id)
                             : null,
                         onSendNote: (receiverId, targetType, targetId, content) {
+                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
+                          if (!gate.hasPhoto) {
+                            showGatingPopup(context, 'Add a photo first',
+                                'Upload at least one photo to send notes.');
+                            return;
+                          }
                           ref.read(noteInboxProvider.notifier).sendNote(
                             receiverId: receiverId, targetType: targetType,
                             targetId: targetId, content: content,
                           );
                         },
-                        onSignal: (targetUserId) => ref.read(postsProvider.notifier).sendSignalFromNob(targetUserId),
-                        onReachOut: (targetUserId) => ref.read(postsProvider.notifier).sendReachOutFromNob(targetUserId),
+                        onSignal: (targetUserId) {
+                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
+                          if (!gate.hasPhoto) {
+                            showGatingPopup(context, 'Add a photo first',
+                                'Upload at least one photo to send signals.');
+                            return;
+                          }
+                          ref.read(postsProvider.notifier).sendSignalFromNob(targetUserId);
+                        },
+                        onReachOut: (targetUserId) {
+                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
+                          if (!gate.hasPhoto) {
+                            showGatingPopup(context, 'Add a photo first',
+                                'Upload at least one photo to reach out.');
+                            return;
+                          }
+                          ref.read(postsProvider.notifier).sendReachOutFromNob(targetUserId);
+                        },
                       );
                     },
                     childCount: postsState.posts.length,

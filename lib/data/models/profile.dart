@@ -137,7 +137,7 @@ class Profile {
       bio: json['bio'] as String?,
       age: json['age'] as int?,
       city: json['city'] as String?,
-      occupation: json['occupation'] as String?,
+      occupation: json['profession'] as String?,
       height: json['height'] as int?,
       philosophy: json['philosophy'] as String?,
       drinks: json['drinks'] as String?,
