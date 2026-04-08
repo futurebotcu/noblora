@@ -10,6 +10,26 @@ class MessagesRepository {
   MessagesRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
   // ---------------------------------------------------------------------------
+  // Guard: reject sends to expired/closed matches
+  // ---------------------------------------------------------------------------
+
+  Future<void> _assertMatchActive(SupabaseClient db, String matchId) async {
+    final row = await db.from('matches')
+        .select('status, chat_expires_at')
+        .eq('id', matchId)
+        .maybeSingle();
+    if (row == null) return;
+    final status = row['status'] as String?;
+    if (status == 'expired' || status == 'closed') {
+      throw Exception('Cannot send: conversation has ended');
+    }
+    final expiresAt = row['chat_expires_at'] as String?;
+    if (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true) {
+      throw Exception('Cannot send: chat time has expired');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Conversations
   // ---------------------------------------------------------------------------
 
@@ -134,10 +154,12 @@ class MessagesRepository {
     required String content,
     required String mode,
     bool isSystem = false,
+    String? matchId,
   }) async {
     if (isMockMode) return;
     final db = _supabase;
     if (db == null) return;
+    if (matchId != null) await _assertMatchActive(db, matchId);
     await db.from('messages').insert({
       'conversation_id': conversationId,
       'sender_id': isSystem ? null : senderId,
@@ -278,10 +300,12 @@ class MessagesRepository {
     required String mediaUrl,
     required String mediaType,
     String caption = '',
+    String? matchId,
   }) async {
     if (isMockMode) return;
     final db = _supabase;
     if (db == null) return;
+    if (matchId != null) await _assertMatchActive(db, matchId);
     await db.from('messages').insert({
       'conversation_id': conversationId,
       'sender_id': senderId,

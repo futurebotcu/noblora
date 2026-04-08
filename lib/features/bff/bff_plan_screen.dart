@@ -39,13 +39,21 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
   }
 
   Future<void> _loadPlans() async {
-    final plans = await ref.read(bffProvider.notifier).fetchPlans(widget.conversationId);
-    if (mounted) setState(() => _existingPlans = plans);
+    try {
+      final plans = await ref.read(bffProvider.notifier).fetchPlans(widget.conversationId);
+      if (mounted) setState(() => _existingPlans = plans);
+    } catch (e) {
+      if (mounted) ToastService.show(context, message: 'Could not load plans', type: ToastType.error);
+    }
   }
 
   Future<void> _loadPendingCheckins() async {
-    final pending = await ref.read(bffProvider.notifier).fetchPendingCheckins();
-    if (mounted) setState(() => _pendingCheckins = pending);
+    try {
+      final pending = await ref.read(bffProvider.notifier).fetchPendingCheckins();
+      if (mounted) setState(() => _pendingCheckins = pending);
+    } catch (e) {
+      debugPrint('[bff] Failed to load checkins: $e');
+    }
   }
 
   void _showCheckinSheet(BffPlan plan) {
@@ -85,10 +93,16 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
                   ),
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    await ref.read(bffProvider.notifier).submitPlanCheckin(plan.id, opt.$1);
-                    setState(() => _pendingCheckins.removeWhere((p) => p.id == plan.id));
-                    if (mounted) {
-                      ToastService.show(context, message: 'Thanks for your feedback!', type: ToastType.success);
+                    try {
+                      await ref.read(bffProvider.notifier).submitPlanCheckin(plan.id, opt.$1);
+                      setState(() => _pendingCheckins.removeWhere((p) => p.id == plan.id));
+                      if (mounted) {
+                        ToastService.show(context, message: 'Thanks for your feedback!', type: ToastType.success);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ToastService.show(context, message: 'Check-in failed', type: ToastType.error);
+                      }
                     }
                   },
                 ),
@@ -149,18 +163,25 @@ class _BffPlanScreenState extends ConsumerState<BffPlanScreen> {
       _selectedTime.minute,
     );
 
-    await ref.read(bffProvider.notifier).createPlan(
-          conversationId: widget.conversationId,
-          planType: _selectedType,
-          location: _locationCtrl.text.trim().isEmpty
-              ? null
-              : _locationCtrl.text.trim(),
-          scheduledAt: scheduledAt,
-        );
-
-    if (!mounted) return;
-    Navigator.pop(context, true);
-    ToastService.show(context, message: 'Plan sent!', type: ToastType.success);
+    try {
+      await ref.read(bffProvider.notifier).createPlan(
+            conversationId: widget.conversationId,
+            planType: _selectedType,
+            location: _locationCtrl.text.trim().isEmpty
+                ? null
+                : _locationCtrl.text.trim(),
+            scheduledAt: scheduledAt,
+          );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ToastService.show(context, message: 'Plan sent!', type: ToastType.success);
+    } catch (e) {
+      if (mounted) {
+        ToastService.show(context, message: 'Failed to create plan', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override

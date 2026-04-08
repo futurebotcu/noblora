@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/match_provider.dart';
 import '../../providers/video_provider.dart';
 import '../../data/models/inbox_item.dart';
 import '../../core/enums/noble_mode.dart';
@@ -20,13 +21,16 @@ class MatchDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final videoState = ref.watch(videoProvider(match.id));
+    // Watch matchProvider for live updates instead of using stale passed object
+    final liveMatch = ref.watch(matchProvider).matches
+        .where((m) => m.id == match.id).firstOrNull ?? match;
+    final videoState = ref.watch(videoProvider(liveMatch.id));
     final userId = ref.watch(authProvider).userId ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text(match.otherUserName ?? 'Match'),
+        title: Text(liveMatch.otherUserName ?? 'Match'),
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
       ),
@@ -36,26 +40,26 @@ class MatchDetailScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status card
-            _StatusCard(match: match),
+            _StatusCard(match: liveMatch),
             const SizedBox(height: AppSpacing.xxl),
 
             // Deadline counter
-            if (match.isPendingVideo && match.videoDeadlineAt != null)
-              _DeadlineCard(deadline: match.videoDeadlineAt!),
+            if (liveMatch.isPendingVideo && liveMatch.videoDeadlineAt != null)
+              _DeadlineCard(deadline: liveMatch.videoDeadlineAt!),
 
             // Pending intro hint
-            if (match.isPendingIntro && match.videoDeadlineAt != null)
-              _DeadlineCard(deadline: match.videoDeadlineAt!),
+            if (liveMatch.isPendingIntro && liveMatch.videoDeadlineAt != null)
+              _DeadlineCard(deadline: liveMatch.videoDeadlineAt!),
 
             // Video session info
-            if (videoState.session != null && !match.isChatting)
+            if (videoState.session != null && !liveMatch.isChatting)
               _SessionCard(session: videoState.session!),
 
             const Spacer(),
 
             // Action button
             _ActionButton(
-              match: match,
+              match: liveMatch,
               videoState: videoState,
               userId: userId,
             ),

@@ -57,8 +57,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
   @override
   void dispose() { _tabs.dispose(); super.dispose(); }
 
-  Future<void> _loadData() async {
-    if (_loaded || isMockMode) { _loaded = true; return; }
+  Future<void> _loadData({bool force = false}) async {
+    if ((_loaded && !force) || isMockMode) { _loaded = true; return; }
     final uid = ref.read(authProvider).userId;
     if (uid == null) return;
     try {
@@ -125,6 +125,13 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
           SliverAppBar(
             backgroundColor: context.bgColor, surfaceTintColor: Colors.transparent, pinned: true, floating: false,
             expandedHeight: 120, collapsedHeight: 60,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh_rounded, color: context.textMuted, size: 20),
+                onPressed: () => _loadData(force: true),
+                tooltip: 'Refresh',
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
               background: Container(

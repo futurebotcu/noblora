@@ -137,7 +137,7 @@ class Profile {
       bio: json['bio'] as String?,
       age: json['age'] as int?,
       city: json['city'] as String?,
-      occupation: json['profession'] as String?,
+      occupation: json['occupation'] as String?,
       height: json['height'] as int?,
       philosophy: json['philosophy'] as String?,
       drinks: json['drinks'] as String?,
@@ -146,11 +146,13 @@ class Profile {
       languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? const [],
       fromCountry: json['from_country'] as String?,
       countriesVisited: (json['countries_visited'] as List<dynamic>?)?.cast<String>() ?? const [],
-      interests: (json['interests'] as List<dynamic>?)?.cast<String>() ?? const [],
+      interests: (json['interests'] as List<dynamic>?)?.cast<String>() ??
+          (json['hobbies'] as List<dynamic>?)?.cast<String>() ?? const [],
       vibe: json['vibe'] as String?,
       lookingFor: json['looking_for'] as String?,
       zodiac: json['zodiac'] as String?,
-      photoUrls: (json['photo_urls'] as List<dynamic>?)?.cast<String>() ?? const [],
+      photoUrls: (json['photo_urls'] as List<dynamic>?)?.cast<String>() ??
+          (json['photos'] as List<dynamic>?)?.cast<String>() ?? const [],
     );
   }
 

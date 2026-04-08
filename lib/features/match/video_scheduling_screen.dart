@@ -58,38 +58,58 @@ class _VideoSchedulingScreenState extends ConsumerState<VideoSchedulingScreen> {
 
   Future<void> _propose() async {
     setState(() => _submitting = true);
-    final userId = ref.read(authProvider).userId ?? '';
-    final session = await ref
-        .read(videoProvider(widget.match.id).notifier)
-        .proposeTime(
-          matchId: widget.match.id,
-          proposedBy: userId,
-          recipientId: widget.match.otherUserId ?? '',
-          scheduledAt: _scheduled,
-        );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    if (session != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Video call proposed. Waiting for confirmation.'),
-        backgroundColor: AppColors.success,
-      ));
-      Navigator.pop(context);
+    try {
+      final userId = ref.read(authProvider).userId ?? '';
+      final session = await ref
+          .read(videoProvider(widget.match.id).notifier)
+          .proposeTime(
+            matchId: widget.match.id,
+            proposedBy: userId,
+            recipientId: widget.match.otherUserId ?? '',
+            scheduledAt: _scheduled,
+          );
+      if (!mounted) return;
+      if (session != null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Video call proposed. Waiting for confirmation.'),
+          backgroundColor: AppColors.success,
+        ));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to propose time'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   Future<void> _accept(VideoSession session) async {
     setState(() => _submitting = true);
-    final userId = ref.read(authProvider).userId ?? '';
-    await ref.read(videoProvider(widget.match.id).notifier).respond(
-          sessionId: session.id,
-          responderId: userId,
-          accepted: true,
-          proposerUserId: session.proposedBy,
-        );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    Navigator.pop(context);
+    try {
+      final userId = ref.read(authProvider).userId ?? '';
+      await ref.read(videoProvider(widget.match.id).notifier).respond(
+            sessionId: session.id,
+            responderId: userId,
+            accepted: true,
+            proposerUserId: session.proposedBy,
+          );
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to accept'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _openDeclineCounter(VideoSession session) async {
@@ -109,18 +129,28 @@ class _VideoSchedulingScreenState extends ConsumerState<VideoSchedulingScreen> {
 
   Future<void> _sendCounter(VideoSession session) async {
     setState(() => _submitting = true);
-    final userId = ref.read(authProvider).userId ?? '';
-    await ref.read(videoProvider(widget.match.id).notifier).respond(
-          sessionId: session.id,
-          responderId: userId,
-          accepted: false,
-          counterTime: _scheduled,
-        );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Counter-proposal sent.')));
-    Navigator.pop(context);
+    try {
+      final userId = ref.read(authProvider).userId ?? '';
+      await ref.read(videoProvider(widget.match.id).notifier).respond(
+            sessionId: session.id,
+            responderId: userId,
+            accepted: false,
+            counterTime: _scheduled,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Counter-proposal sent.')));
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to send counter-proposal'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -364,16 +394,26 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
   Future<void> _submit() async {
     if (_selectedIndex == null) return;
     setState(() => _submitting = true);
-    await ref.read(videoProvider(widget.matchId).notifier).decline(
-          sessionId: widget.session.id,
-          responderId: widget.responderId,
-          reason: _declineReasons[_selectedIndex!],
-          counterTime: _counterDateTime,
-        );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    Navigator.pop(context); // close sheet
-    widget.onDone();
+    try {
+      await ref.read(videoProvider(widget.matchId).notifier).decline(
+            sessionId: widget.session.id,
+            responderId: widget.responderId,
+            reason: _declineReasons[_selectedIndex!],
+            counterTime: _counterDateTime,
+          );
+      if (!mounted) return;
+      Navigator.pop(context); // close sheet
+      widget.onDone();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to decline'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -523,18 +563,29 @@ class _DeclineCounterSheetState extends ConsumerState<_DeclineCounterSheet> {
                           ? null
                           : () async {
                               setState(() => _submitting = true);
-                              await ref
-                                  .read(videoProvider(widget.matchId)
-                                      .notifier)
-                                  .decline(
-                                    sessionId: widget.session.id,
-                                    responderId: widget.responderId,
-                                    reason: _declineReasons[
-                                        _selectedIndex!],
-                                  );
-                              if (!context.mounted) return;
-                              Navigator.pop(context);
-                              widget.onDone();
+                              try {
+                                await ref
+                                    .read(videoProvider(widget.matchId)
+                                        .notifier)
+                                    .decline(
+                                      sessionId: widget.session.id,
+                                      responderId: widget.responderId,
+                                      reason: _declineReasons[
+                                          _selectedIndex!],
+                                    );
+                                if (!context.mounted) return;
+                                Navigator.pop(context);
+                                widget.onDone();
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                    content: Text('Failed to decline'),
+                                    backgroundColor: AppColors.error,
+                                  ));
+                                }
+                              } finally {
+                                if (context.mounted) setState(() => _submitting = false);
+                              }
                             },
                       style: TextButton.styleFrom(
                           foregroundColor: AppColors.textMuted),

@@ -152,25 +152,33 @@ class FeedNotifier extends StateNotifier<FeedState> {
 
   Future<void> swipeRight(String cardId) async {
     _removeCard(cardId, 'right');
-    final mode = _ref.read(modeProvider);
-    final match = await _ref.read(matchProvider.notifier).swipe(
-          targetId: cardId,
-          direction: 'right',
-          mode: mode.name,
-        );
-    if (match != null) {
-      state = state.copyWith(newMatch: match);
+    try {
+      final mode = _ref.read(modeProvider);
+      final match = await _ref.read(matchProvider.notifier).swipe(
+            targetId: cardId,
+            direction: 'right',
+            mode: mode.name,
+          );
+      if (match != null) {
+        state = state.copyWith(newMatch: match);
+      }
+    } catch (e) {
+      _rollbackCard();
     }
   }
 
   Future<void> swipeLeft(String cardId) async {
     _removeCard(cardId, 'left');
-    final mode = _ref.read(modeProvider);
-    await _ref.read(matchProvider.notifier).swipe(
-          targetId: cardId,
-          direction: 'left',
-          mode: mode.name,
-        );
+    try {
+      final mode = _ref.read(modeProvider);
+      await _ref.read(matchProvider.notifier).swipe(
+            targetId: cardId,
+            direction: 'left',
+            mode: mode.name,
+          );
+    } catch (e) {
+      _rollbackCard();
+    }
   }
 
   Future<void> sendSignal(String cardId) async {
@@ -210,6 +218,20 @@ class FeedNotifier extends StateNotifier<FeedState> {
 
   void clearNewMatch() {
     state = state.copyWith(clearNewMatch: true);
+  }
+
+  void clear() {
+    state = const FeedState();
+  }
+
+  void _rollbackCard() {
+    final card = state.lastRemovedCard;
+    if (card == null) return;
+    state = state.copyWith(
+      cards: [card, ...state.cards],
+      clearLastRemoved: true,
+      error: 'Swipe failed — card restored',
+    );
   }
 
   void _removeCard(String cardId, String direction) {

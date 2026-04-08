@@ -277,24 +277,33 @@ class PostsNotifier extends StateNotifier<PostsState> {
     final post = state.posts.where((p) => p.id == postId).firstOrNull;
     if (post == null) return;
 
+    final previousReactions = List<PostReaction>.from(post.reactions);
     final existing = post.myReaction(userId);
-    if (existing != null && existing.reactionType == reactionType) {
-      await _repo.removeReaction(postId: postId, userId: userId);
-      _updateReactions(
-          postId, post.reactions.where((r) => r.userId != userId).toList());
-    } else {
-      await _repo.react(postId: postId, userId: userId, reactionType: reactionType);
-      final updated = [
-        ...post.reactions.where((r) => r.userId != userId),
-        PostReaction(
-          id: 'opt-${DateTime.now().millisecondsSinceEpoch}',
-          postId: postId,
-          userId: userId,
-          reactionType: reactionType,
-          createdAt: DateTime.now(),
-        ),
-      ];
-      _updateReactions(postId, updated);
+
+    try {
+      if (existing != null && existing.reactionType == reactionType) {
+        // Optimistic remove
+        _updateReactions(
+            postId, post.reactions.where((r) => r.userId != userId).toList());
+        await _repo.removeReaction(postId: postId, userId: userId);
+      } else {
+        // Optimistic add
+        final updated = [
+          ...post.reactions.where((r) => r.userId != userId),
+          PostReaction(
+            id: 'opt-${DateTime.now().millisecondsSinceEpoch}',
+            postId: postId,
+            userId: userId,
+            reactionType: reactionType,
+            createdAt: DateTime.now(),
+          ),
+        ];
+        _updateReactions(postId, updated);
+        await _repo.react(postId: postId, userId: userId, reactionType: reactionType);
+      }
+    } catch (e) {
+      // Rollback to previous state
+      _updateReactions(postId, previousReactions);
     }
   }
 

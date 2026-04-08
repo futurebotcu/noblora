@@ -162,7 +162,8 @@ class SettingsScreen extends ConsumerWidget {
                             'verification_status': 'not_started',
                           }).eq('id', uid);
                         }
-                        n.toggleBool('is_paused'); // force UI refresh
+                        n.setString('verification_status', 'not_started');
+                        if (n.getBool('is_paused')) n.toggleBool('is_paused');
                         if (context.mounted) ToastService.show(context, message: 'Deletion cancelled — welcome back!', type: ToastType.success);
                       },
                       child: const Text('Cancel Deletion', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -528,6 +529,7 @@ class SettingsScreen extends ConsumerWidget {
           if (uid != null && !isMockMode) {
             await Supabase.instance.client.from('profiles').update({'is_paused': true}).eq('id', uid);
           }
+          ref.read(_settingsProvider.notifier).toggleBool('is_paused');
           if (context.mounted) ToastService.show(context, message: 'Account paused', type: ToastType.system);
         }, child: const Text('Pause', style: TextStyle(color: AppColors.warning))),
       ],

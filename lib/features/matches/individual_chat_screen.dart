@@ -75,6 +75,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   // Media upload
   bool _uploading = false;
 
+  // Expiry guard — set once on load, blocks send + input
+  bool _isExpired = false;
+
   InboxItem get _item => widget.item;
   Color get _accent => _item.mode.accentColor;
   bool get _isBff => _item.mode == NobleMode.bff;
@@ -93,6 +96,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       }
       _initTypingChannel();
       _loadReactions();
+      _checkMatchExpiry();
     });
   }
 
@@ -193,6 +197,11 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   // ── Media send ──
 
   Future<void> _pickAndSendImage() async {
+    // Guard: check match expiry before allowing media send
+    if (_isExpired) {
+      if (mounted) ToastService.show(context, message: 'This conversation has ended', type: ToastType.error);
+      return;
+    }
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200, imageQuality: 80);
     if (picked == null) return;
@@ -220,6 +229,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         mode: _item.mode.name,
         mediaUrl: url,
         mediaType: 'image',
+        matchId: widget.matchId,
       );
     } catch (e) {
       if (mounted) ToastService.show(context, message: 'Image failed to send', type: ToastType.error);
@@ -281,6 +291,23 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     }
   }
 
+  Future<void> _checkMatchExpiry() async {
+    if (widget.matchId == null || isMockMode) return;
+    try {
+      final match = await Supabase.instance.client
+          .from('matches')
+          .select('status, chat_expires_at')
+          .eq('id', widget.matchId!)
+          .maybeSingle();
+      if (match == null) return;
+      final status = match['status'] as String?;
+      final expiresAt = match['chat_expires_at'] as String?;
+      final expired = status == 'expired' || status == 'closed' ||
+          (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true);
+      if (expired && mounted) setState(() => _isExpired = true);
+    } catch (_) {}
+  }
+
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
@@ -336,6 +363,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
             senderDisplayName: displayName,
             content: text,
             mode: _item.mode.name,
+            matchId: widget.matchId,
           );
       // Server confirmed — pending message will be replaced by stream
       if (mounted) setState(() => _pendingMessages.remove(optimistic));
@@ -498,9 +526,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
 
     // Check if this match has been closed
     final matchState = ref.watch(matchProvider);
-    final isClosed = widget.matchId != null &&
+    final isClosed = _isExpired || (widget.matchId != null &&
         matchState.matches
-            .any((m) => m.id == widget.matchId && m.status == 'closed');
+            .any((m) => m.id == widget.matchId && (m.status == 'closed' || m.status == 'expired')));
 
     final isLoadingMessages = messagesAsync.isLoading;
     final rawMsgs = messagesAsync.valueOrNull ?? [];

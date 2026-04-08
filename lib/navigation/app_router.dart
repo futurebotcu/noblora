@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../providers/feed_provider.dart';
+import '../providers/filter_provider.dart';
+import '../providers/match_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/gating_provider.dart';
 import '../providers/verification_provider.dart';
@@ -68,11 +71,12 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     // bootstrap start
 
     // Load all three data sources in parallel before making any route decision.
+    // Timeout prevents infinite splash if backend is unreachable.
     await Future.wait([
       ref.read(profileProvider.notifier).loadProfile(),
       ref.read(gatingProvider.notifier).loadStatus(),
       ref.read(verificationProvider.notifier).load(),
-    ]);
+    ]).timeout(const Duration(seconds: 12), onTimeout: () => [null, null, null]);
 
     if (!mounted) {
       _bootstrapping = false;
@@ -127,6 +131,12 @@ class _AppRouterState extends ConsumerState<AppRouter> {
       ref.read(profileProvider.notifier).clear();
       ref.read(gatingProvider.notifier).clear();
       ref.read(verificationProvider.notifier).clear();
+      ref.read(feedProvider.notifier).clear();
+      ref.read(matchProvider.notifier).clear();
+      // interactionGateProvider watches authProvider — auto-invalidates on user change
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(filterProvider.notifier).setUserId(next.userId);
+      });
       if (next.userId != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _maybeBootstrap());
       }

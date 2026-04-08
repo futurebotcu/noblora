@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -80,17 +81,24 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
       // AI check failed — allow creation with default score
     }
 
-    await ref.read(roomListProvider.notifier).createRoom(
-          title: title,
-          description: _descCtrl.text.trim().isEmpty
-              ? null
-              : _descCtrl.text.trim(),
-          topicTags: _selectedTags.toList(),
-          maxParticipants: _maxParticipants,
-          qualityScore: qualityScore,
-        );
-
-    if (mounted) Navigator.pop(context, true);
+    try {
+      await ref.read(roomListProvider.notifier).createRoom(
+            title: title,
+            description: _descCtrl.text.trim().isEmpty
+                ? null
+                : _descCtrl.text.trim(),
+            topicTags: _selectedTags.toList(),
+            maxParticipants: _maxParticipants,
+            qualityScore: qualityScore,
+          );
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ToastService.show(context, message: 'Failed to create room', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override

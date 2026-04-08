@@ -90,10 +90,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               child: _FeedBody(
                 feed: feed,
                 mode: mode,
-                onSwipeRight: (id) =>
-                    ref.read(feedProvider.notifier).swipeRight(id),
+                onSwipeRight: (id) {
+                  final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
+                  if (!gate.canInteract(mode.name)) return;
+                  ref.read(feedProvider.notifier).swipeRight(id);
+                },
                 onSwipeLeft: (id) =>
                     ref.read(feedProvider.notifier).swipeLeft(id),
+                onRetry: () =>
+                    ref.read(feedProvider.notifier).loadFeed(),
               ),
             ),
             if (feed.cards.isNotEmpty)
@@ -186,12 +191,14 @@ class _FeedBody extends StatelessWidget {
   final NobleMode mode;
   final void Function(String) onSwipeRight;
   final void Function(String) onSwipeLeft;
+  final VoidCallback? onRetry;
 
   const _FeedBody({
     required this.feed,
     required this.mode,
     required this.onSwipeRight,
     required this.onSwipeLeft,
+    this.onRetry,
   });
 
   @override
@@ -202,6 +209,33 @@ class _FeedBody extends StatelessWidget {
         child: PremiumSkeleton(
           height: MediaQuery.of(context).size.height * 0.66,
           radius: AppSpacing.radiusXl,
+        ),
+      );
+    }
+
+    if (feed.error != null && feed.cards.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 48, color: context.textDisabled),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Could not load profiles',
+                  style: TextStyle(color: context.textMuted, fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: AppSpacing.sm),
+              Text('Check your connection and try again',
+                  style: TextStyle(color: context.textDisabled, fontSize: 13)),
+              const SizedBox(height: AppSpacing.xxl),
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.emerald500),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -428,6 +462,7 @@ class _ActionRowState extends ConsumerState<_ActionRow>
   }
 
   void _onConnect(String cardId) {
+    if (!_checkGate(context, widget.mode.name)) return;
     setState(() => _showHandshake = true);
     _hsCtrl.forward(from: 0).then((_) {
       if (mounted) setState(() => _showHandshake = false);

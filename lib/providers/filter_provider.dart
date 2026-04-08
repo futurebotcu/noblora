@@ -4,10 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/filter_state.dart';
 
-const _prefsKey = 'noblara_filter_state';
+const _prefsKeyBase = 'noblara_filter_state';
 
 class FilterNotifier extends StateNotifier<FilterState> {
+  String? _userId;
+
   FilterNotifier() : super(const FilterState()) {
+    _load();
+  }
+
+  String get _prefsKey => _userId != null ? '${_prefsKeyBase}_$_userId' : _prefsKeyBase;
+
+  void setUserId(String? uid) {
+    if (_userId == uid) return;
+    _userId = uid;
     _load();
   }
 

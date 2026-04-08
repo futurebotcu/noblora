@@ -131,7 +131,7 @@ class PhotosMediaSection extends ConsumerWidget {
         }
         return;
       }
-      final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = '$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
       final url = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
       ref.read(editProfileProvider.notifier).updateDraft((d) {

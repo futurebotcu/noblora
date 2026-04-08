@@ -58,10 +58,49 @@ class MatchNotifier extends StateNotifier<MatchListState> {
   final MatchRepository _repo;
   final SwipeRepository _swipeRepo;
   final Ref _ref;
+  RealtimeChannel? _realtimeChannel;
 
   MatchNotifier(this._repo, this._swipeRepo, this._ref)
       : super(const MatchListState()) {
     load();
+    _subscribeRealtime();
+  }
+
+  void _subscribeRealtime() {
+    if (isMockMode) return;
+    final userId = _ref.read(authProvider).userId;
+    if (userId == null) return;
+    _realtimeChannel = Supabase.instance.client
+        .channel('matches_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'matches',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user1_id',
+            value: userId,
+          ),
+          callback: (_) => load(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'matches',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user2_id',
+            value: userId,
+          ),
+          callback: (_) => load(),
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _realtimeChannel?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> load() async {
@@ -105,6 +144,12 @@ class MatchNotifier extends StateNotifier<MatchListState> {
 
   void clearNewMatch() {
     state = state.copyWith(clearNewMatch: true);
+  }
+
+  void clear() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+    state = const MatchListState();
   }
 
   void updateMatch(NobleMatch updated) {

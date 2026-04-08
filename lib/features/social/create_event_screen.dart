@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -69,19 +70,26 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       _eventTime.hour, _eventTime.minute,
     );
 
-    await ref.read(eventListProvider.notifier).createEvent(
-          title: title,
-          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-          eventDate: scheduledAt,
-          locationText: _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
-          maxAttendees: _maxAttendees,
-          companionEnabled: _companionEnabled,
-          plus3Enabled: _plus3Enabled,
-          qualityScore: _qualityScore,
-        );
-
-    if (!mounted) return;
-    Navigator.pop(context, true);
+    try {
+      await ref.read(eventListProvider.notifier).createEvent(
+            title: title,
+            description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+            eventDate: scheduledAt,
+            locationText: _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
+            maxAttendees: _maxAttendees,
+            companionEnabled: _companionEnabled,
+            plus3Enabled: _plus3Enabled,
+            qualityScore: _qualityScore,
+          );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ToastService.show(context, message: 'Failed to create event', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
