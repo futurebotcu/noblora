@@ -398,7 +398,10 @@ class SettingsScreen extends ConsumerWidget {
                       iconColor: AppColors.error,
                       titleColor: AppColors.error,
                       showChevron: false,
-                      onTap: () => ref.read(authProvider.notifier).signOut()),
+                      onTap: () {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        ref.read(authProvider.notifier).signOut();
+                      }),
                 ],
               ),
             ),
@@ -582,13 +585,14 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('Cancel', style: TextStyle(color: context.textMuted))),
           TextButton(
             onPressed: ctrl.text == 'DELETE' ? () async {
-              Navigator.pop(ctx);
+              Navigator.pop(ctx); // close dialog
               if (!isMockMode) {
                 final uid = ref.read(authProvider).userId;
                 if (uid != null) {
                   await Supabase.instance.client.from('profiles').update({'is_paused': true, 'verification_status': 'deletion_requested'}).eq('id', uid);
                 }
               }
+              if (context.mounted) Navigator.of(context).popUntil((route) => route.isFirst);
               await ref.read(authProvider.notifier).signOut();
             } : null,
             child: Text('Delete', style: TextStyle(color: ctrl.text == 'DELETE' ? AppColors.error : context.textDisabled)),
