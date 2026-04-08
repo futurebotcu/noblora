@@ -144,7 +144,7 @@ class SettingsScreen extends ConsumerWidget {
                           style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600, fontSize: 14))),
                     ]),
                     const SizedBox(height: AppSpacing.sm),
-                    Text('Your account is queued for deletion within 30 days. You can cancel this and keep your account.',
+                    Text('Your account is flagged for deletion. Cancel anytime to keep your account.',
                         style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4)),
                     const SizedBox(height: AppSpacing.md),
                     SizedBox(width: double.infinity, child: ElevatedButton(
@@ -551,7 +551,7 @@ class SettingsScreen extends ConsumerWidget {
         shape: Premium.dialogShape(),
         title: Text('Delete Account', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Your account will be queued for permanent deletion. All data will be removed within 30 days. You will be signed out immediately.',
+          Text('Your account will be paused and flagged for deletion. You can sign back in anytime to cancel. You will be signed out immediately.',
               style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
           const SizedBox(height: AppSpacing.lg),
           Text('Type DELETE to confirm:', style: TextStyle(color: context.textMuted, fontSize: 12)),
