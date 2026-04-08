@@ -92,7 +92,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         final repo = ref.read(messagesRepositoryProvider);
         repo.markRead(conversationId: widget.conversationId, userId: userId);
         repo.markDelivered(conversationId: widget.conversationId, userId: userId);
-        repo.markMessagesRead(conversationId: widget.conversationId, userId: userId);
+        repo.markMessagesRead(conversationId: widget.conversationId, userId: userId).then((_) {
+          ref.invalidate(unreadMessageCountProvider);
+        });
       }
       _initTypingChannel();
       _loadReactions();

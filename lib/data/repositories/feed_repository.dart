@@ -123,9 +123,9 @@ class FeedRepository {
         query = query.eq('bff_looking_for', filters.bffLookingFor!);
       }
 
-      // Has Nob posts
+      // Has Nob posts (weekly — survives UTC daily reset)
       if (filters.hasNobs) {
-        query = query.gt('daily_nob_count', 0);
+        query = query.gt('weekly_nob_count', 0);
       }
 
       // Has prompts

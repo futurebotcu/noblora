@@ -16,6 +16,7 @@ import '../features/profile/tier_promotion_screen.dart';
 import '../features/verification/verification_hub_screen.dart';
 import '../features/entry_gate/entry_gate_screen.dart';
 import '../data/models/post.dart';
+import '../providers/messages_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/posts_provider.dart';
 import '../providers/profile_provider.dart';
@@ -248,7 +249,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         ? [..._baseScreens, const AdminScreen()]
         : _baseScreens;
 
-    final notifState = ref.watch(notificationProvider);
+    ref.watch(notificationProvider); // keep realtime subscription alive
 
     // Show in-app banner when a new notification arrives
     ref.listen<NotificationState>(notificationProvider, (prev, next) async {
@@ -399,7 +400,9 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       );
     });
 
-    final unreadCount = notifState.unreadCount;
+    // Chat badge: show unread message count, not notification count
+    final unreadMessages = ref.watch(unreadMessageCountProvider).valueOrNull ?? 0;
+    final unreadCount = unreadMessages;
 
     // Clamp index when admin tab appears/disappears
     final safeIndex = _currentIndex.clamp(0, screens.length - 1);

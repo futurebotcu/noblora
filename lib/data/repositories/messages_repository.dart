@@ -207,6 +207,24 @@ class MessagesRepository {
     return (rows as List).length;
   }
 
+  /// Total unread messages across all conversations for badge display
+  Future<int> totalUnreadCount({required String userId}) async {
+    if (isMockMode) return 0;
+    final db = _supabase;
+    if (db == null) return 0;
+    try {
+      final rows = await db
+          .from('messages')
+          .select('id')
+          .neq('sender_id', userId)
+          .isFilter('read_at', null)
+          .limit(100);
+      return (rows as List).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<void> markRead({
     required String conversationId,
     required String userId,

@@ -56,7 +56,10 @@ class _State extends ConsumerState<FilterBottomSheet> {
       final repo = ref.read(feedRepositoryProvider);
       final c = await repo.countFilteredProfiles(userId: uid, mode: ref.read(modeProvider).name, filters: _f);
       if (mounted) setState(() => _count = c);
-    } catch (e) { debugPrint('[filters] Count fetch failed: $e'); }
+    } catch (e) {
+      debugPrint('[filters] Count fetch failed: $e');
+      if (mounted) setState(() => _count = -1);
+    }
   }
 
   @override
@@ -233,7 +236,10 @@ class _State extends ConsumerState<FilterBottomSheet> {
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Icon(Icons.auto_awesome_rounded, color: accent, size: 13),
                   const SizedBox(width: 6),
-                  Text('$_count profiles match', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text(
+                    _count < 0 ? 'Counting...' : '${_f.hasExtraFilters ? "~" : ""}$_count profiles match',
+                    style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
                 ])),
               Container(
                 width: double.infinity,

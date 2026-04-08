@@ -123,6 +123,13 @@ class FilterState {
     );
   }
 
+  /// True when filters are active that the oracle RPC doesn't support
+  bool get hasExtraFilters =>
+      hasNobs || hasPrompts || sixPlusPhotos || pinnedNobExists ||
+      drinks != null || smokes != null || nightlife != null ||
+      socialEnergy != null || routine != null || faithSensitivity != null ||
+      lookingFor != null || bffLookingFor != null || sameCityOnly;
+
   /// Count of active filters for badge display.
   int activeCount(NobleMode mode) {
     int c = 0;
