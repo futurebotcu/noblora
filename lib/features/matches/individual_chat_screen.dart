@@ -78,6 +78,11 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   // Expiry guard — set once on load, blocks send + input
   bool _isExpired = false;
 
+  // Older messages pagination
+  final List<ChatMessage> _olderMessages = [];
+  bool _loadingOlder = false;
+  bool _noMoreOlder = false;
+
   InboxItem get _item => widget.item;
   Color get _accent => _item.mode.accentColor;
   bool get _isBff => _item.mode == NobleMode.bff;
@@ -308,6 +313,37 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
           (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true);
       if (expired && mounted) setState(() => _isExpired = true);
     } catch (_) {}
+  }
+
+  Future<void> _loadOlderMessages() async {
+    if (_loadingOlder || _noMoreOlder) return;
+    setState(() => _loadingOlder = true);
+    try {
+      final repo = ref.read(messagesRepositoryProvider);
+      // Find the earliest message timestamp from current view
+      final streamMsgs = ref.read(messagesStreamProvider(widget.conversationId)).valueOrNull ?? [];
+      final allCurrent = [..._olderMessages, ...streamMsgs];
+      if (allCurrent.isEmpty) {
+        setState(() { _loadingOlder = false; _noMoreOlder = true; });
+        return;
+      }
+      allCurrent.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final oldest = allCurrent.first.createdAt.toIso8601String();
+      final older = await repo.fetchOlderMessages(
+        widget.conversationId,
+        beforeTimestamp: oldest,
+      );
+      if (older.isEmpty) {
+        setState(() { _loadingOlder = false; _noMoreOlder = true; });
+        return;
+      }
+      setState(() {
+        _olderMessages.insertAll(0, older);
+        _loadingOlder = false;
+      });
+    } catch (_) {
+      setState(() => _loadingOlder = false);
+    }
   }
 
   Future<void> _blockOrHideUser(BuildContext context, WidgetRef ref, String column) async {
@@ -629,10 +665,14 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         if (mounted) _checkForNudge(rawMsgs);
       });
     }
-    // Merge server messages with pending optimistic messages
-    final allMsgs = [...rawMsgs, ..._pendingMessages.where(
-      (p) => !rawMsgs.any((r) => r.content == p.content && r.senderId == p.senderId),
-    )];
+    // Merge older + stream + pending messages
+    final allMsgs = [
+      ..._olderMessages,
+      ...rawMsgs.where((r) => !_olderMessages.any((o) => o.id == r.id)),
+      ..._pendingMessages.where(
+        (p) => !rawMsgs.any((r) => r.content == p.content && r.senderId == p.senderId),
+      ),
+    ];
     final messages = _buildMessages(allMsgs, currentUserId);
 
     // Auto-scroll only when new messages arrive (not on every rebuild)
@@ -946,9 +986,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                     : ListView.builder(
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.all(AppSpacing.lg),
-                        itemCount: _searchMode && _searchResults != null
+                        itemCount: (_searchMode && _searchResults != null
                             ? _searchResults!.length
-                            : messages.length,
+                            : messages.length) + (_searchMode ? 0 : 1), // +1 for load-earlier header
                         itemBuilder: (context, i) {
                           if (_searchMode && _searchResults != null) {
                             final sm = _searchResults![i];
@@ -968,7 +1008,24 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                               onReaction: (emoji) => _toggleReaction(sm.id, emoji),
                             );
                           }
-                          final msg = messages[i];
+                          // Index 0 = "Load earlier messages" header
+                          if (i == 0) {
+                            if (_noMoreOlder) {
+                              return const SizedBox(height: 8);
+                            }
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _loadingOlder
+                                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 1.5, color: accent))
+                                    : TextButton(
+                                        onPressed: _loadOlderMessages,
+                                        child: Text('Load earlier messages', style: TextStyle(color: context.textMuted, fontSize: 12)),
+                                      ),
+                              ),
+                            );
+                          }
+                          final msg = messages[i - 1]; // offset by 1 for header
                           return _MsgBubble(
                             msg: msg,
                             accentColor: accent,
