@@ -9,6 +9,7 @@ import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/services/toast_service.dart';
+import 'help_center_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Settings provider — loads/saves ALL settings from profiles
@@ -330,7 +331,7 @@ class SettingsScreen extends ConsumerWidget {
           const _Section('Support'),
           _Card(children: [
             _Row(Icons.help_outline_rounded, 'Help Center',
-                onTap: () => _showHelpCenter(context)),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen()))),
             _Row(Icons.email_outlined, 'Contact Support',
                 onTap: () => _showContent(context, 'Contact Support',
                     'Email us at support@noblara.com with your account email and a description of the issue. We typically respond within 24 hours.')),
@@ -429,79 +430,6 @@ class SettingsScreen extends ConsumerWidget {
       Supabase.instance.client.auth.currentUser?.email ?? '',
     );
     ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
-  }
-
-  void _showHelpCenter(BuildContext context) {
-    const sections = [
-      (
-        'How Noblara Works',
-        Icons.explore_outlined,
-        'Noblara has three modes:\n\n'
-        '• Noble Date — swipe to find romantic matches. Mutual likes start a conversation with a 24-hour window to schedule a video call.\n\n'
-        '• Noble BFF — discover potential friends. Accept suggestions to start planning activities together.\n\n'
-        '• Noblara Feed — share thoughts, moments, and photos with the community. No matching required.'
-      ),
-      (
-        'Why Are Some Features Locked?',
-        Icons.lock_outline_rounded,
-        'Noblara uses gating to keep the community safe:\n\n'
-        '• Add at least one photo to use Dating and BFF modes.\n\n'
-        '• Verify your photo to create Social events.\n\n'
-        '• Noble tier users get full access to all features.\n\n'
-        'Your tier (Observer → Explorer → Noble) is calculated based on profile completeness, activity, and trust score.'
-      ),
-      (
-        'Pause & Delete',
-        Icons.pause_circle_outline,
-        'Pause Account — hides you from discovery. Your data stays safe. Resume anytime.\n\n'
-        'Delete Account — pauses your account immediately and permanently deletes all your data after 30 days. Sign back in within 30 days to cancel deletion.'
-      ),
-      (
-        'Verification',
-        Icons.verified_outlined,
-        'Photo verification confirms you look like your photos. Take a selfie when prompted and our system will compare it.\n\n'
-        'Verified users get a badge, higher trust scores, and access to more features.'
-      ),
-      (
-        'Contact Support',
-        Icons.email_outlined,
-        'Email us at support@noblara.com with your account email and a description of your issue. We typically respond within 24 hours.\n\n'
-        'For urgent safety concerns, include "URGENT" in the subject line.'
-      ),
-    ];
-    showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7, maxChildSize: 0.9, expand: false,
-        builder: (ctx, scroll) => Container(
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
-          ),
-          child: ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-            _sheetHandle(context),
-            const SizedBox(height: AppSpacing.xxl),
-            Text('Help Center', style: TextStyle(color: context.textPrimary, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
-            const SizedBox(height: 4),
-            Text('Everything you need to know', style: TextStyle(color: context.textMuted, fontSize: 13)),
-            const SizedBox(height: AppSpacing.xxl),
-            ...sections.map((s) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: ExpansionTile(
-                leading: Icon(s.$2, color: context.accent, size: 20),
-                title: Text(s.$1, style: TextStyle(color: context.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                collapsedIconColor: context.textDisabled,
-                iconColor: context.accent,
-                tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-                childrenPadding: const EdgeInsets.fromLTRB(48, 0, 16, 16),
-                children: [Text(s.$3, style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.6))],
-              ),
-            )),
-          ]),
-        ),
-      ),
-    );
   }
 
   void _showContent(BuildContext context, String title, String body) {
