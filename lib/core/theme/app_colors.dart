@@ -59,7 +59,7 @@ class AppColors {
     AccentColor(
       id: 'gold', name: 'Gold',
       primary: Color(0xFFD4A843), dim: Color(0xFFB8922F),
-      onAccent: Color(0xFF1A1400), nobleOnly: true,
+      onAccent: Color(0xFF1A1400),
     ),
     AccentColor(
       id: 'sapphire', name: 'Sapphire',

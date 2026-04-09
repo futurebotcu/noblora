@@ -310,6 +310,67 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     } catch (_) {}
   }
 
+  void _showReportSheet(BuildContext context, WidgetRef ref) {
+    const reasons = [
+      'Inappropriate messages',
+      'Fake profile / catfish',
+      'Harassment or threats',
+      'Spam or scam',
+      'Underage user',
+      'Other',
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
+                color: context.borderColor, borderRadius: BorderRadius.circular(999)))),
+              const SizedBox(height: 20),
+              Text('Report ${_item.name}', style: TextStyle(
+                color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text('Your report is confidential.', style: TextStyle(
+                color: context.textMuted, fontSize: 13)),
+              const SizedBox(height: 16),
+              ...reasons.map((reason) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(reason, style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                trailing: Icon(Icons.chevron_right_rounded, color: context.textDisabled, size: 20),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final uid = ref.read(authProvider).userId;
+                  if (uid == null || isMockMode) return;
+                  try {
+                    await Supabase.instance.client.from('user_reports').insert({
+                      'reporter_id': uid,
+                      'reported_user_id': _item.id,
+                      'reason': reason,
+                      'context': 'chat',
+                      'context_id': widget.matchId,
+                    });
+                  } catch (_) {}
+                  if (context.mounted) {
+                    ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                  }
+                },
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
@@ -668,7 +729,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
               icon: Icon(Icons.more_vert_rounded, color: context.textMuted),
               color: context.surfaceColor,
               onSelected: (v) {
-                if (v == 'end') {
+                if (v == 'report') {
+                  _showReportSheet(context, ref);
+                } else if (v == 'end') {
                   final match = matchState.matches.where((m) => m.id == widget.matchId).firstOrNull;
                   Navigator.push(context, MaterialPageRoute(builder: (_) => EndConnectionScreen(
                     matchId: widget.matchId!,
@@ -679,10 +742,15 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 }
               },
               itemBuilder: (_) => [
-                PopupMenuItem(value: 'end', child: Row(children: [
-                  Icon(Icons.link_off_rounded, color: context.textMuted, size: 18),
+                PopupMenuItem(value: 'report', child: Row(children: [
+                  Icon(Icons.flag_outlined, color: context.textMuted, size: 18),
                   const SizedBox(width: 8),
-                  Text('End this connection', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                  Text('Report user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                ])),
+                PopupMenuItem(value: 'end', child: Row(children: [
+                  Icon(Icons.link_off_rounded, color: AppColors.error, size: 18),
+                  const SizedBox(width: 8),
+                  Text('End this connection', style: TextStyle(color: AppColors.error, fontSize: 14)),
                 ])),
               ],
             ),

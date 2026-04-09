@@ -3,7 +3,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 bool get isMockMode {
   final supabaseUrl = dotenv.maybeGet('SUPABASE_URL') ?? '';
-  return supabaseUrl.isEmpty || supabaseUrl.contains('<');
+  final isMock = supabaseUrl.isEmpty || supabaseUrl.contains('<');
+  assert(!isMock || kDebugMode, 'SUPABASE_URL is missing or placeholder — app cannot run in release without valid .env');
+  return isMock;
 }
 
 /// Feature flag — Social layer (events, rooms, circles, group chats).

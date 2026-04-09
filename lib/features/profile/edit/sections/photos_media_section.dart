@@ -131,6 +131,9 @@ class PhotosMediaSection extends ConsumerWidget {
         }
         return;
       }
+      // Delete old photo from storage if replacing
+      final draft = ref.read(editProfileProvider).draft;
+      final oldUrl = index < draft.photoUrls.length ? draft.photoUrls[index] : null;
       final path = '$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
       final url = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
@@ -140,6 +143,14 @@ class PhotosMediaSection extends ConsumerWidget {
         d.photoUrls = urls;
         return d;
       });
+      // Cleanup replaced photo
+      if (oldUrl != null && oldUrl.contains('profile-photos')) {
+        final segments = Uri.parse(oldUrl).pathSegments;
+        final storagePath = segments.length >= 2 ? segments.sublist(segments.length - 2).join('/') : null;
+        if (storagePath != null) {
+          try { await Supabase.instance.client.storage.from('profile-photos').remove([storagePath]); } catch (_) {}
+        }
+      }
     } catch (e) {
       if (context.mounted) ToastService.show(context, message: 'Photo upload failed', type: ToastType.error);
     }
