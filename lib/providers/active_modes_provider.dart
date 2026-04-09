@@ -73,7 +73,6 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
       }
       // Strip any disabled modes (e.g. 'social' when the feature flag is off).
       loaded.removeWhere((m) => !_allowedModes.contains(m));
-      if (loaded.isEmpty) loaded.add('date');
       state = state.copyWith(modes: loaded, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());

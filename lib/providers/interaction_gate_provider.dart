@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../core/services/toast_service.dart';
 import '../core/theme/app_colors.dart';
-import '../core/theme/app_spacing.dart';
-import '../core/theme/app_tokens.dart';
-import '../core/theme/premium.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 
@@ -84,57 +80,43 @@ void showGatingPopup(BuildContext context, String title, String message, {GatePo
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [context.surfaceColor, context.bgColor],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
-        border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.1))),
-      ),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.md, AppSpacing.xxl, AppSpacing.xxxxl),
+    backgroundColor: const Color(0xFF111113),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (_) => Padding(
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 36, height: 4, decoration: BoxDecoration(
-              color: AppColors.emerald600.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999))),
-          const SizedBox(height: AppSpacing.xxxl),
+          Container(width: 36, height: 3, decoration: BoxDecoration(
+              color: const Color(0xFF222225), borderRadius: BorderRadius.circular(999))),
+          const SizedBox(height: 32),
           Container(
-            width: 72, height: 72,
+            width: 64, height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-                colors: [AppColors.emerald600.withValues(alpha: 0.15), AppColors.emerald600.withValues(alpha: 0.05)],
-              ),
-              border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.2)),
-              boxShadow: [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.1), blurRadius: 24, spreadRadius: 2)],
+              color: AppColors.gold.withValues(alpha: 0.06),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
             ),
-            child: Icon(icon, color: AppColors.emerald500, size: 30),
+            child: Icon(icon, color: AppColors.gold, size: 28),
           ),
-          const SizedBox(height: AppSpacing.xxl),
-          Text(title, style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 20),
+          Text(title, style: const TextStyle(color: Color(0xFFF2F2F2), fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+          const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center,
-              style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.6)),
-          const SizedBox(height: AppSpacing.xxxl),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: Premium.emeraldGlow(intensity: 0.5),
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.emerald600, foregroundColor: AppColors.textOnEmerald,
-                  minimumSize: const Size.fromHeight(54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              style: const TextStyle(color: AppColors.gold, fontSize: 14, height: 1.5)),
+          const SizedBox(height: 28),
+          SizedBox(width: double.infinity, child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF080808),
+                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
               onPressed: () {
                 Navigator.pop(context);
-                ToastService.show(context, message: 'Head to your Profile to add a photo', type: ToastType.system);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Go to Profile tab to add or update your photo.')),
+                );
               },
-              child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3))),
-          ),
+              child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.3)))),
         ],
       ),
     ),

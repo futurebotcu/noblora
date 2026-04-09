@@ -84,9 +84,9 @@ class AppColors {
   // ══════════════════════════════════════════════════════════════
   // BRAND SHORTHAND
   // ══════════════════════════════════════════════════════════════
-  static const Color gold     = emerald600;
-  static const Color goldLight = Color(0x222C8C68);
-  static const Color goldDark = emerald800;
+  static const Color gold     = Color(0xFFD4A843);
+  static const Color goldLight = Color(0x22D4A843);
+  static const Color goldDark = Color(0xFFB8922F);
 
   // ══════════════════════════════════════════════════════════════
   // FOUNDATION — near-black, yeşilimsi-kömür alt ton
@@ -108,12 +108,12 @@ class AppColors {
   static const Color textOnEmerald = Color(0xFFFFFFFF);
 
   // ══════════════════════════════════════════════════════════════
-  // SEMANTIC — mono palette (emerald + white + black only)
+  // SEMANTIC
   // ══════════════════════════════════════════════════════════════
   static const Color success = Color(0xFF2FA36C);
-  static const Color error   = Color(0xFF4A5550);  // muted dark — no red
-  static const Color warning = Color(0xFF1F6E53);  // emerald700 — soft alert
-  static const Color info    = Color(0xFF43A27A);  // emerald500
+  static const Color error   = Color(0xFFD1584A);
+  static const Color warning = Color(0xFFC48A2C);
+  static const Color info    = Color(0xFF4F89F6);
 
   // ══════════════════════════════════════════════════════════════
   // BORDERS — karanlık zeminde seçilebilir
@@ -122,13 +122,13 @@ class AppColors {
   static const Color borderLight  = Color(0xFF26312B);
   static const Color borderSubtle = Color(0xFF212B26);
   static const Color borderStrong = Color(0xFF37463E);
-  static const Color borderGold   = Color(0x442C8C68);
+  static const Color borderGold   = Color(0x44D4A843);
 
   // ══════════════════════════════════════════════════════════════
   // SWIPE OVERLAYS
   // ══════════════════════════════════════════════════════════════
   static const Color selectOverlay = Color(0x552FA36C);
-  static const Color passOverlay  = Color(0x55303D37);  // dark neutral — no red
+  static const Color passOverlay  = Color(0x55D1584A);
 
   // ══════════════════════════════════════════════════════════════
   // MODE ACCENTS
