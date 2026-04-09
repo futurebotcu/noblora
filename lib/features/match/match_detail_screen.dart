@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
+import '../../core/services/toast_service.dart';
+import '../../core/utils/mock_mode.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
@@ -33,6 +36,22 @@ class MatchDetailScreen extends ConsumerWidget {
         title: Text(liveMatch.otherUserName ?? 'Match'),
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert_rounded, color: AppColors.textMuted),
+            color: AppColors.surface,
+            onSelected: (v) {
+              if (v == 'report') _showReportSheet(context, ref, liveMatch);
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'report', child: Row(children: [
+                Icon(Icons.flag_outlined, color: AppColors.textMuted, size: 18),
+                const SizedBox(width: 8),
+                Text('Report user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+              ])),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -64,6 +83,67 @@ class MatchDetailScreen extends ConsumerWidget {
               userId: userId,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  static void _showReportSheet(BuildContext context, WidgetRef ref, NobleMatch match) {
+    const reasons = [
+      'Inappropriate messages',
+      'Fake profile / catfish',
+      'Harassment or threats',
+      'Spam or scam',
+      'Underage user',
+      'Other',
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
+                color: AppColors.border, borderRadius: BorderRadius.circular(999)))),
+              const SizedBox(height: 20),
+              Text('Report ${match.otherUserName ?? 'this user'}', style: TextStyle(
+                color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text('Your report is confidential.', style: TextStyle(
+                color: AppColors.textMuted, fontSize: 13)),
+              const SizedBox(height: 16),
+              ...reasons.map((reason) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(reason, style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled, size: 20),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final uid = ref.read(authProvider).userId;
+                  if (uid == null || isMockMode) return;
+                  try {
+                    await Supabase.instance.client.from('user_reports').insert({
+                      'reporter_id': uid,
+                      'reported_user_id': match.otherUserId,
+                      'reason': reason,
+                      'context': 'match_detail',
+                      'context_id': match.id,
+                    });
+                  } catch (_) {}
+                  if (context.mounted) {
+                    ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                  }
+                },
+              )),
+            ],
+          ),
         ),
       ),
     );
