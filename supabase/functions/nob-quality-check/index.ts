@@ -8,23 +8,17 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function validateApiKey(req: Request): boolean {
-  const key = req.headers.get("apikey") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  if (!key || (anonKey && key !== anonKey) || key.length < 20) {
-    return false;
-  }
-  return true;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS, status: 200 });
   }
 
-  if (!validateApiKey(req)) {
+  // JWT is now verified by Supabase gateway (verify_jwt: true).
+  // Extract user from Authorization header for ownership check.
+  const authHeader = req.headers.get("authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
     return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
+      JSON.stringify({ error: "Missing authorization" }),
       { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
     );
   }
@@ -36,6 +30,27 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Missing post_id or content" }),
         { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create authenticated client to verify post ownership
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify the caller owns this post (RLS enforces this)
+    const { data: post, error: postErr } = await supabaseAuth
+      .from("posts")
+      .select("id, user_id")
+      .eq("id", post_id)
+      .maybeSingle();
+
+    if (postErr || !post) {
+      return new Response(
+        JSON.stringify({ error: "Post not found or not yours" }),
+        { status: 403, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
       );
     }
 
@@ -81,13 +96,13 @@ Post content: ${content || "(moment — caption only)"}`;
       // fallback
     }
 
-    // Update quality_score in posts table
-    const supabase = createClient(
+    // Update quality_score using service role (bypasses RLS for system write)
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    await supabase
+    await supabaseAdmin
       .from("posts")
       .update({ quality_score: score })
       .eq("id", post_id);

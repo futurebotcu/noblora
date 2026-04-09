@@ -143,6 +143,24 @@ class MessagesRepository {
         });
   }
 
+  /// Fetch messages older than [beforeTimestamp] for scroll-back pagination.
+  Future<List<ChatMessage>> fetchOlderMessages(
+    String conversationId, {
+    required String beforeTimestamp,
+    int limit = 50,
+  }) async {
+    final db = _supabase;
+    if (isMockMode || db == null) return [];
+    final rows = await db
+        .from('messages')
+        .select()
+        .eq('conversation_id', conversationId)
+        .lt('created_at', beforeTimestamp)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return rows.map((r) => ChatMessage.fromJson(r)).toList().reversed.toList();
+  }
+
   // ---------------------------------------------------------------------------
   // Send
   // ---------------------------------------------------------------------------

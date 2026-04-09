@@ -310,6 +310,34 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     } catch (_) {}
   }
 
+  Future<void> _blockOrHideUser(BuildContext context, WidgetRef ref, String column) async {
+    final label = column == 'blocked_users' ? 'Block' : 'Hide';
+    final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
+      backgroundColor: context.surfaceColor,
+      title: Text('$label ${_item.name}?', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      content: Text(column == 'blocked_users'
+          ? 'They won\'t be able to see your profile or contact you.'
+          : 'They\'ll be removed from your feed. They can still see your profile.',
+          style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(label, style: TextStyle(color: AppColors.error))),
+      ],
+    ));
+    if (confirmed != true) return;
+    final uid = ref.read(authProvider).userId;
+    if (uid == null || isMockMode) return;
+    try {
+      final row = await Supabase.instance.client.from('profiles').select(column).eq('id', uid).single();
+      final list = List<String>.from((row[column] as List<dynamic>?) ?? []);
+      if (!list.contains(_item.id)) list.add(_item.id);
+      await Supabase.instance.client.from('profiles').update({column: list}).eq('id', uid);
+      if (context.mounted) {
+        ToastService.show(context, message: '${_item.name} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
+      }
+    } catch (_) {}
+  }
+
   void _showReportSheet(BuildContext context, WidgetRef ref) {
     const reasons = [
       'Inappropriate messages',
@@ -728,9 +756,13 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded, color: context.textMuted),
               color: context.surfaceColor,
-              onSelected: (v) {
+              onSelected: (v) async {
                 if (v == 'report') {
                   _showReportSheet(context, ref);
+                } else if (v == 'block') {
+                  await _blockOrHideUser(context, ref, 'blocked_users');
+                } else if (v == 'hide') {
+                  await _blockOrHideUser(context, ref, 'hidden_users');
                 } else if (v == 'end') {
                   final match = matchState.matches.where((m) => m.id == widget.matchId).firstOrNull;
                   Navigator.push(context, MaterialPageRoute(builder: (_) => EndConnectionScreen(
@@ -746,6 +778,16 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   Icon(Icons.flag_outlined, color: context.textMuted, size: 18),
                   const SizedBox(width: 8),
                   Text('Report user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                ])),
+                PopupMenuItem(value: 'block', child: Row(children: [
+                  Icon(Icons.block_rounded, color: context.textMuted, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Block user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                ])),
+                PopupMenuItem(value: 'hide', child: Row(children: [
+                  Icon(Icons.visibility_off_outlined, color: context.textMuted, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Hide user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
                 ])),
                 PopupMenuItem(value: 'end', child: Row(children: [
                   Icon(Icons.link_off_rounded, color: AppColors.error, size: 18),

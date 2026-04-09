@@ -42,7 +42,7 @@ class PhotosMediaSection extends ConsumerWidget {
             final hasPhoto = i < draft.photoUrls.length && draft.photoUrls[i].isNotEmpty;
             if (hasPhoto) {
               return GestureDetector(
-                onTap: () => _confirmRemove(context, ref, i),
+                onTap: () => _showPhotoOptions(context, ref, i, draft.photoUrls.length),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -154,6 +154,82 @@ class PhotosMediaSection extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) ToastService.show(context, message: 'Photo upload failed', type: ToastType.error);
     }
+  }
+
+  void _showPhotoOptions(BuildContext context, WidgetRef ref, int index, int totalPhotos) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.surfaceColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 36, height: 4, decoration: BoxDecoration(
+              color: context.borderColor, borderRadius: BorderRadius.circular(999))),
+            const SizedBox(height: 16),
+            if (index > 0)
+              ListTile(
+                leading: Icon(Icons.star_rounded, color: context.accent),
+                title: Text('Set as main photo', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(editProfileProvider.notifier).updateDraft((d) {
+                    final urls = List<String>.from(d.photoUrls);
+                    final moved = urls.removeAt(index);
+                    urls.insert(0, moved);
+                    d.photoUrls = urls;
+                    return d;
+                  });
+                  ToastService.show(context, message: 'Photo set as main', type: ToastType.success);
+                },
+              ),
+            if (index > 0 && index < totalPhotos - 1)
+              ListTile(
+                leading: Icon(Icons.arrow_downward_rounded, color: context.textMuted),
+                title: Text('Move back', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(editProfileProvider.notifier).updateDraft((d) {
+                    final urls = List<String>.from(d.photoUrls);
+                    final item = urls.removeAt(index);
+                    urls.insert(index + 1, item);
+                    d.photoUrls = urls;
+                    return d;
+                  });
+                },
+              ),
+            if (index > 1)
+              ListTile(
+                leading: Icon(Icons.arrow_upward_rounded, color: context.textMuted),
+                title: Text('Move forward', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(editProfileProvider.notifier).updateDraft((d) {
+                    final urls = List<String>.from(d.photoUrls);
+                    final item = urls.removeAt(index);
+                    urls.insert(index - 1, item);
+                    d.photoUrls = urls;
+                    return d;
+                  });
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.swap_horiz_rounded, color: context.textMuted),
+              title: Text('Replace photo', style: TextStyle(color: context.textPrimary, fontSize: 14)),
+              onTap: () { Navigator.pop(context); _pickPhoto(context, ref, index); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              title: const Text('Remove photo', style: TextStyle(color: AppColors.error, fontSize: 14)),
+              onTap: () { Navigator.pop(context); _confirmRemove(context, ref, index); },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   static String? _detectImageType(List<int> bytes) {

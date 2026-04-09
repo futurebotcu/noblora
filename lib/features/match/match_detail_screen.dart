@@ -41,13 +41,27 @@ class MatchDetailScreen extends ConsumerWidget {
             icon: Icon(Icons.more_vert_rounded, color: AppColors.textMuted),
             color: AppColors.surface,
             onSelected: (v) {
-              if (v == 'report') _showReportSheet(context, ref, liveMatch);
+              if (v == 'report') {
+                _showReportSheet(context, ref, liveMatch);
+              } else if (v == 'block' || v == 'hide') {
+                _blockOrHideUser(context, ref, liveMatch, v == 'block' ? 'blocked_users' : 'hidden_users');
+              }
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'report', child: Row(children: [
                 Icon(Icons.flag_outlined, color: AppColors.textMuted, size: 18),
                 const SizedBox(width: 8),
                 Text('Report user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+              ])),
+              PopupMenuItem(value: 'block', child: Row(children: [
+                Icon(Icons.block_rounded, color: AppColors.textMuted, size: 18),
+                const SizedBox(width: 8),
+                Text('Block user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+              ])),
+              PopupMenuItem(value: 'hide', child: Row(children: [
+                Icon(Icons.visibility_off_outlined, color: AppColors.textMuted, size: 18),
+                const SizedBox(width: 8),
+                Text('Hide user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
               ])),
             ],
           ),
@@ -86,6 +100,35 @@ class MatchDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  static Future<void> _blockOrHideUser(BuildContext context, WidgetRef ref, NobleMatch match, String column) async {
+    final label = column == 'blocked_users' ? 'Block' : 'Hide';
+    final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: Text('$label ${match.otherUserName ?? 'this user'}?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      content: Text(column == 'blocked_users'
+          ? 'They won\'t be able to see your profile or contact you.'
+          : 'They\'ll be removed from your feed. They can still see your profile.',
+          style: TextStyle(color: AppColors.textMuted, fontSize: 14, height: 1.5)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(label, style: TextStyle(color: AppColors.error))),
+      ],
+    ));
+    if (confirmed != true) return;
+    final uid = ref.read(authProvider).userId;
+    final targetId = match.otherUserId;
+    if (uid == null || targetId == null || isMockMode) return;
+    try {
+      final row = await Supabase.instance.client.from('profiles').select(column).eq('id', uid).single();
+      final list = List<String>.from((row[column] as List<dynamic>?) ?? []);
+      if (!list.contains(targetId)) list.add(targetId);
+      await Supabase.instance.client.from('profiles').update({column: list}).eq('id', uid);
+      if (context.mounted) {
+        ToastService.show(context, message: '${match.otherUserName ?? 'User'} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
+      }
+    } catch (_) {}
   }
 
   static void _showReportSheet(BuildContext context, WidgetRef ref, NobleMatch match) {

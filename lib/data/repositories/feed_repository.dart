@@ -15,6 +15,8 @@ class FeedRepository {
     FilterState? filters,
     Set<String> blockedIds = const {},
     Set<String> hiddenIds = const {},
+    int offset = 0,
+    int limit = 30,
   }) async {
     final client = _supabase!;
 
@@ -149,7 +151,7 @@ class FeedRepository {
     // Step 3: execute with ranking
     final data = await query
         .order('maturity_score', ascending: false)
-        .limit(30);
+        .range(offset, offset + limit - 1);
 
     final nobleMode = NobleMode.values
         .firstWhere((m) => m.name == mode, orElse: () => NobleMode.date);
