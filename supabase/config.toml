@@ -9,3 +9,15 @@ entrypoint = "./functions/verify-images/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/verify-images/*.html" ]
+
+# nob-quality-check intentionally runs with verify_jwt = false at the gateway
+# because the function does its own auth: it checks for a Bearer header and
+# then runs an RLS-scoped ownership query against `posts` using the caller's
+# JWT. Flipping verify_jwt to true at the gateway breaks the Flutter client
+# (we hit a 401 regression on v15 — see commit 2122dc0 follow-up) because
+# `supabase_flutter`'s `functions.invoke()` does not always carry a JWT
+# the gateway accepts. Keep this false unless you've verified the client.
+[functions.nob-quality-check]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/nob-quality-check/index.ts"
