@@ -146,19 +146,19 @@ class PostsNotifier extends StateNotifier<PostsState> {
 
   Future<void> _handleEvent(String type, String postId) async {
     final genAtFire = _laneGen;
-    switch (type) {
-      case 'post_new':
-        await _onNewPost(postId, genAtFire);
-        break;
-      case 'comment_new':
-        await _refreshCounts(postId, genAtFire);
-        break;
-      case 'reaction_change':
-        await _refreshCounts(postId, genAtFire);
-        break;
-      case 'echo_change':
-        await _refreshCounts(postId, genAtFire);
-        break;
+    try {
+      switch (type) {
+        case 'post_new':
+          await _onNewPost(postId, genAtFire);
+          break;
+        case 'comment_new':
+        case 'reaction_change':
+        case 'echo_change':
+          await _refreshCounts(postId, genAtFire);
+          break;
+      }
+    } catch (e) {
+      debugPrint('[realtime] _handleEvent($type, $postId) failed: $e');
     }
   }
 

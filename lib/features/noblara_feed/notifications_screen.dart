@@ -92,6 +92,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             .rpc('mark_noblara_notifications_read');
         if (mounted) {
           ref.invalidate(noblaraUnreadCountProvider);
+          ref.invalidate(noblaraNotificationsProvider);
         }
       } catch (_) {}
     });

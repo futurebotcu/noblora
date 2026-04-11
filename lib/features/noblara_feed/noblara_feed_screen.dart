@@ -187,7 +187,7 @@ class NoblaraFeedScreen extends ConsumerWidget {
                         post: post,
                         currentUserId: currentUserId,
                         onReact: (type) => ref.read(postsProvider.notifier).react(post.id, type),
-                        onDelete: currentUserId == post.userId
+                        onDelete: (currentUserId != null && currentUserId == post.userId)
                             ? () => ref.read(postsProvider.notifier).deletePost(post.id)
                             : null,
                         onEcho: () => ref.read(postsProvider.notifier).toggleEcho(post.id),
@@ -588,7 +588,7 @@ class _NobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final myReaction = currentUserId != null ? post.myReaction(currentUserId!) : null;
-    final isOwn = currentUserId == post.userId;
+    final isOwn = currentUserId != null && currentUserId == post.userId;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),

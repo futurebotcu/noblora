@@ -15,6 +15,9 @@ flutter_log.txt
 
 # Screenshots (dev only)
 screenshots/
+.tmp_screens/
+screen_broken.png
+screen_editprofile.png
 
 # Miscellaneous
 *.class
