@@ -7,15 +7,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
+import '../../core/utils/video_assets.dart';
 import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
-import '../../providers/note_provider.dart';
-import '../../providers/interaction_gate_provider.dart';
+import 'mood_map_screen.dart';
+import 'my_nobs_screen.dart';
 import 'nob_compose_screen.dart';
-import 'nob_drafts_screen.dart';
-import 'note_inbox_screen.dart';
-import '../../core/services/toast_service.dart';
+import 'nob_detail_screen.dart';
+import 'notifications_screen.dart';
 
 // ---------------------------------------------------------------------------
 // NoblaraFeedScreen — Gallery-style community feed
@@ -100,16 +100,16 @@ class NoblaraFeedScreen extends ConsumerWidget {
                           Row(
                             children: [
                               _HeaderIcon(
-                                icon: Icons.mail_outline_rounded,
+                                icon: Icons.public_rounded,
                                 onTap: () => Navigator.push(context,
-                                    MaterialPageRoute(builder: (_) => const NoteInboxScreen())),
+                                    MaterialPageRoute(builder: (_) => const MoodMapScreen())),
                               ),
-                              if (canCompose)
-                                _HeaderIcon(
-                                  icon: Icons.drafts_outlined,
-                                  onTap: () => Navigator.push(context,
-                                      MaterialPageRoute(builder: (_) => const NobDraftsScreen())),
-                                ),
+                              _NotificationsHeaderIcon(),
+                              _HeaderIcon(
+                                icon: Icons.person_outline_rounded,
+                                onTap: () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => const MyNobsScreen())),
+                              ),
                               _HeaderIcon(
                                 icon: Icons.refresh_rounded,
                                 onTap: () => ref.read(postsProvider.notifier).refresh(),
@@ -162,8 +162,8 @@ class NoblaraFeedScreen extends ConsumerWidget {
                   ),
                 ),
 
-              // ── Filter chips ──
-              SliverToBoxAdapter(child: _NobFilterBar(state: postsState, ref: ref)),
+              // ── Lane bar ──
+              SliverToBoxAdapter(child: _LaneBar(state: postsState, ref: ref)),
 
               // ── Loading shimmer ──
               if (postsState.isLoading && postsState.posts.isEmpty)
@@ -187,48 +187,31 @@ class NoblaraFeedScreen extends ConsumerWidget {
                         post: post,
                         currentUserId: currentUserId,
                         onReact: (type) => ref.read(postsProvider.notifier).react(post.id, type),
-                        onPin: currentUserId == post.userId
-                            ? () => ref.read(postsProvider.notifier).togglePin(post.id, !post.isPinned)
-                            : null,
-                        onArchive: currentUserId == post.userId
-                            ? () => ref.read(postsProvider.notifier).archivePost(post.id)
-                            : null,
                         onDelete: currentUserId == post.userId
                             ? () => ref.read(postsProvider.notifier).deletePost(post.id)
                             : null,
-                        onSendNote: (receiverId, targetType, targetId, content) {
-                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
-                          if (!gate.hasPhoto) {
-                            showGatingPopup(context, 'Add a photo first',
-                                'Upload at least one photo to send notes.');
-                            return;
-                          }
-                          ref.read(noteInboxProvider.notifier).sendNote(
-                            receiverId: receiverId, targetType: targetType,
-                            targetId: targetId, content: content,
-                          );
-                        },
-                        onSignal: (targetUserId) {
-                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
-                          if (!gate.hasPhoto) {
-                            showGatingPopup(context, 'Add a photo first',
-                                'Upload at least one photo to send signals.');
-                            return;
-                          }
-                          ref.read(postsProvider.notifier).sendSignalFromNob(targetUserId);
-                        },
-                        onReachOut: (targetUserId) {
-                          final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
-                          if (!gate.hasPhoto) {
-                            showGatingPopup(context, 'Add a photo first',
-                                'Upload at least one photo to reach out.');
-                            return;
-                          }
-                          ref.read(postsProvider.notifier).sendReachOutFromNob(targetUserId);
-                        },
+                        onEcho: () => ref.read(postsProvider.notifier).toggleEcho(post.id),
                       );
                     },
                     childCount: postsState.posts.length,
+                  ),
+                ),
+
+              // ── Load more trigger ──
+              if (postsState.posts.isNotEmpty && postsState.hasMore)
+                SliverToBoxAdapter(
+                  child: _LoadMoreTrigger(
+                    isLoading: postsState.isLoadingMore,
+                    onVisible: () => ref.read(postsProvider.notifier).loadMore(),
+                  ),
+                ),
+              if (!postsState.hasMore && postsState.posts.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text('You\'re all caught up', style: TextStyle(color: context.textMuted, fontSize: 12)),
+                    ),
                   ),
                 ),
 
@@ -261,6 +244,61 @@ class _HeaderIcon extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: context.textMuted, size: 22),
+      ),
+    );
+  }
+}
+
+/// Bell icon with an unread badge driven by [noblaraUnreadCountProvider].
+class _NotificationsHeaderIcon extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(noblaraUnreadCountProvider).asData?.value ?? 0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        HapticFeedback.selectionClick();
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
+        ref.invalidate(noblaraUnreadCountProvider);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(Icons.notifications_none_rounded,
+                color: context.textMuted, size: 22),
+            if (unread > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  constraints:
+                      const BoxConstraints(minWidth: 14, minHeight: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald600,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.nobBackground, width: 1.5),
+                  ),
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -309,6 +347,49 @@ class _ComposeFab extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+class _LoadMoreTrigger extends StatefulWidget {
+  final bool isLoading;
+  final VoidCallback onVisible;
+  const _LoadMoreTrigger({required this.isLoading, required this.onVisible});
+
+  @override
+  State<_LoadMoreTrigger> createState() => _LoadMoreTriggerState();
+}
+
+class _LoadMoreTriggerState extends State<_LoadMoreTrigger> {
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => widget.onVisible());
+    }
+  }
+
+  @override
+  void didUpdateWidget(_LoadMoreTrigger old) {
+    super.didUpdateWidget(old);
+    if (!widget.isLoading && old.isLoading) {
+      widget.onVisible();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Center(
+        child: widget.isLoading
+            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.emerald600))
+            : const SizedBox.shrink(),
       ),
     );
   }
@@ -489,17 +570,13 @@ class _NobCard extends StatelessWidget {
   final Post post;
   final String? currentUserId;
   final ValueChanged<String> onReact;
-  final VoidCallback? onPin;
-  final VoidCallback? onArchive;
   final VoidCallback? onDelete;
-  final void Function(String, String, String, String)? onSendNote;
-  final void Function(String)? onSignal;
-  final void Function(String)? onReachOut;
+  final VoidCallback? onEcho;
 
   const _NobCard({
     super.key,
     required this.post, required this.currentUserId, required this.onReact,
-    this.onPin, this.onArchive, this.onDelete, this.onSendNote, this.onSignal, this.onReachOut,
+    this.onDelete, this.onEcho,
   });
 
   Color get _tierColor => switch (post.authorTier) {
@@ -547,13 +624,19 @@ class _NobCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 8, 0),
             child: Row(
               children: [
-                if (post.isPinned) ...[
-                  const Icon(Icons.push_pin_rounded, color: AppColors.emerald600, size: 12),
-                  const SizedBox(width: 6),
-                ],
-                GestureDetector(
-                  onTap: isOwn ? null : () => _openAuthorProfile(context),
-                  child: Container(
+                // Avatar — abstract for anonymous, real for normal posts
+                if (post.isAnonymous)
+                  Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _tierColor.withValues(alpha: 0.12),
+                      border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
+                    ),
+                    child: Icon(Icons.visibility_off_rounded, color: _tierColor.withValues(alpha: 0.6), size: 14),
+                  )
+                else
+                  Container(
                     width: 32, height: 32,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -571,63 +654,86 @@ class _NobCard extends StatelessWidget {
                               errorWidget: (_, __, ___) => Center(
                                 child: Text(
                                   (post.authorName ?? 'N')[0].toUpperCase(),
-                                  style: TextStyle(
-                                      color: _tierColor,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12),
+                                  style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
                                 ),
                               ),
                             ),
                           )
-                        : Center(child: Text((post.authorName ?? 'N')[0].toUpperCase(), style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12))),
+                        : Center(
+                            child: Text(
+                              (post.authorName ?? 'N')[0].toUpperCase(),
+                              style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ),
                   ),
-                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      GestureDetector(
-                        onTap: isOwn ? null : () => _openAuthorProfile(context),
-                        child: Text(post.authorName ?? 'Noblara', style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+                      Text(
+                        post.isAnonymous ? 'Anonymous' : (post.authorName ?? (isOwn ? 'You' : 'Someone')),
+                        style: TextStyle(
+                          color: context.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontStyle: post.isAnonymous ? FontStyle.italic : FontStyle.normal,
+                        ),
                       ),
                       const SizedBox(height: 2),
-                      Row(children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: _tierColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(3),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: _tierColor.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              post.authorTier.label.toUpperCase(),
+                              style: TextStyle(color: _tierColor, fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                            ),
                           ),
-                          child: Text(post.authorTier.label.toUpperCase(), style: TextStyle(color: _tierColor, fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(_ago(post.publishedAt ?? post.createdAt), style: TextStyle(color: context.textMuted, fontSize: 11)),
-                      ]),
+                          const SizedBox(width: 6),
+                          Text(
+                            _ago(post.publishedAt ?? post.createdAt),
+                            style: TextStyle(color: context.textMuted, fontSize: 11),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 if (isOwn)
-                  _OwnerMenu(post: post, onPin: onPin, onArchive: onArchive, onDelete: onDelete),
+                  _OwnerMenu(onDelete: onDelete),
               ],
             ),
           ),
 
-          // ── Content ──
-          if (post.isThought && post.content.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Text(
-                post.content,
-                style: TextStyle(
-                  color: context.textPrimary,
-                  fontSize: post.content.length < 120 ? 18 : 15,
-                  fontStyle: post.content.length < 120 ? FontStyle.italic : FontStyle.normal,
-                  height: 1.6,
-                  letterSpacing: 0.1,
-                ),
-              ),
-            ),
+          // ── Content (tap → detail) ──
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => NobDetailScreen(post: post),
+            )),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.isThought && post.content.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                    child: Text(
+                      post.content,
+                      style: TextStyle(
+                        color: context.textPrimary,
+                        fontSize: post.content.length < 120 ? 18 : 15,
+                        fontStyle: post.content.length < 120 ? FontStyle.italic : FontStyle.normal,
+                        height: 1.6,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ),
 
           if (post.isMoment) ...[
             if (post.photoUrl != null)
@@ -636,16 +742,7 @@ class _NobCard extends StatelessWidget {
                 child: ClipRRect(
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: CachedNetworkImage(
-                      imageUrl: post.photoUrl!,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 1080,
-                      errorWidget: (_, __, ___) => Container(
-                        color: context.surfaceAltColor,
-                        child: Center(child: Icon(Icons.image_not_supported_outlined, color: context.textMuted, size: 28)),
-                      ),
-                    ),
+                    child: _MomentMedia(photoUrl: post.photoUrl!),
                   ),
                 ),
               ),
@@ -655,119 +752,49 @@ class _NobCard extends StatelessWidget {
                 child: Text(post.caption!, style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5)),
               ),
           ],
-
-          // ── Reactions ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Row(
-              children: [
-                _ReactionBtn(emoji: '👋', type: 'appreciate', isActive: myReaction?.reactionType == 'appreciate', onTap: () => onReact('appreciate')),
-                const SizedBox(width: 8),
-                _ReactionBtn(emoji: '🤝', type: 'support', isActive: myReaction?.reactionType == 'support', onTap: () => onReact('support')),
-                const SizedBox(width: 8),
-                _ReactionBtn(emoji: '\u2715', type: 'pass', isActive: myReaction?.reactionType == 'pass', isSubtle: true, onTap: () => onReact('pass')),
-                const Spacer(),
-                if (!isOwn)
-                  GestureDetector(
-                    onTap: () => _showNoteDialog(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: context.surfaceAltColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: context.borderSubtleColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.mail_outline_rounded, color: context.textMuted, size: 14),
-                          const SizedBox(width: 4),
-                          Text('Note', style: TextStyle(color: context.textMuted, fontSize: 11)),
-                        ],
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
 
-          // Owner-only counts
-          if (isOwn && post.ownCounts.isNotEmpty && (post.ownCounts['total'] ?? 0) > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              child: Text(
-                '${post.ownCounts['appreciate'] ?? 0} appreciate · ${post.ownCounts['support'] ?? 0} support · ${post.ownCounts['pass'] ?? 0} pass',
-                style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 10),
-              ),
+          // ── Like + Reply + Echo ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                _ReactionBtn(
+                  icon: Icons.waving_hand_outlined,
+                  type: 'appreciate',
+                  isActive: myReaction?.reactionType == 'appreciate',
+                  onTap: () => onReact('appreciate'),
+                ),
+                const SizedBox(width: 16),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => NobDetailScreen(post: post),
+                  )),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded, color: context.textMuted, size: 16),
+                      const SizedBox(width: 4),
+                      Text(post.commentCount > 0 ? '${post.commentCount}' : 'Reply', style: TextStyle(color: context.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _EchoBtn(
+                  count: post.echoCount,
+                  isActive: post.hasEchoed,
+                  onTap: onEcho,
+                ),
+                const Spacer(),
+              ],
             ),
-        ],
-      ),
-    );
-  }
-
-  void _openAuthorProfile(BuildContext context) {
-    // Capture the parent context so toasts and the note dialog use a
-    // widget that survives after the bottom sheet is popped.
-    final parentContext = context;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.surfaceColor,
-      isScrollControlled: true,
-      builder: (_) => _AuthorProfileSheet(
-        post: post,
-        onSignal: (userId) {
-          onSignal?.call(userId);
-          ToastService.show(parentContext, message: 'Signal sent', type: ToastType.success);
-        },
-        onReachOut: (userId) {
-          onReachOut?.call(userId);
-          ToastService.show(parentContext, message: 'Reached out!', type: ToastType.success);
-        },
-        onSendNotePressed: () => _showNoteDialog(context),
-      ),
-    );
-  }
-
-  void _showNoteDialog(BuildContext context) {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.surfaceColor,
-        shape: Premium.dialogShape(),
-        title: Text('Send a Note', style: TextStyle(color: context.textPrimary, fontSize: 16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Private note to ${post.authorName ?? 'author'}', style: TextStyle(color: context.textMuted, fontSize: 12)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: ctrl, maxLength: 280, maxLines: 3,
-              style: TextStyle(color: context.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Write something thoughtful...',
-                hintStyle: TextStyle(color: context.textMuted),
-                filled: true, fillColor: context.bgColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('Send', style: TextStyle(color: AppColors.emerald600)),
           ),
         ],
       ),
-    ).then((text) {
-      if (text != null && text.toString().isNotEmpty && context.mounted) {
-        onSendNote?.call(post.userId, 'post', post.id, text.toString());
-        ToastService.show(context, message: 'Note sent', type: ToastType.success);
-      }
-      ctrl.dispose();
-    });
+    );
   }
 
   String _ago(DateTime dt) {
@@ -784,11 +811,8 @@ class _NobCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _OwnerMenu extends StatelessWidget {
-  final Post post;
-  final VoidCallback? onPin;
-  final VoidCallback? onArchive;
   final VoidCallback? onDelete;
-  const _OwnerMenu({required this.post, this.onPin, this.onArchive, this.onDelete});
+  const _OwnerMenu({this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -797,21 +821,9 @@ class _OwnerMenu extends StatelessWidget {
       color: context.surfaceAltColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: context.borderColor)),
       onSelected: (val) {
-        if (val == 'pin' && onPin != null) onPin!();
-        if (val == 'archive' && onArchive != null) onArchive!();
         if (val == 'delete' && onDelete != null) onDelete!();
       },
       itemBuilder: (_) => [
-        PopupMenuItem(value: 'pin', child: Row(children: [
-          Icon(post.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded, color: AppColors.emerald600, size: 15),
-          const SizedBox(width: 8),
-          Text(post.isPinned ? 'Unpin' : 'Pin to top', style: TextStyle(color: context.textPrimary, fontSize: 13)),
-        ])),
-        PopupMenuItem(value: 'archive', child: Row(children: [
-          Icon(Icons.archive_outlined, color: context.textMuted, size: 15),
-          const SizedBox(width: 8),
-          Text('Archive', style: TextStyle(color: context.textPrimary, fontSize: 13)),
-        ])),
         PopupMenuItem(value: 'delete', child: const Row(children: [
           Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 15),
           SizedBox(width: 8),
@@ -827,12 +839,11 @@ class _OwnerMenu extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ReactionBtn extends StatefulWidget {
-  final String emoji;
+  final IconData icon;
   final String type;
   final bool isActive;
-  final bool isSubtle;
   final VoidCallback onTap;
-  const _ReactionBtn({required this.emoji, required this.type, required this.isActive, required this.onTap, this.isSubtle = false});
+  const _ReactionBtn({required this.icon, required this.type, required this.isActive, required this.onTap});
 
   @override
   State<_ReactionBtn> createState() => _ReactionBtnState();
@@ -864,7 +875,7 @@ class _ReactionBtnState extends State<_ReactionBtn>
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = widget.isSubtle ? context.textMuted : AppColors.emerald600;
+    final activeColor = AppColors.emerald600;
     return GestureDetector(
       onTapDown: (_) => _scaleCtrl.forward(),
       onTapUp: (_) => _scaleCtrl.reverse(),
@@ -883,7 +894,7 @@ class _ReactionBtnState extends State<_ReactionBtn>
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: widget.isActive ? activeColor.withValues(alpha: 0.35) : context.borderSubtleColor),
           ),
-          child: Text(widget.emoji, style: TextStyle(fontSize: 14, color: widget.isActive ? null : context.textMuted)),
+          child: Icon(widget.icon, size: 16, color: widget.isActive ? activeColor : context.textMuted),
         ),
       ),
     );
@@ -891,262 +902,195 @@ class _ReactionBtnState extends State<_ReactionBtn>
 }
 
 // ---------------------------------------------------------------------------
-// Filter bar — horizontal scroll, no overflow
+// Echo button — Noblara's signature interaction (anonymous repost)
 // ---------------------------------------------------------------------------
 
-class _NobFilterBar extends StatelessWidget {
-  final PostsState state;
-  final WidgetRef ref;
-  const _NobFilterBar({required this.state, required this.ref});
+class _EchoBtn extends StatelessWidget {
+  final int count;
+  final bool isActive;
+  final VoidCallback? onTap;
+  const _EchoBtn({required this.count, required this.isActive, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 0, 0),
-      child: Column(
+    final color = isActive ? AppColors.emerald600 : context.textMuted;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap?.call();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Type + Sort row
-          SizedBox(
-            height: 32,
-            child: Row(
-              children: [
-                Expanded(
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _FilterChip(label: 'All', active: state.typeFilter == null,
-                          onTap: () => ref.read(postsProvider.notifier).setTypeFilter(null)),
-                      const SizedBox(width: 6),
-                      _FilterChip(label: 'Thought', active: state.typeFilter == 'thought',
-                          onTap: () => ref.read(postsProvider.notifier).setTypeFilter('thought')),
-                      const SizedBox(width: 6),
-                      _FilterChip(label: 'Moment', active: state.typeFilter == 'moment',
-                          onTap: () => ref.read(postsProvider.notifier).setTypeFilter('moment')),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: PopupMenuButton<String>(
-                    initialValue: state.sortMode,
-                    onSelected: (v) => ref.read(postsProvider.notifier).setSortMode(v),
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(value: 'newest', child: Text('Newest')),
-                      const PopupMenuItem(value: 'trending', child: Text('Trending')),
-                      const PopupMenuItem(value: 'ai_pick', child: Text('AI Pick')),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: context.surfaceAltColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: context.borderSubtleColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sort_rounded, color: context.textMuted, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            state.sortMode == 'ai_pick' ? 'AI Pick' : state.sortMode[0].toUpperCase() + state.sortMode.substring(1),
-                            style: TextStyle(color: context.textMuted, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Tone + toggles — horizontal scroll
-          SizedBox(
-            height: 30,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                for (final tone in ['reflective', 'grounded', 'curious', 'creative'])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _FilterChip(
-                      label: tone[0].toUpperCase() + tone.substring(1),
-                      active: state.toneFilter == tone,
-                      onTap: () => ref.read(postsProvider.notifier).setToneFilter(state.toneFilter == tone ? null : tone),
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                _ToggleChip(label: 'Hide passed', active: state.hidePassed,
-                    onTap: () => ref.read(postsProvider.notifier).setHidePassed(!state.hidePassed)),
-                const SizedBox(width: 6),
-                _ToggleChip(label: 'Connected first', active: state.prioritizeConnected,
-                    onTap: () => ref.read(postsProvider.notifier).setPrioritizeConnected(!state.prioritizeConnected)),
-                const SizedBox(width: 20),
-              ],
-            ),
-          ),
+          Icon(Icons.graphic_eq_rounded, color: color, size: 16),
+          const SizedBox(width: 4),
+          Text(count > 0 ? '$count' : 'Echo',
+              style: TextStyle(color: color, fontSize: 12, fontWeight: isActive ? FontWeight.w600 : FontWeight.w400)),
         ],
       ),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? AppColors.emerald900 : context.surfaceAltColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
-          boxShadow: active
-              ? Premium.shadowSm
-              : null,
-        ),
-        child: Text(label, style: TextStyle(
-          color: active ? AppColors.emerald350 : context.textMuted,
-          fontSize: 12, fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-        )),
-      ),
-    );
-  }
-}
-
-class _ToggleChip extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _ToggleChip({required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? AppColors.emerald900 : context.surfaceAltColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.emerald600.withValues(alpha: 0.5) : context.borderSubtleColor),
-          boxShadow: active
-              ? Premium.shadowSm
-              : null,
-        ),
-        child: Text(label, style: TextStyle(
-          color: active ? AppColors.emerald350 : context.textMuted, fontSize: 11,
-        )),
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Author Profile Sheet
+// Lane bar — fixed lanes (All, Near You, Country, Echoes) + dynamic mood lanes
 // ---------------------------------------------------------------------------
 
-class _AuthorProfileSheet extends StatelessWidget {
-  final Post post;
-  final void Function(String)? onSignal;
-  final void Function(String)? onReachOut;
-  final VoidCallback? onSendNotePressed;
-  const _AuthorProfileSheet({
-    required this.post,
-    this.onSignal,
-    this.onReachOut,
-    this.onSendNotePressed,
-  });
+class _LaneBar extends StatelessWidget {
+  final PostsState state;
+  final WidgetRef ref;
+  const _LaneBar({required this.state, required this.ref});
+
+  static String _moodLabel(String mood) {
+    switch (mood) {
+      case 'late_night':
+        return 'Late Night';
+      default:
+        return mood[0].toUpperCase() + mood.substring(1);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tierColor = switch (post.authorTier) {
-      NobTier.noble => AppColors.nobNoble,
-      NobTier.explorer => AppColors.nobExplorer,
-      NobTier.observer => AppColors.nobObserver,
-    };
+    final lanes = <_LaneOption>[
+      const _LaneOption(id: 'all', label: 'All'),
+      const _LaneOption(id: 'near_you', label: 'Near You'),
+      const _LaneOption(id: 'country', label: 'Your Country'),
+      const _LaneOption(id: 'echoes', label: 'Echoes'),
+      for (final mood in state.dynamicMoodLanes)
+        _LaneOption(id: 'mood:$mood', label: _moodLabel(mood), mood: mood),
+    ];
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6, minChildSize: 0.4, maxChildSize: 0.85, expand: false,
-      builder: (context, scroll) => Container(
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: ListView(
-          controller: scroll,
-          padding: const EdgeInsets.all(24),
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: Premium.sheetHandle())),
-            const SizedBox(height: 24),
-            Row(children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: tierColor.withValues(alpha: 0.2),
-                backgroundImage: post.authorAvatarUrl != null ? NetworkImage(post.authorAvatarUrl!) : null,
-                child: post.authorAvatarUrl == null
-                    ? Text((post.authorName ?? '?')[0].toUpperCase(), style: TextStyle(color: tierColor, fontSize: 22, fontWeight: FontWeight.w600))
-                    : null,
-              ),
-              const SizedBox(width: 16),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(post.authorName ?? 'User', style: TextStyle(color: context.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: tierColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: tierColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(post.authorTier.label, style: TextStyle(color: tierColor, fontSize: 10, fontWeight: FontWeight.w600)),
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        itemCount: lanes.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final lane = lanes[i];
+          final isActive = lane.mood != null
+              ? (state.activeLane == 'mood' && state.activeMood == lane.mood)
+              : state.activeLane == lane.id;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              if (lane.mood != null) {
+                ref.read(postsProvider.notifier).setLane('mood', mood: lane.mood);
+              } else {
+                ref.read(postsProvider.notifier).setLane(lane.id);
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.emerald600.withValues(alpha: 0.14)
+                    : context.surfaceAltColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isActive
+                      ? AppColors.emerald600.withValues(alpha: 0.5)
+                      : context.borderSubtleColor,
                 ),
-              ]),
-            ]),
-            const SizedBox(height: 32),
-            Row(children: [
-              Expanded(child: OutlinedButton.icon(
-                icon: const Icon(Icons.bolt_rounded, size: 16), label: const Text('Signal'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
-                onPressed: () {
-                  Navigator.pop(context);
-                  onSignal?.call(post.userId);
-                },
-              )),
-              const SizedBox(width: 10),
-              Expanded(child: OutlinedButton.icon(
-                icon: const Icon(Icons.people_rounded, size: 16), label: const Text('Reach Out'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald500, side: BorderSide(color: AppColors.emerald500.withValues(alpha: 0.4))),
-                onPressed: () {
-                  Navigator.pop(context);
-                  onReachOut?.call(post.userId);
-                },
-              )),
-            ]),
-            const SizedBox(height: 10),
-            SizedBox(width: double.infinity, child: OutlinedButton.icon(
-              icon: const Icon(Icons.mail_outline_rounded, size: 16), label: const Text('Send Note'),
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.emerald600, side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4))),
-              onPressed: () {
-                Navigator.pop(context);
-                onSendNotePressed?.call();
-              },
-            )),
-          ],
+              ),
+              child: Center(
+                child: Text(
+                  lane.label,
+                  style: TextStyle(
+                    color: isActive ? AppColors.emerald350 : context.textMuted,
+                    fontSize: 12,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LaneOption {
+  final String id;
+  final String label;
+  final String? mood;
+  const _LaneOption({required this.id, required this.label, this.mood});
+}
+
+// ---------------------------------------------------------------------------
+// _MomentMedia — renders photo Nobs as image, video Nobs as thumbnail + play
+// ---------------------------------------------------------------------------
+
+class _MomentMedia extends StatelessWidget {
+  final String photoUrl;
+  const _MomentMedia({required this.photoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final isVideo = isVideoUrl(photoUrl);
+    final imageUrl = isVideo ? videoThumbnailUrlFor(photoUrl) : photoUrl;
+    final fallback = Container(
+      color: context.surfaceAltColor,
+      child: Center(
+        child: Icon(
+          isVideo
+              ? Icons.play_circle_outline_rounded
+              : Icons.image_not_supported_outlined,
+          color: context.textMuted,
+          size: 36,
         ),
       ),
+    );
+
+    final media = imageUrl == null
+        ? fallback
+        : CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            memCacheWidth: 1080,
+            errorWidget: (_, __, ___) => fallback,
+          );
+
+    if (!isVideo) return media;
+
+    // Play overlay for video moments — keeps the media visible but signals
+    // that tap goes to the player.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        media,
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.15),
+                Colors.black.withValues(alpha: 0.45),
+              ],
+            ),
+          ),
+        ),
+        Center(
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withValues(alpha: 0.55),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1.5),
+            ),
+            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -8,27 +8,23 @@ class PostRepository {
 
   PostRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
-  Future<List<Post>> fetchFeed({
-    int limit = 50,
+  /// Fetch posts for a specific lane (all/near_you/country/echoes/mood)
+  Future<List<Post>> fetchLane({
+    required String lane,
+    String? mood,
+    int limit = 30,
+    int offset = 0,
     String? userId,
-    String? type,
-    String? sort,
-    String? tone,
-    bool hidePassed = false,
-    bool prioritizeConnected = false,
   }) async {
     if (isMockMode) return _mockPosts();
 
-    // Use RPC for filtered feed if userId provided
     if (userId != null) {
-      final rows = await _supabase!.rpc('fetch_nob_feed', params: {
+      final rows = await _supabase!.rpc('fetch_nob_lane', params: {
         'p_user_id': userId,
-        'p_type': type,
-        'p_sort': sort ?? 'newest',
-        'p_tone': tone,
-        'p_hide_passed': hidePassed,
-        'p_prioritize_connected': prioritizeConnected,
+        'p_lane': lane,
+        'p_mood': mood,
         'p_limit': limit,
+        'p_offset': offset,
       });
       if (rows is List) {
         return _enrichWithProfiles(List<Map<String, dynamic>>.from(rows));
@@ -36,17 +32,90 @@ class PostRepository {
       return [];
     }
 
-    // Fallback: simple query
+    // Anonymous fallback
     final rows = await _supabase!
         .from('posts')
         .select()
         .eq('is_draft', false)
         .eq('is_archived', false)
-        .order('is_pinned', ascending: false)
         .order('quality_score', ascending: false)
         .order('published_at', ascending: false)
-        .limit(limit);
+        .range(offset, offset + limit - 1);
     return _enrichWithProfiles(rows);
+  }
+
+  /// Fetch a single post by id, with anonymity masking applied server-side.
+  /// Used by the realtime fan-out path when a feed_events row arrives.
+  Future<Post?> fetchPostById(String postId, {String? userId}) async {
+    if (isMockMode) return null;
+    try {
+      final rows = await _supabase!.rpc(
+        'fetch_post_by_id',
+        params: {
+          'p_post_id': postId,
+          'p_user_id':
+              userId ?? '00000000-0000-0000-0000-000000000000',
+        },
+      );
+      if (rows is! List || rows.isEmpty) return null;
+      final list = await _enrichWithProfiles(
+        List<Map<String, dynamic>>.from(rows),
+      );
+      return list.isEmpty ? null : list.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Refresh reaction + echo + comment counts for a single post id.
+  Future<({Map<String, int> reactions, int echo, int comment})>
+      fetchAggregateCountsFor(String postId) async {
+    if (isMockMode) {
+      return (reactions: <String, int>{}, echo: 0, comment: 0);
+    }
+    try {
+      final reactionsFuture = _supabase!.rpc(
+        'fetch_reaction_counts_batch',
+        params: {'p_post_ids': [postId]},
+      );
+      final echoFuture = _supabase.rpc(
+        'fetch_echo_counts_batch',
+        params: {'p_post_ids': [postId]},
+      );
+      final commentFuture = _supabase.rpc(
+        'fetch_comment_counts_batch',
+        params: {'p_post_ids': [postId]},
+      );
+      final results = await Future.wait([reactionsFuture, echoFuture, commentFuture]);
+      final reactionRows = results[0] as List? ?? const [];
+      final echoRows = results[1] as List? ?? const [];
+      final commentRows = results[2] as List? ?? const [];
+      final reactionMap = <String, int>{};
+      for (final r in reactionRows) {
+        reactionMap[r['reaction_type'] as String] =
+            (r['cnt'] as num).toInt();
+      }
+      final echoCount = echoRows.isEmpty ? 0 : (echoRows.first['cnt'] as num).toInt();
+      final commentCount =
+          commentRows.isEmpty ? 0 : (commentRows.first['cnt'] as num).toInt();
+      return (reactions: reactionMap, echo: echoCount, comment: commentCount);
+    } catch (_) {
+      return (reactions: <String, int>{}, echo: 0, comment: 0);
+    }
+  }
+
+  /// Discover dynamic mood lanes from recent posts
+  Future<List<String>> discoverDynamicMoodLanes({int limit = 2}) async {
+    if (isMockMode) return [];
+    try {
+      final rows = await _supabase!.rpc('discover_mood_lanes', params: {'p_limit': limit});
+      if (rows is List) {
+        return rows.map((r) => r['mood'] as String).toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Get reaction counts for author's own posts
@@ -93,27 +162,23 @@ class PostRepository {
     }
   }
 
-  /// Trigger quality score computation via edge function
-  Future<void> computeQualityScore(String postId) async {
+  /// Trigger quality score computation via edge function.
+  /// The function needs the full content to score, not just the id.
+  Future<void> computeQualityScore({
+    required String postId,
+    required String content,
+    required String nobType,
+  }) async {
     if (isMockMode) return;
     try {
-      await _supabase!.functions.invoke('nob-quality-check', body: {'post_id': postId});
+      await _supabase!.functions.invoke('nob-quality-check', body: {
+        'post_id': postId,
+        'content': content,
+        'nob_type': nobType,
+      });
     } catch (e) {
       debugPrint('[nob-quality-check] AI scoring failed for $postId: $e');
     }
-  }
-
-  Future<List<Post>> fetchDrafts(String userId) async {
-    if (isMockMode) return [];
-    final rows = await _supabase!
-        .from('posts')
-        .select()
-        .eq('user_id', userId)
-        .eq('is_draft', true)
-        .eq('is_archived', false)
-        .order('created_at', ascending: false)
-        .limit(50);
-    return rows.map((r) => Post.fromJson(r)).toList();
   }
 
   Future<List<Post>> fetchLastNobs(String userId, {int limit = 3}) async {
@@ -124,21 +189,8 @@ class PostRepository {
         .eq('user_id', userId)
         .eq('is_draft', false)
         .eq('is_archived', false)
-        .order('is_pinned', ascending: false)
         .order('published_at', ascending: false)
         .limit(limit);
-    return rows.map((r) => Post.fromJson(r)).toList();
-  }
-
-  Future<List<Post>> fetchArchived(String userId) async {
-    if (isMockMode) return [];
-    final rows = await _supabase!
-        .from('posts')
-        .select()
-        .eq('user_id', userId)
-        .eq('is_archived', true)
-        .order('created_at', ascending: false)
-        .limit(50);
     return rows.map((r) => Post.fromJson(r)).toList();
   }
 
@@ -148,7 +200,8 @@ class PostRepository {
     required String nobType,
     String? photoUrl,
     String? caption,
-    bool isDraft = true,
+    bool isDraft = false,
+    bool isAnonymous = false,
   }) async {
     if (isMockMode) {
       return Post(
@@ -162,6 +215,7 @@ class PostRepository {
         publishedAt: isDraft ? null : DateTime.now(),
         createdAt: DateTime.now(),
         authorName: 'You',
+        isAnonymous: isAnonymous,
       );
     }
     final data = <String, dynamic>{
@@ -169,57 +223,13 @@ class PostRepository {
       'content': content,
       'nob_type': nobType,
       'is_draft': isDraft,
+      'is_anonymous': isAnonymous,
     };
     if (photoUrl != null) data['photo_url'] = photoUrl;
     if (caption != null) data['caption'] = caption;
     if (!isDraft) data['published_at'] = DateTime.now().toIso8601String();
     final row = await _supabase!.from('posts').insert(data).select().single();
     return Post.fromJson(row);
-  }
-
-  Future<Post?> publishDraft(String postId) async {
-    if (isMockMode) return null;
-    final row = await _supabase!
-        .from('posts')
-        .update({'is_draft': false, 'published_at': DateTime.now().toIso8601String()})
-        .eq('id', postId)
-        .select()
-        .single();
-    return Post.fromJson(row);
-  }
-
-  Future<Post?> updateDraft({
-    required String postId,
-    required String content,
-    String? photoUrl,
-    String? caption,
-  }) async {
-    if (isMockMode) return null;
-    final data = <String, dynamic>{'content': content};
-    if (photoUrl != null) data['photo_url'] = photoUrl;
-    if (caption != null) data['caption'] = caption;
-    final row = await _supabase!
-        .from('posts').update(data).eq('id', postId).select().single();
-    return Post.fromJson(row);
-  }
-
-  Future<void> togglePin(String postId, String userId, bool pin) async {
-    if (isMockMode) return;
-    await _supabase!.from('posts').update({'is_pinned': false}).eq('user_id', userId);
-    if (pin) {
-      await _supabase.from('posts').update({'is_pinned': true}).eq('id', postId);
-    }
-  }
-
-  Future<void> archivePost(String postId) async {
-    if (isMockMode) return;
-    await _supabase!.from('posts')
-        .update({'is_archived': true, 'is_pinned': false}).eq('id', postId);
-  }
-
-  Future<void> unarchivePost(String postId) async {
-    if (isMockMode) return;
-    await _supabase!.from('posts').update({'is_archived': false}).eq('id', postId);
   }
 
   Future<void> deletePost(String postId) async {
@@ -259,52 +269,53 @@ class PostRepository {
         .delete().eq('post_id', postId).eq('user_id', userId);
   }
 
-  Stream<List<Post>> feedStream() {
-    if (isMockMode) return Stream.value(_mockPosts());
-    return _supabase!
-        .from('posts')
-        .stream(primaryKey: ['id'])
-        .eq('is_draft', false)
-        .order('quality_score', ascending: false)
-        .limit(50)
-        .asyncMap((rows) async {
-          try {
-            final published = rows.where((r) => r['is_archived'] == false).toList();
-            return _enrichWithProfiles(published);
-          } catch (_) {
-            return <Post>[];
-          }
-        });
-  }
-
   Future<List<Post>> _enrichWithProfiles(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return [];
-    final userIds = rows.map((r) => r['user_id'] as String).toSet().toList();
+    // user_id is null for anonymous posts owned by someone else (server-masked).
+    final userIds = rows
+        .map((r) => r['user_id'] as String?)
+        .whereType<String>()
+        .toSet()
+        .toList();
     final postIds = rows.map((r) => r['id'] as String).toList();
 
-    // Parallelize profile + reaction fetches — halves enrichment latency on
-    // every realtime stream event (was sequential, ~2x RTT).
-    final results = await Future.wait([
-      _supabase!
-          .from('profiles')
-          .select('id, display_name, date_avatar_url, nob_tier')
-          .inFilter('id', userIds),
-      _supabase.from('post_reactions').select().inFilter('post_id', postIds),
-    ]);
-    final profiles = results[0];
-    final reactionRows = results[1];
+    // Parallelize profile lookup + aggregated reaction-counts RPC. Reactions
+    // are fetched as anonymized counts (no user identity); the current user's
+    // own reaction list is fetched separately by the provider via own-row RLS.
+    final profilesFuture = userIds.isEmpty
+        ? Future.value(const <Map<String, dynamic>>[])
+        : _supabase!
+            .from('profiles')
+            .select('id, display_name, date_avatar_url, nob_tier')
+            .inFilter('id', userIds);
+    final countsFuture = _supabase!
+        .rpc('fetch_reaction_counts_batch', params: {'p_post_ids': postIds});
 
-    final profileMap = {
-      for (final p in profiles) p['id'] as String: p
+    final profiles = await profilesFuture;
+    final countsRows = (await countsFuture) as List? ?? const [];
+
+    final profileMap = <String, Map<String, dynamic>>{
+      for (final p in profiles) p['id'] as String: Map<String, dynamic>.from(p)
     };
-    final reactionsByPost = <String, List<PostReaction>>{};
-    for (final r in reactionRows) {
-      final reaction = PostReaction.fromJson(r);
-      reactionsByPost.putIfAbsent(reaction.postId, () => []).add(reaction);
+    // post_id → { reaction_type → count }
+    final reactionCountsByPost = <String, Map<String, int>>{};
+    for (final r in countsRows) {
+      final pid = r['post_id'] as String;
+      final type = r['reaction_type'] as String;
+      final cnt = (r['cnt'] as num).toInt();
+      reactionCountsByPost
+          .putIfAbsent(pid, () => <String, int>{})[type] = cnt;
     }
+
     return rows.map((r) {
-      final post = Post.fromJson(r, profile: profileMap[r['user_id'] as String]);
-      return post.copyWith(reactions: reactionsByPost[post.id] ?? []);
+      final uid = r['user_id'] as String?;
+      final post = Post.fromJson(
+        r,
+        profile: uid != null ? profileMap[uid] : null,
+      );
+      return post.copyWith(
+        reactionCounts: reactionCountsByPost[post.id] ?? const {},
+      );
     }).toList();
   }
 

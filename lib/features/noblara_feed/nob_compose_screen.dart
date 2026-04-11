@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -40,11 +43,13 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   Uint8List? _photoBytes;
   String? _uploadedPhotoUrl;
   bool _isUploading = false;
+  bool _isVideoMoment = false;
   bool _aiLoading = false;
   bool _isPublishing = false;
-  String? _savedDraftId;
+  bool _isAnonymous = false;
   String? _feedback;
   bool _feedbackIsPositive = false;
+  Timer? _feedbackTimer;
 
   String get _prompt =>
       _prompts[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % _prompts.length];
@@ -53,8 +58,29 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   TextEditingController get _activeCtrl =>
       _nobType == 'thought' ? _contentCtrl : _captionCtrl;
 
+  void _showFeedback(String message, {bool positive = false}) {
+    _feedbackTimer?.cancel();
+    setState(() {
+      _feedback = message;
+      _feedbackIsPositive = positive;
+    });
+    _feedbackTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _feedback = null);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Restore local auto-save (single slot, persists across sessions)
+    _restoreAutoSave();
+    _contentCtrl.addListener(_autoSave);
+    _captionCtrl.addListener(_autoSave);
+  }
+
   @override
   void dispose() {
+    _feedbackTimer?.cancel();
     _contentCtrl.dispose();
     _captionCtrl.dispose();
     super.dispose();
@@ -103,12 +129,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       }
     } catch (e) {
       debugPrint('[nob-ai-edit] ERROR: $e');
-      if (mounted) {
-        setState(() {
-          _feedback = 'AI edit unavailable. Try again in a moment.';
-          _feedbackIsPositive = false;
-        });
-      }
+      if (mounted) _showFeedback('AI edit unavailable. Try again in a moment.');
     } finally {
       if (mounted) setState(() => _aiLoading = false);
     }
@@ -227,9 +248,21 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
+            leading: const Icon(Icons.videocam_rounded, color: AppColors.emerald600),
+            title: const Text('Record video', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+            subtitle: Text('Up to 30 seconds', style: TextStyle(color: AppColors.nobObserver, fontSize: 12)),
+            onTap: () { Navigator.pop(ctx); _pickVideo(ImageSource.camera); },
+          ),
+          ListTile(
             leading: const Icon(Icons.photo_library_rounded, color: AppColors.emerald600),
             title: const Text('Choose from gallery', style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+          ),
+          const Divider(height: 1, color: AppColors.nobBorder),
+          ListTile(
+            leading: const Icon(Icons.close_rounded, color: AppColors.nobObserver),
+            title: const Text('Cancel', style: TextStyle(color: AppColors.nobObserver, fontSize: 15)),
+            onTap: () => Navigator.pop(ctx),
           ),
           const SizedBox(height: 12),
         ])),
@@ -248,6 +281,23 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     });
   }
 
+  Future<void> _pickVideo(ImageSource source) async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickVideo(source: source, maxDuration: const Duration(seconds: 30));
+    if (xfile == null) return;
+    final bytes = await xfile.readAsBytes();
+    if (bytes.length > 50 * 1024 * 1024) {
+      _showFeedback('Video too large. Keep it under 50 MB.');
+      return;
+    }
+    setState(() {
+      _photoBytes = bytes;
+      _uploadedPhotoUrl = null;
+      _isVideoMoment = true;
+      if (_nobType == 'thought') _nobType = 'moment';
+    });
+  }
+
   Future<void> _uploadPhoto() async {
     if (_photoBytes == null) return;
     setState(() => _isUploading = true);
@@ -257,76 +307,137 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         return;
       }
       final userId = ref.read(authProvider).userId ?? 'anon';
-      final path =
-          'nob_photos/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ext = _isVideoMoment ? 'mp4' : 'jpg';
+      final mime = _isVideoMoment ? 'video/mp4' : 'image/jpeg';
+      final basePath =
+          'nob_photos/$userId/${DateTime.now().millisecondsSinceEpoch}';
+      final path = '$basePath.$ext';
       await Supabase.instance.client.storage.from('galleries').uploadBinary(
           path, _photoBytes!,
-          fileOptions: const FileOptions(contentType: 'image/jpeg'));
+          fileOptions: FileOptions(contentType: mime));
       final url = Supabase.instance.client.storage
           .from('galleries')
           .getPublicUrl(path);
+
+      // For videos, also generate + upload a first-frame JPEG thumbnail
+      // sibling at <basePath>.jpg so the feed card has something to render
+      // (otherwise CachedNetworkImage chokes on the .mp4 URL).
+      if (_isVideoMoment) {
+        await _uploadVideoThumbnail(basePath, url);
+      }
+
       setState(() => _uploadedPhotoUrl = url);
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _feedback = 'Photo upload failed.';
-          _feedbackIsPositive = false;
-        });
+        _showFeedback('Photo upload failed.');
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
   }
 
-  // ── Save / Publish ────────────────────────────────────────────────────────
+  Future<void> _uploadVideoThumbnail(String basePath, String videoUrl) async {
+    try {
+      // Generate a JPEG thumbnail from the first frame. video_thumbnail
+      // accepts a network URL and returns bytes — no temp file needed.
+      final thumbBytes = await vt.VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: vt.ImageFormat.JPEG,
+        maxWidth: 1080,
+        quality: 75,
+      );
+      if (thumbBytes == null || thumbBytes.isEmpty) return;
+      final thumbPath = '$basePath.jpg';
+      await Supabase.instance.client.storage.from('galleries').uploadBinary(
+            thumbPath,
+            thumbBytes,
+            fileOptions: const FileOptions(
+              contentType: 'image/jpeg',
+              upsert: true,
+            ),
+          );
+    } catch (e) {
+      // Non-fatal — feed card will fall back to a generic video icon overlay.
+      debugPrint('[nob-compose] video thumbnail generation failed: $e');
+    }
+  }
 
-  Future<void> _saveDraft() async {
-    final text = _activeCtrl.text.trim();
-    if (text.isEmpty && _nobType == 'thought') {
-      setState(() {
-        _feedback = 'Write something first.';
-        _feedbackIsPositive = false;
-      });
-      return;
-    }
-    if (_photoBytes != null && _uploadedPhotoUrl == null) {
-      await _uploadPhoto();
-      if (_uploadedPhotoUrl == null) return;
-    }
+  // ── Auto-save (local only, single slot) ─────────────────────────────────
 
-    final post = await ref.read(postsProvider.notifier).createNob(
-          content: _nobType == 'thought' ? text : '',
-          nobType: _nobType,
-          caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
-          photoUrl: _uploadedPhotoUrl,
-          isDraft: true,
-        );
-    if (post != null && mounted) {
-      setState(() {
-        _savedDraftId = post.id;
-        _feedback = 'Draft saved.';
-        _feedbackIsPositive = true;
-      });
+  static const _kAutoSaveContent = 'noblara_compose_content';
+  static const _kAutoSaveCaption = 'noblara_compose_caption';
+  static const _kAutoSaveType = 'noblara_compose_type';
+  static const _kAutoSaveAnon = 'noblara_compose_anon';
+
+  Future<void> _autoSave() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kAutoSaveContent, _contentCtrl.text);
+      await prefs.setString(_kAutoSaveCaption, _captionCtrl.text);
+      await prefs.setString(_kAutoSaveType, _nobType);
+      await prefs.setBool(_kAutoSaveAnon, _isAnonymous);
+    } catch (_) {}
+  }
+
+  Future<void> _restoreAutoSave() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final content = prefs.getString(_kAutoSaveContent) ?? '';
+      final caption = prefs.getString(_kAutoSaveCaption) ?? '';
+      final type = prefs.getString(_kAutoSaveType) ?? 'thought';
+      final anon = prefs.getBool(_kAutoSaveAnon) ?? false;
+      if (content.isNotEmpty || caption.isNotEmpty || anon) {
+        setState(() {
+          _contentCtrl.text = content;
+          _captionCtrl.text = caption;
+          _nobType = type;
+          _isAnonymous = anon;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _clearAutoSave() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kAutoSaveContent);
+      await prefs.remove(_kAutoSaveCaption);
+      await prefs.remove(_kAutoSaveType);
+      await prefs.remove(_kAutoSaveAnon);
+    } catch (_) {}
+  }
+
+  static bool _isSpammy(String text) {
+    if (text.isEmpty) return false;
+    // Only block obvious garbage: 20+ chars with 1 unique character (e.g. "aaaaaaaaaaaaaaaaaaaa")
+    final stripped = text.replaceAll(RegExp(r'\s'), '');
+    if (stripped.characters.length > 20) {
+      final unique = stripped.characters.toSet();
+      if (unique.length == 1) return true;
     }
+    return false;
   }
 
   Future<void> _publish() async {
     if (_isPublishing) return;
     final text = _activeCtrl.text.trim();
-    // Thought: requires min 10 chars
-    if (_nobType == 'thought' && text.length < 10) {
-      setState(() {
-        _feedback = text.isEmpty ? 'Write something first.' : 'At least 10 characters needed.';
-        _feedbackIsPositive = false;
-      });
+    debugPrint('[NOB-PUBLISH] start text="$text" len=${text.characters.length} type=$_nobType anon=$_isAnonymous');
+    // Spam check (very loose — only blocks obvious garbage)
+    if (_isSpammy(text)) {
+      debugPrint('[NOB-PUBLISH] BLOCKED: spam');
+      _showFeedback('Please write something meaningful.');
       return;
     }
-    // Moment: requires photo OR min 10 chars
-    if (_nobType == 'moment' && _photoBytes == null && text.length < 10) {
-      setState(() {
-        _feedback = 'Add a photo or write at least 10 characters.';
-        _feedbackIsPositive = false;
-      });
+    // Thought: requires min 3 chars (works for short Turkish/multi-language posts)
+    if (_nobType == 'thought' && text.characters.length < 3) {
+      debugPrint('[NOB-PUBLISH] BLOCKED: too short');
+      _showFeedback(text.isEmpty ? 'Write something first.' : 'At least 3 characters needed.');
+      return;
+    }
+    // Moment: photo OR min 3 chars
+    if (_nobType == 'moment' && _photoBytes == null && text.characters.length < 3) {
+      debugPrint('[NOB-PUBLISH] BLOCKED: moment too short');
+      _showFeedback('Add a photo or write at least 3 characters.');
       return;
     }
     if (_nobType == 'moment' && _photoBytes != null && _uploadedPhotoUrl == null) {
@@ -340,46 +451,30 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
           await ref.read(postsProvider.notifier).canPublishToday(_nobType);
       if (!mounted) return;
       if (!canPublish) {
-        setState(() {
-          _feedback = 'You\'ve shared your Nob for today. Come back tomorrow.';
-          _feedbackIsPositive = false;
-          _isPublishing = false;
-        });
+        _showFeedback("You've shared your Nob for today. Come back tomorrow.");
+        setState(() => _isPublishing = false);
         return;
       }
 
-      bool success;
-      if (_savedDraftId != null) {
-        success =
-            await ref.read(postsProvider.notifier).publishDraft(_savedDraftId!);
-      } else {
-        final post = await ref.read(postsProvider.notifier).createNob(
-              content: _nobType == 'thought' ? text : '',
-              nobType: _nobType,
-              caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
-              photoUrl: _uploadedPhotoUrl,
-              isDraft: false,
-            );
-        success = post != null;
-      }
+      final post = await ref.read(postsProvider.notifier).createNob(
+            content: _nobType == 'thought' ? text : '',
+            nobType: _nobType,
+            caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
+            photoUrl: _uploadedPhotoUrl,
+            isAnonymous: _isAnonymous,
+          );
+      final success = post != null;
 
       if (!mounted) return;
       if (success) {
-        Navigator.pop(context);
+        await _clearAutoSave();
+        if (mounted) Navigator.pop(context);
       } else {
-        setState(() {
-          _feedback = 'Could not publish. Try again.';
-          _feedbackIsPositive = false;
-        });
+        _showFeedback('Could not publish. Try again.');
       }
     } catch (e) {
       debugPrint('[publish] ERROR: $e');
-      if (mounted) {
-        setState(() {
-          _feedback = 'Could not publish. Check your connection and try again.';
-          _feedbackIsPositive = false;
-        });
-      }
+      if (mounted) _showFeedback('Could not publish. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
@@ -402,6 +497,10 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         backgroundColor: AppColors.nobBackground,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         title: Row(
           children: [
             Container(
@@ -487,9 +586,8 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                               children: [
                                 _ToolbarIcon(icon: Icons.camera_alt_outlined, onTap: _pickPhoto),
                                 const SizedBox(width: 6),
-                                _ToolbarIcon(icon: Icons.tag_rounded, onTap: () {
-                                  setState(() { _feedback = 'Vibe tags coming soon.'; _feedbackIsPositive = true; });
-                                }),
+                                _ToolbarIcon(icon: Icons.videocam_outlined, onTap: () => _pickVideo(ImageSource.camera)),
+                                const SizedBox(width: 6),
                                 const SizedBox(width: 8),
                                 _AiChip(
                                   label: _aiLoading ? 'Thinking…' : 'AI Polish',
@@ -575,6 +673,79 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
               ),
             ),
 
+            // ── Anonymous toggle ─────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _isAnonymous = !_isAnonymous);
+                  _autoSave();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _isAnonymous
+                        ? AppColors.emerald600.withValues(alpha: 0.10)
+                        : AppColors.nobSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isAnonymous
+                          ? AppColors.emerald600.withValues(alpha: 0.4)
+                          : AppColors.nobBorder.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isAnonymous ? Icons.visibility_off_rounded : Icons.visibility_outlined,
+                        color: _isAnonymous ? AppColors.emerald600 : AppColors.nobObserver,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _isAnonymous ? 'Posting anonymously' : 'Post anonymously',
+                              style: TextStyle(
+                                color: _isAnonymous ? AppColors.emerald600 : AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _isAnonymous
+                                  ? 'Your name and avatar will be hidden on this Nob.'
+                                  : 'Hide your name and avatar on this Nob.',
+                              style: TextStyle(
+                                color: AppColors.nobObserver,
+                                fontSize: 11,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _isAnonymous,
+                        activeTrackColor: AppColors.emerald600,
+                        onChanged: (v) {
+                          HapticFeedback.selectionClick();
+                          setState(() => _isAnonymous = v);
+                          _autoSave();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // ── Bottom action bar (gradient fade) ────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
@@ -594,20 +765,6 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                 top: false,
                 child: Row(
                   children: [
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.nobObserver,
-                        side: BorderSide(color: AppColors.nobBorder.withValues(alpha: 0.6)),
-                        minimumSize: const Size(80, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _saveDraft,
-                      child: const Text('Draft',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
@@ -664,7 +821,11 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       maxLines: null,
       minLines: _nobType == 'moment' ? 3 : 6,
       maxLength: maxLength,
-      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+      // truncateAfterCompositionEnds: respects IME composition (Turkish, CJK, etc)
+      // Without this, characters like ş/ğ/ü/ö get rejected mid-composition.
+      maxLengthEnforcement: MaxLengthEnforcement.truncateAfterCompositionEnds,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
       style: const TextStyle(
         color: AppColors.textPrimary,
         fontSize: 16,

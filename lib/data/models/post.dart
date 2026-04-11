@@ -22,7 +22,9 @@ enum NobTier {
 
 class Post {
   final String id;
-  final String userId;
+  /// May be null for anonymous posts when fetched as a non-owner.
+  /// Server-side masking by `fetch_nob_lane` strips it.
+  final String? userId;
   final String content;    // thought text, or empty for moments
   final String nobType;    // 'thought' | 'moment'
   final String? photoUrl;
@@ -40,8 +42,19 @@ class Post {
   final String? authorAvatarUrl;
   final String? tone; // reflective, grounded, curious, creative
   final NobTier authorTier;
+  /// Reactions visible to the current user. Under tightened RLS this list
+  /// only contains the current user's own reactions to this post (so
+  /// `myReaction(uid)` still works), plus any optimistic local entries.
+  /// Use [reactionCounts] for displayed totals.
   final List<PostReaction> reactions;
+  /// Aggregated public reaction counts keyed by reaction_type
+  /// ('appreciate' | 'support' | 'pass'). Server-aggregated, no identity.
+  final Map<String, int> reactionCounts;
   final Map<String, int> ownCounts; // author-only reaction counts
+  final int commentCount;
+  final int echoCount;
+  final bool hasEchoed;
+  final bool isAnonymous;
 
   const Post({
     required this.id,
@@ -62,7 +75,12 @@ class Post {
     this.tone,
     this.authorTier = NobTier.observer,
     this.reactions = const [],
+    this.reactionCounts = const {},
     this.ownCounts = const {},
+    this.commentCount = 0,
+    this.echoCount = 0,
+    this.hasEchoed = false,
+    this.isAnonymous = false,
   });
 
   bool get isThought => nobType == 'thought';
@@ -72,7 +90,7 @@ class Post {
       {Map<String, dynamic>? profile}) {
     return Post(
       id: json['id'] as String,
-      userId: json['user_id'] as String,
+      userId: json['user_id'] as String?,
       content: json['content'] as String? ?? '',
       nobType: json['nob_type'] as String? ?? 'thought',
       photoUrl: json['photo_url'] as String?,
@@ -94,10 +112,23 @@ class Post {
           json['author_avatar_url'] as String?,
       tone: json['tone'] as String?,
       authorTier: NobTier.fromString(profile?['nob_tier'] as String?),
+      isAnonymous: json['is_anonymous'] as bool? ?? false,
     );
   }
 
-  Post copyWith({List<PostReaction>? reactions, bool? isPinned, Map<String, int>? ownCounts}) {
+  Post copyWith({
+    List<PostReaction>? reactions,
+    Map<String, int>? reactionCounts,
+    bool? isPinned,
+    Map<String, int>? ownCounts,
+    int? commentCount,
+    int? echoCount,
+    bool? hasEchoed,
+    bool? isAnonymous,
+    String? authorName,
+    String? authorAvatarUrl,
+    NobTier? authorTier,
+  }) {
     return Post(
       id: id,
       userId: userId,
@@ -112,14 +143,24 @@ class Post {
       publishedAt: publishedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,
-      authorName: authorName,
-      authorAvatarUrl: authorAvatarUrl,
+      authorName: authorName ?? this.authorName,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       tone: tone,
-      authorTier: authorTier,
+      authorTier: authorTier ?? this.authorTier,
       reactions: reactions ?? this.reactions,
+      reactionCounts: reactionCounts ?? this.reactionCounts,
       ownCounts: ownCounts ?? this.ownCounts,
+      commentCount: commentCount ?? this.commentCount,
+      echoCount: echoCount ?? this.echoCount,
+      hasEchoed: hasEchoed ?? this.hasEchoed,
+      isAnonymous: isAnonymous ?? this.isAnonymous,
     );
   }
+
+  /// Total of [reactionCounts['appreciate']] (the displayed appreciate count).
+  int get appreciateCount => reactionCounts['appreciate'] ?? 0;
+  int get supportCount => reactionCounts['support'] ?? 0;
+  int get passCount => reactionCounts['pass'] ?? 0;
 
   PostReaction? myReaction(String uid) {
     try {
