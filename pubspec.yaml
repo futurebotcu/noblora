@@ -40,6 +40,7 @@ flutter:
     - .env
     - assets/images/
     - assets/icons/
+    - assets/data/world_countries.geojson
 
   # Fonts are loaded via google_fonts package at runtime.
   # Place custom OTF/TTF files under assets/fonts/ when offline bundling is needed.
