@@ -164,6 +164,12 @@ class PostRepository {
 
   /// Trigger quality score computation via edge function.
   /// The function needs the full content to score, not just the id.
+  ///
+  /// The fire-and-forget pattern is intentional — feed UX must not block on
+  /// Gemini latency — but we DO inspect the response body so a non-throwing
+  /// fallback (`ai_status` ≠ "ok") still surfaces in client logs. Without
+  /// this the function could 200 + populate defaults forever and we'd never
+  /// notice from the client side.
   Future<void> computeQualityScore({
     required String postId,
     required String content,
@@ -171,11 +177,18 @@ class PostRepository {
   }) async {
     if (isMockMode) return;
     try {
-      await _supabase!.functions.invoke('nob-quality-check', body: {
+      final res = await _supabase!.functions.invoke('nob-quality-check', body: {
         'post_id': postId,
         'content': content,
         'nob_type': nobType,
       });
+      final data = res.data;
+      if (data is Map && data['ai_status'] != null && data['ai_status'] != 'ok') {
+        debugPrint(
+          '[nob-quality-check] $postId fell back: '
+          'ai_status=${data['ai_status']} ai_error=${data['ai_error']}',
+        );
+      }
     } catch (e) {
       debugPrint('[nob-quality-check] AI scoring failed for $postId: $e');
     }
