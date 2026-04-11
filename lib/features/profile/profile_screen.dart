@@ -14,8 +14,6 @@ import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../providers/posts_provider.dart';
-import '../noblara_feed/nob_drafts_screen.dart';
-import '../noblara_feed/nob_archive_screen.dart';
 import '../settings/settings_screen.dart';
 import '../verification/verification_hub_screen.dart';
 import 'edit/edit_profile_main_screen.dart';
@@ -1330,49 +1328,14 @@ class _LastNobsSection extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'N O B S',
-                    style: TextStyle(
-                      color: context.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const NobDraftsScreen())),
-                    child: const Text(
-                      'Drafts',
-                      style: TextStyle(
-                        color: AppColors.emerald600,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const NobArchiveScreen())),
-                    child: const Text(
-                      'Archive',
-                      style: TextStyle(
-                        color: AppColors.emerald600,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                'N O B S',
+                style: TextStyle(
+                  color: context.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               ...nobs.map((nob) {
