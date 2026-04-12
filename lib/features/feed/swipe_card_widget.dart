@@ -10,6 +10,7 @@ import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/posts_provider.dart';
+import '../noblara_feed/user_profile_screen.dart';
 
 class SwipeCardWidget extends StatefulWidget {
   final ProfileCard card;
@@ -348,10 +349,21 @@ class _CardInfo extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Name + age — hero text
-        Text(
-          '${card.name}, ${card.age}',
-          style: Premium.cardName,
+        // Name + age — hero text (tap to view full profile)
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => UserProfileScreen(
+              userId: card.id,
+              initialName: card.name,
+            ),
+          )),
+          child: Row(
+            children: [
+              Text('${card.name}, ${card.age}', style: Premium.cardName),
+              const SizedBox(width: 6),
+              Icon(Icons.open_in_new_rounded, color: Colors.white.withValues(alpha: 0.5), size: 14),
+            ],
+          ),
         ),
         const SizedBox(height: 6),
         // Location + profession — refined secondary line

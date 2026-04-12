@@ -4,6 +4,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/bff_suggestion.dart';
+import '../noblara_feed/user_profile_screen.dart';
 
 const _accent = AppColors.emerald500;
 const _accentLight = AppColors.emerald350;
@@ -43,7 +44,19 @@ class BffSuggestionCard extends StatelessWidget {
           // ── Header: photo + name + label ──
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                final uid = suggestion.otherUserId(suggestion.userAId);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => UserProfileScreen(
+                    userId: uid,
+                    initialName: suggestion.otherUserName,
+                    initialAvatarUrl: suggestion.otherUserPhotoUrl,
+                  ),
+                ));
+              },
+              child: Row(
               children: [
                 Container(
                   decoration: BoxDecoration(
@@ -73,12 +86,18 @@ class BffSuggestionCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        suggestion.otherUserName ?? 'Someone',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: context.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      Row(
+                        children: [
+                          Flexible(child: Text(
+                            suggestion.otherUserName ?? 'Someone',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: context.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          )),
+                          const SizedBox(width: 4),
+                          Icon(Icons.open_in_new_rounded, color: context.textMuted, size: 12),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -112,6 +131,7 @@ class BffSuggestionCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
             ),
           ),
 

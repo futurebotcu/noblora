@@ -44,6 +44,36 @@ class Profile {
   final String? zodiac;
   final List<String> photoUrls;
 
+  // Rich profile data (from profile_data JSONB)
+  final String? longBio;
+  final String? tagline;
+  final String? currentFocus;
+  final String? pronouns;
+  final String? wantsChildren;
+  final List<String> relationshipType;
+  final List<String> datingStyle;
+  final List<String> communicationStyle;
+  final List<String> loveLanguages;
+  final List<String> musicGenres;
+  final List<String> movieGenres;
+  final List<String> weekendStyle;
+  final List<String> humorStyle;
+  final String? sleepStyle;
+  final String? dietStyle;
+  final String? fitnessRoutine;
+  final String? workStyle;
+  final String? entrepreneurshipStatus;
+  final List<String> buildingNow;
+  final List<String> industry;
+  final List<String> aiTools;
+  final String? socialMediaUsage;
+  final String? techRelation;
+  final List<String> travelStyle;
+  final List<String> livedCountries;
+  final List<String> wishlistCountries;
+  final List<PromptAnswer> prompts;
+  final Map<String, String> visibility;
+
   const Profile({
     required this.id,
     required this.userId,
@@ -83,6 +113,34 @@ class Profile {
     this.lookingFor,
     this.zodiac,
     this.photoUrls = const [],
+    this.longBio,
+    this.tagline,
+    this.currentFocus,
+    this.pronouns,
+    this.wantsChildren,
+    this.relationshipType = const [],
+    this.datingStyle = const [],
+    this.communicationStyle = const [],
+    this.loveLanguages = const [],
+    this.musicGenres = const [],
+    this.movieGenres = const [],
+    this.weekendStyle = const [],
+    this.humorStyle = const [],
+    this.sleepStyle,
+    this.dietStyle,
+    this.fitnessRoutine,
+    this.workStyle,
+    this.entrepreneurshipStatus,
+    this.buildingNow = const [],
+    this.industry = const [],
+    this.aiTools = const [],
+    this.socialMediaUsage,
+    this.techRelation,
+    this.travelStyle = const [],
+    this.livedCountries = const [],
+    this.wishlistCountries = const [],
+    this.prompts = const [],
+    this.visibility = const {},
   });
 
   String get fullName => displayName;
@@ -112,6 +170,10 @@ class Profile {
   bool get _hasVerification => trustScore > 60;
 
   factory Profile.fromJson(Map<String, dynamic> json) {
+    final pd = (json['profile_data'] as Map<String, dynamic>?) ?? const {};
+    List<String> strList(dynamic v) =>
+        (v is List) ? v.whereType<String>().toList() : const [];
+
     return Profile(
       id: json['id'] as String,
       userId: json['id'] as String,
@@ -153,6 +215,38 @@ class Profile {
       zodiac: json['zodiac'] as String?,
       photoUrls: (json['photo_urls'] as List<dynamic>?)?.cast<String>() ??
           (json['photos'] as List<dynamic>?)?.cast<String>() ?? const [],
+      // Rich profile_data fields
+      longBio: pd['long_bio'] as String?,
+      tagline: pd['tagline'] as String?,
+      currentFocus: pd['current_focus'] as String?,
+      pronouns: pd['pronouns'] as String?,
+      wantsChildren: pd['wants_children'] as String?,
+      relationshipType: strList(pd['relationship_type']),
+      datingStyle: strList(pd['dating_style']),
+      communicationStyle: strList(pd['communication_style']),
+      loveLanguages: strList(pd['love_languages']),
+      musicGenres: strList(pd['music_genres']),
+      movieGenres: strList(pd['movie_genres']),
+      weekendStyle: strList(pd['weekend_style']),
+      humorStyle: strList(pd['humor_style']),
+      sleepStyle: pd['sleep_style'] as String?,
+      dietStyle: pd['diet_style'] as String?,
+      fitnessRoutine: pd['fitness_routine'] as String?,
+      workStyle: pd['work_style'] as String?,
+      entrepreneurshipStatus: pd['entrepreneurship_status'] as String?,
+      buildingNow: strList(pd['building_now']),
+      industry: strList(pd['industry']),
+      aiTools: strList(pd['ai_tools']),
+      socialMediaUsage: pd['social_media_usage'] as String?,
+      techRelation: pd['tech_relation'] as String?,
+      travelStyle: strList(pd['travel_style']),
+      livedCountries: strList(pd['lived_countries']),
+      wishlistCountries: strList(pd['wishlist_countries']),
+      prompts: (pd['prompts'] as List?)
+              ?.map((e) => PromptAnswer.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      visibility: (pd['visibility'] as Map<String, dynamic>?)?.cast<String, String>() ?? const {},
     );
   }
 
@@ -243,4 +337,30 @@ class Profile {
       photoUrls: photoUrls ?? this.photoUrls,
     );
   }
+
+  /// Returns true if a field should be visible to another user based on
+  /// the profile owner's visibility preferences.
+  bool isFieldPublic(String fieldKey) {
+    final v = visibility[fieldKey];
+    // Default = public if no preference set
+    return v == null || v == 'Public';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Prompt answer (conversation starter)
+// ---------------------------------------------------------------------------
+
+class PromptAnswer {
+  final String question;
+  final String answer;
+
+  const PromptAnswer({required this.question, required this.answer});
+
+  factory PromptAnswer.fromJson(Map<String, dynamic> json) => PromptAnswer(
+        question: json['question'] as String? ?? '',
+        answer: json['answer'] as String? ?? '',
+      );
+
+  bool get hasAnswer => answer.trim().isNotEmpty;
 }

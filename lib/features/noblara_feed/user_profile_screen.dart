@@ -95,8 +95,18 @@ class UserProfileScreen extends ConsumerWidget {
                     if ((profile.bio ?? '').isNotEmpty) ...[
                       Text(profile.bio!,
                           style: TextStyle(color: context.textPrimary, fontSize: 15, height: 1.6)),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 4),
                     ],
+                    if ((profile.currentFocus ?? '').isNotEmpty && profile.isFieldPublic('current_focus'))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Row(children: [
+                          Icon(Icons.flag_rounded, color: AppColors.emerald600.withValues(alpha: 0.6), size: 14),
+                          const SizedBox(width: 6),
+                          Expanded(child: Text(profile.currentFocus!,
+                              style: TextStyle(color: context.textSecondary, fontSize: 13, fontStyle: FontStyle.italic))),
+                        ]),
+                      ),
 
                     // ── Info chips ──
                     _InfoSection(profile: profile),
@@ -109,16 +119,91 @@ class UserProfileScreen extends ConsumerWidget {
                       _PhotoGrid(urls: profile.photoUrls),
                     ],
 
+                    // ── Prompts / Conversation starters ──
+                    if (profile.prompts.any((p) => p.hasAnswer) && profile.isFieldPublic('prompts')) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Conversation Starters'),
+                      const SizedBox(height: 10),
+                      ...profile.prompts.where((p) => p.hasAnswer).map((p) =>
+                        _PromptCard(question: p.question, answer: p.answer)),
+                    ],
+
                     // ── Interests ──
                     if (profile.interests.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Interests'),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: profile.interests.map((i) => _Chip(i)).toList(),
-                      ),
+                      Wrap(spacing: 8, runSpacing: 8,
+                        children: profile.interests.map((i) => _Chip(i)).toList()),
+                    ],
+
+                    // ── Relationship & Style ──
+                    if (profile.isFieldPublic('relationship') && _hasRelationshipData(profile)) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Relationship & Style'),
+                      const SizedBox(height: 10),
+                      if (profile.loveLanguages.isNotEmpty)
+                        _MiniRow(Icons.favorite_border_rounded, 'Love languages', profile.loveLanguages.join(', ')),
+                      if (profile.communicationStyle.isNotEmpty)
+                        _MiniRow(Icons.chat_outlined, 'Communication', profile.communicationStyle.join(', ')),
+                      if (profile.datingStyle.isNotEmpty)
+                        _MiniRow(Icons.psychology_outlined, 'Dating style', profile.datingStyle.join(', ')),
+                    ],
+
+                    // ── Lifestyle ──
+                    if (profile.isFieldPublic('lifestyle') && _hasLifestyleData(profile)) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Lifestyle'),
+                      const SizedBox(height: 10),
+                      if (profile.sleepStyle != null) _MiniRow(Icons.bedtime_outlined, 'Sleep', profile.sleepStyle!),
+                      if (profile.dietStyle != null) _MiniRow(Icons.restaurant_outlined, 'Diet', profile.dietStyle!),
+                      if (profile.fitnessRoutine != null) _MiniRow(Icons.fitness_center_outlined, 'Fitness', profile.fitnessRoutine!),
+                    ],
+
+                    // ── Career & Building ──
+                    if (profile.isFieldPublic('career') && _hasCareerData(profile)) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Career & Building'),
+                      const SizedBox(height: 10),
+                      if (profile.industry.isNotEmpty)
+                        _MiniRow(Icons.business_outlined, 'Industry', profile.industry.join(', ')),
+                      if (profile.workStyle != null)
+                        _MiniRow(Icons.work_outline_rounded, 'Work style', profile.workStyle!),
+                      if (profile.buildingNow.isNotEmpty)
+                        _MiniRow(Icons.build_outlined, 'Building', profile.buildingNow.join(', ')),
+                    ],
+
+                    // ── Culture ──
+                    if (profile.isFieldPublic('culture') && _hasCultureData(profile)) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Culture & Taste'),
+                      const SizedBox(height: 10),
+                      if (profile.musicGenres.isNotEmpty)
+                        Wrap(spacing: 6, runSpacing: 6,
+                          children: profile.musicGenres.map((m) => _Chip(m)).toList()),
+                      if (profile.weekendStyle.isNotEmpty)
+                        Padding(padding: const EdgeInsets.only(top: 8),
+                          child: _MiniRow(Icons.weekend_outlined, 'Weekends', profile.weekendStyle.join(', '))),
+                    ],
+
+                    // ── Travel ──
+                    if (profile.isFieldPublic('travel') && _hasTravelData(profile)) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Travel'),
+                      const SizedBox(height: 10),
+                      if (profile.countriesVisited.isNotEmpty)
+                        _MiniRow(Icons.flight_outlined, 'Visited', profile.countriesVisited.take(5).join(', ')),
+                      if (profile.travelStyle.isNotEmpty)
+                        _MiniRow(Icons.luggage_outlined, 'Style', profile.travelStyle.join(', ')),
+                    ],
+
+                    // ── Digital Life ──
+                    if (profile.isFieldPublic('digital') && profile.aiTools.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _SectionLabel('Digital Life'),
+                      const SizedBox(height: 10),
+                      Wrap(spacing: 6, runSpacing: 6,
+                        children: profile.aiTools.map((t) => _Chip(t)).toList()),
                     ],
 
                     // ── Languages ──
@@ -126,11 +211,8 @@ class UserProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
                       _SectionLabel('Languages'),
                       const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: profile.languages.map((l) => _Chip(l)).toList(),
-                      ),
+                      Wrap(spacing: 8, runSpacing: 8,
+                        children: profile.languages.map((l) => _Chip(l)).toList()),
                     ],
 
                     // ── Recent Nobs ──
@@ -259,6 +341,25 @@ class _HeroHeader extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Data presence helpers
+// ---------------------------------------------------------------------------
+
+bool _hasRelationshipData(Profile p) =>
+    p.loveLanguages.isNotEmpty || p.communicationStyle.isNotEmpty || p.datingStyle.isNotEmpty;
+
+bool _hasLifestyleData(Profile p) =>
+    p.sleepStyle != null || p.dietStyle != null || p.fitnessRoutine != null;
+
+bool _hasCareerData(Profile p) =>
+    p.industry.isNotEmpty || p.workStyle != null || p.buildingNow.isNotEmpty;
+
+bool _hasCultureData(Profile p) =>
+    p.musicGenres.isNotEmpty || p.weekendStyle.isNotEmpty;
+
+bool _hasTravelData(Profile p) =>
+    p.countriesVisited.isNotEmpty || p.travelStyle.isNotEmpty;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -397,6 +498,63 @@ class _NobPreview extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: context.textPrimary, fontSize: 13.5, height: 1.4, fontStyle: FontStyle.italic)),
+      ),
+    );
+  }
+}
+
+class _PromptCard extends StatelessWidget {
+  final String question;
+  final String answer;
+  const _PromptCard({required this.question, required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(question,
+                style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.8), fontSize: 11,
+                    fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+            const SizedBox(height: 8),
+            Text(answer,
+                style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MiniRow(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: context.textMuted, size: 15),
+          const SizedBox(width: 8),
+          Text('$label: ', style: TextStyle(color: context.textMuted, fontSize: 12.5, fontWeight: FontWeight.w500)),
+          Expanded(child: Text(value,
+              style: TextStyle(color: context.textSecondary, fontSize: 12.5, height: 1.3))),
+        ],
       ),
     );
   }
