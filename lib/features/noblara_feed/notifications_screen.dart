@@ -222,7 +222,7 @@ class _NotificationTile extends StatelessWidget {
   }
 
   String get _title {
-    final actor = item.sourceAnonymous ? 'Someone' : 'Someone';
+    const actor = 'Someone'; // Always anonymous in Noblara notifications
     switch (item.kind) {
       case 'reply':
         return '$actor replied to your Nob';
@@ -258,7 +258,7 @@ class _NotificationTile extends StatelessWidget {
         border: Border.all(
           color: item.isRead
               ? AppColors.nobBorder.withValues(alpha: 0.55)
-              : AppColors.emerald600.withValues(alpha: 0.40),
+              : AppColors.emerald600.withValues(alpha: 0.65),
         ),
       ),
       child: Row(

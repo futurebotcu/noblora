@@ -52,6 +52,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   String? _feedback;
   bool _feedbackIsPositive = false;
   Timer? _feedbackTimer;
+  Timer? _autoSaveDebounce;
 
   String get _prompt =>
       _prompts[(DateTime.now().millisecondsSinceEpoch ~/ 1000) % _prompts.length];
@@ -76,16 +77,22 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
     super.initState();
     // Restore local auto-save (single slot, persists across sessions)
     _restoreAutoSave();
-    _contentCtrl.addListener(_autoSave);
-    _captionCtrl.addListener(_autoSave);
+    _contentCtrl.addListener(_debouncedAutoSave);
+    _captionCtrl.addListener(_debouncedAutoSave);
   }
 
   @override
   void dispose() {
     _feedbackTimer?.cancel();
+    _autoSaveDebounce?.cancel();
     _contentCtrl.dispose();
     _captionCtrl.dispose();
     super.dispose();
+  }
+
+  void _debouncedAutoSave() {
+    _autoSaveDebounce?.cancel();
+    _autoSaveDebounce = Timer(const Duration(seconds: 2), _autoSave);
   }
 
   // ── AI Edit ──────────────────────────────────────────────────────────────

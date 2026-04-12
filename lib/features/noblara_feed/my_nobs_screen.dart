@@ -33,10 +33,17 @@ final _myNobsProvider = FutureProvider.autoDispose<List<Post>>((ref) async {
       : EchoRepository(supabase: Supabase.instance.client);
 
   final ids = posts.map((p) => p.id).toList();
-  final commentCounts = await commentRepo.commentCountsBatch(ids);
-  final echoCounts = await echoRepo.echoCountsBatch(ids);
-  final myEchoes = await echoRepo.userEchoedPostIds(userId: uid, postIds: ids);
-  final ownReactionCountsMap = await repo.getOwnReactionCountsBatch(ids, uid);
+  // Parallelize all enrichment queries instead of sequential awaits
+  final results = await Future.wait([
+    commentRepo.commentCountsBatch(ids),
+    echoRepo.echoCountsBatch(ids),
+    echoRepo.userEchoedPostIds(userId: uid, postIds: ids),
+    repo.getOwnReactionCountsBatch(ids, uid),
+  ]);
+  final commentCounts = results[0] as Map<String, int>;
+  final echoCounts = results[1] as Map<String, int>;
+  final myEchoes = results[2] as Set<String>;
+  final ownReactionCountsMap = results[3] as Map<String, Map<String, int>>;
 
   return posts.map((p) => p.copyWith(
         commentCount: commentCounts[p.id] ?? 0,
