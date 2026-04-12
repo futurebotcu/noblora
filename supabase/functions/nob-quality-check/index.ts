@@ -59,7 +59,11 @@ async function analyzeWithGemini(
     return defaultAnalysis("empty_content");
   }
 
-  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  // Model history: gemini-2.0-flash → 404, gemini-2.5-flash → truncation.
+  // gemini-3.1-flash-lite-preview is the latest generation with improved
+  // structured output. Retry loop + finishReason guard handles any transient
+  // issues. Override via GEMINI_MODEL env var.
+  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.1-flash-lite-preview";
 
   const prompt =
     `Analyze this short social post and return JSON only.\n\n` +
@@ -105,103 +109,156 @@ async function analyzeWithGemini(
     },
   };
 
-  let response: Response;
-  try {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  // Retry once on transient / retryable failures (truncated response, parse
+  // errors). Non-retryable errors (network, HTTP, empty/blocked) exit early.
+  let lastError: AnalysisResult = defaultAnalysis("parse_failed", "no attempts");
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      },
-    );
-  } catch (e) {
-    return defaultAnalysis("gemini_fetch_failed", String(e));
-  }
-
-  if (!response.ok) {
-    let errBody = "";
-    try {
-      errBody = await response.text();
-    } catch (_) {
-      // ignore
+      });
+    } catch (e) {
+      return defaultAnalysis("gemini_fetch_failed", String(e));
     }
-    console.error("[nob-quality-check] gemini", response.status, errBody);
-    return defaultAnalysis(`gemini_http_${response.status}`, errBody.slice(0, 500));
-  }
 
-  let data: unknown;
-  try {
-    data = await response.json();
-  } catch (e) {
-    return defaultAnalysis("gemini_json_decode_failed", String(e));
-  }
-
-  const candidates = (data as any)?.candidates as any[] | undefined;
-  const rawText = candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  if (!rawText) {
-    console.error("[nob-quality-check] empty rawText", JSON.stringify(data));
-    // Surface the finishReason / safety block hints in ai_error so we can
-    // tell "model returned nothing" apart from "model was filtered".
-    const finishReason =
-      candidates?.[0]?.finishReason ?? (data as any)?.promptFeedback?.blockReason ?? "unknown";
-    return defaultAnalysis("gemini_empty_response", `finishReason=${finishReason}`);
-  }
-
-  let parsed: any;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch (e) {
-    // responseMimeType should guarantee JSON, but fall back to a brace match.
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (match) {
+    if (!response.ok) {
+      let errBody = "";
       try {
-        parsed = JSON.parse(match[0]);
-      } catch (e2) {
-        return defaultAnalysis("parse_failed", `${e}; fallback: ${e2}`);
+        errBody = await response.text();
+      } catch (_) {
+        // ignore
       }
-    } else {
-      return defaultAnalysis("parse_failed", String(e));
+      console.error("[nob-quality-check] gemini", response.status, errBody);
+      return defaultAnalysis(
+        `gemini_http_${response.status}`,
+        errBody.slice(0, 500),
+      );
     }
+
+    // Read raw body so every failure branch can surface what Gemini returned.
+    let responseBody: string;
+    try {
+      responseBody = await response.text();
+    } catch (e) {
+      return defaultAnalysis("gemini_fetch_body_failed", String(e));
+    }
+
+    let data: unknown;
+    try {
+      data = JSON.parse(responseBody);
+    } catch (e) {
+      lastError = defaultAnalysis(
+        "gemini_json_decode_failed",
+        `${e} | raw(0..500): ${responseBody.slice(0, 500)}`,
+      );
+      continue; // retryable
+    }
+
+    const candidates = (data as any)?.candidates as any[] | undefined;
+    const rawText = candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const finishReason =
+      candidates?.[0]?.finishReason ??
+      (data as any)?.promptFeedback?.blockReason ??
+      "unknown";
+
+    if (!rawText) {
+      console.error(
+        "[nob-quality-check] empty rawText",
+        JSON.stringify(data),
+      );
+      // Empty/blocked responses are not retryable (safety filters are
+      // deterministic for the same input).
+      return defaultAnalysis(
+        "gemini_empty_response",
+        `finishReason=${finishReason}`,
+      );
+    }
+
+    // Detect truncated responses: finishReason !== STOP means the model did
+    // not complete its output — the JSON is almost certainly incomplete.
+    // This was the root cause of every parse_failed with gemini-2.5-flash.
+    if (finishReason !== "STOP") {
+      lastError = defaultAnalysis(
+        "truncated_response",
+        `finishReason=${finishReason} | raw(0..500): ${rawText.slice(0, 500)}`,
+      );
+      continue; // retryable
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (e) {
+      // responseMimeType should guarantee JSON, but fall back to a brace match.
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          parsed = JSON.parse(match[0]);
+        } catch (e2) {
+          lastError = defaultAnalysis(
+            "parse_failed",
+            `${e}; fallback: ${e2} | raw(0..500): ${rawText.slice(0, 500)}`,
+          );
+          continue; // retryable
+        }
+      } else {
+        lastError = defaultAnalysis(
+          "parse_failed",
+          `${e} | raw(0..500): ${rawText.slice(0, 500)}`,
+        );
+        continue; // retryable
+      }
+    }
+
+    const score = Math.min(
+      1.0,
+      Math.max(0.0, typeof parsed.score === "number" ? parsed.score : 0.5),
+    );
+    const primary =
+      typeof parsed.primary_mood === "string" &&
+      MOODS.includes(parsed.primary_mood)
+        ? parsed.primary_mood
+        : null;
+    const secondary =
+      typeof parsed.secondary_mood === "string" &&
+      MOODS.includes(parsed.secondary_mood)
+        ? parsed.secondary_mood
+        : null;
+    const intensity =
+      typeof parsed.mood_intensity === "number"
+        ? Math.max(0, Math.min(10, Math.round(parsed.mood_intensity)))
+        : 0;
+    const topics = Array.isArray(parsed.topics)
+      ? (parsed.topics as unknown[])
+          .filter((t): t is string => typeof t === "string")
+          .map((t) => t.toLowerCase().trim())
+          .filter((t) => t.length > 0)
+          .slice(0, 3)
+      : [];
+    const language =
+      typeof parsed.language === "string" && parsed.language.length === 2
+        ? parsed.language.toLowerCase()
+        : null;
+
+    return {
+      quality_score: score,
+      primary_mood: primary,
+      secondary_mood: secondary,
+      mood_intensity: intensity,
+      topic_labels: topics,
+      language_code: language,
+      ai_status: attempt > 0 ? "retry_recovered" : "ok",
+    };
   }
 
-  const score = Math.min(
-    1.0,
-    Math.max(0.0, typeof parsed.score === "number" ? parsed.score : 0.5),
-  );
-  const primary =
-    typeof parsed.primary_mood === "string" && MOODS.includes(parsed.primary_mood)
-      ? parsed.primary_mood
-      : null;
-  const secondary =
-    typeof parsed.secondary_mood === "string" && MOODS.includes(parsed.secondary_mood)
-      ? parsed.secondary_mood
-      : null;
-  const intensity =
-    typeof parsed.mood_intensity === "number"
-      ? Math.max(0, Math.min(10, Math.round(parsed.mood_intensity)))
-      : 0;
-  const topics = Array.isArray(parsed.topics)
-    ? (parsed.topics as unknown[])
-        .filter((t): t is string => typeof t === "string")
-        .map((t) => t.toLowerCase().trim())
-        .filter((t) => t.length > 0)
-        .slice(0, 3)
-    : [];
-  const language =
-    typeof parsed.language === "string" && parsed.language.length === 2
-      ? parsed.language.toLowerCase()
-      : null;
-
-  return {
-    quality_score: score,
-    primary_mood: primary,
-    secondary_mood: secondary,
-    mood_intensity: intensity,
-    topic_labels: topics,
-    language_code: language,
-    ai_status: "ok",
-  };
+  return lastError;
 }
 
 serve(async (req) => {
@@ -268,7 +325,7 @@ serve(async (req) => {
 
     const analysis = await analyzeWithGemini(content ?? "", nob_type ?? "thought");
 
-    if (analysis.ai_status !== "ok") {
+    if (analysis.ai_status !== "ok" && analysis.ai_status !== "retry_recovered") {
       console.warn(
         "[nob-quality-check]",
         post_id,
@@ -293,6 +350,7 @@ serve(async (req) => {
         country_code,
         city_cluster,
         ai_status: analysis.ai_status,
+        ai_error: analysis.ai_error ?? null,
         analyzed_at: new Date().toISOString(),
       })
       .eq("id", post_id);
