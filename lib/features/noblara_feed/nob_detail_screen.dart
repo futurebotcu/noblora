@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/video_assets.dart';
 import '../../data/models/post.dart';
 import '../../data/models/post_comment.dart';
+import '../../data/models/post_revision.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/posts_provider.dart';
@@ -238,6 +239,8 @@ class _NobDetailScreenState extends ConsumerState<NobDetailScreen> {
                           onDelete: (id) => ref
                               .read(commentsProvider(post.id).notifier)
                               .delete(id),
+                          onEdit: (comment) => _showCommentEditSheet(
+                              context, ref, post.id, comment),
                         )),
                   ],
                 ],
@@ -352,6 +355,31 @@ class _PostSection extends StatelessWidget {
                           _formatTime(post.publishedAt ?? post.createdAt),
                           style: TextStyle(color: context.textMuted, fontSize: 12),
                         ),
+                        if (post.hasSecondThought) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: AppColors.emerald600.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.25)),
+                            ),
+                            child: const Text('Revised',
+                                style: TextStyle(color: AppColors.emerald600, fontSize: 9, fontWeight: FontWeight.w600)),
+                          ),
+                        ] else if (post.isEdited) ...[
+                          const SizedBox(width: 5),
+                          Text('edited',
+                              style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 10, fontStyle: FontStyle.italic)),
+                        ],
+                        if (post.editCount > 0) ...[
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => _showRevisionHistory(context, post.id),
+                            child: Text('${post.editCount} ${post.editCount == 1 ? 'revision' : 'revisions'}',
+                                style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.6), fontSize: 10, decoration: TextDecoration.underline)),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -361,6 +389,59 @@ class _PostSection extends StatelessWidget {
           ),
 
           const SizedBox(height: 16),
+
+          // ── Original content (shown when Second Thought exists) ──
+          if (post.hasSecondThought && post.originalContent != null && post.originalContent!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: context.surfaceAltColor.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.borderColor.withValues(alpha: 0.5)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.history_rounded, color: context.textMuted, size: 12),
+                      const SizedBox(width: 5),
+                      Text('Original Thought',
+                          style: TextStyle(color: context.textMuted, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.4)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    post.originalContent!,
+                    style: TextStyle(
+                      color: context.textMuted,
+                      fontSize: 14,
+                      height: 1.5,
+                      fontStyle: FontStyle.italic,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: context.textMuted.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.auto_fix_high_rounded, color: AppColors.emerald600.withValues(alpha: 0.7), size: 13),
+                const SizedBox(width: 5),
+                Text('Second Thought',
+                    style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.8), fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+                if (post.secondThoughtReason != null && post.secondThoughtReason!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text('— ${post.secondThoughtReason}',
+                      style: TextStyle(color: context.textMuted, fontSize: 10.5, fontStyle: FontStyle.italic)),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
 
           // Content
           if (post.isThought && post.content.isNotEmpty)
@@ -528,12 +609,14 @@ class _CommentThread extends StatelessWidget {
   final String? currentUserId;
   final void Function(String authorName) onReply;
   final void Function(String commentId) onDelete;
+  final void Function(PostComment comment) onEdit;
 
   const _CommentThread({
     required this.comment,
     required this.currentUserId,
     required this.onReply,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -548,6 +631,8 @@ class _CommentThread extends StatelessWidget {
             isOwn: comment.userId == currentUserId,
             onReply: () => onReply(comment.authorName ?? 'User'),
             onDelete: () => onDelete(comment.id),
+            onEdit: comment.canEdit && comment.userId == currentUserId
+                ? () => onEdit(comment) : null,
           ),
           // Replies (indented)
           if (comment.replies.isNotEmpty)
@@ -560,6 +645,8 @@ class _CommentThread extends StatelessWidget {
                     comment: r,
                     isOwn: r.userId == currentUserId,
                     onDelete: () => onDelete(r.id),
+                    onEdit: r.canEdit && r.userId == currentUserId
+                        ? () => onEdit(r) : null,
                     isReply: true,
                   ),
                 )).toList(),
@@ -580,6 +667,7 @@ class _CommentRow extends StatelessWidget {
   final bool isOwn;
   final VoidCallback? onReply;
   final VoidCallback onDelete;
+  final VoidCallback? onEdit;
   final bool isReply;
 
   const _CommentRow({
@@ -587,6 +675,7 @@ class _CommentRow extends StatelessWidget {
     required this.isOwn,
     required this.onDelete,
     this.onReply,
+    this.onEdit,
     this.isReply = false,
   });
 
@@ -620,6 +709,10 @@ class _CommentRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(_ago(comment.createdAt), style: TextStyle(color: context.textMuted, fontSize: 10)),
+                  if (comment.isEdited) ...[
+                    const SizedBox(width: 4),
+                    Text('edited', style: TextStyle(color: context.textMuted.withValues(alpha: 0.5), fontSize: 9, fontStyle: FontStyle.italic)),
+                  ],
                 ],
               ),
               const SizedBox(height: 3),
@@ -632,6 +725,13 @@ class _CommentRow extends StatelessWidget {
                       onTap: onReply,
                       child: Text('Reply', style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
                     ),
+                  if (isOwn && comment.canEdit && onEdit != null) ...[
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: onEdit,
+                      child: Text('Edit', style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
                   if (isOwn) ...[
                     const SizedBox(width: 16),
                     GestureDetector(
@@ -1004,4 +1104,194 @@ class _ChainLink extends StatelessWidget {
     if (d.inHours < 24) return '${d.inHours}h';
     return '${d.inDays}d';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Revision history sheet
+// ---------------------------------------------------------------------------
+
+void _showRevisionHistory(BuildContext context, String postId) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (_) => _RevisionHistorySheet(postId: postId),
+  );
+}
+
+class _RevisionHistorySheet extends ConsumerWidget {
+  final String postId;
+  const _RevisionHistorySheet({required this.postId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.85,
+      expand: false,
+      builder: (context, scrollCtrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: Container(width: 36, height: 4,
+              decoration: BoxDecoration(color: AppColors.nobBorder, borderRadius: BorderRadius.circular(2))),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.history_rounded, color: AppColors.emerald600, size: 18),
+                const SizedBox(width: 8),
+                Text('Revision History',
+                    style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.nobBorder),
+          Expanded(
+            child: FutureBuilder<List<PostRevision>>(
+              future: ref.read(postRepositoryProvider).fetchRevisions(postId),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.emerald600)));
+                }
+                final revisions = snap.data ?? [];
+                if (revisions.isEmpty) {
+                  return Center(child: Text('No revisions yet.',
+                      style: TextStyle(color: context.textMuted, fontSize: 13)));
+                }
+                return ListView.separated(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                  itemCount: revisions.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (_, i) {
+                    final r = revisions[i];
+                    final isSecond = r.isSecondThought;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isSecond ? AppColors.emerald600.withValues(alpha: 0.1) : context.surfaceAltColor,
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(color: isSecond ? AppColors.emerald600.withValues(alpha: 0.3) : context.borderColor),
+                            ),
+                            child: Text(isSecond ? 'Second Thought' : 'Minor Edit',
+                                style: TextStyle(color: isSecond ? AppColors.emerald600 : context.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('v${r.revisionNumber}', style: TextStyle(color: context.textMuted, fontSize: 10)),
+                          const Spacer(),
+                          Text(_fmtTime(r.createdAt), style: TextStyle(color: context.textMuted, fontSize: 10)),
+                        ]),
+                        if (r.reason != null && r.reason!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(r.reason!, style: TextStyle(color: context.textMuted, fontSize: 11, fontStyle: FontStyle.italic)),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(r.previousContent, maxLines: 4, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4,
+                              decoration: TextDecoration.lineThrough, decorationColor: context.textMuted.withValues(alpha: 0.3))),
+                        const SizedBox(height: 6),
+                        Text(r.newContent, maxLines: 4, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: context.textPrimary, fontSize: 12, height: 1.4)),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _fmtTime(DateTime dt) {
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    return '${dt.day}/${dt.month}';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Comment edit sheet
+// ---------------------------------------------------------------------------
+
+void _showCommentEditSheet(
+    BuildContext context, WidgetRef ref, String postId, PostComment comment) {
+  final ctrl = TextEditingController(text: comment.content);
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.edit_outlined, color: ctx.textSecondary, size: 16),
+            const SizedBox(width: 8),
+            Text('Edit Comment', style: TextStyle(color: ctx.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
+            const Spacer(),
+            Text('${3 - comment.editCount} edits left',
+                style: TextStyle(color: ctx.textMuted, fontSize: 11)),
+          ]),
+          const SizedBox(height: 14),
+          TextField(
+            controller: ctrl,
+            maxLines: null,
+            minLines: 2,
+            maxLength: 280,
+            autofocus: true,
+            style: TextStyle(color: ctx.textPrimary, fontSize: 14, height: 1.5),
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.borderColor)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.emerald600)),
+              contentPadding: const EdgeInsets.all(14),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.emerald600,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                final text = ctrl.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(ctx);
+                final result = await ref
+                    .read(commentsProvider(postId).notifier)
+                    .editComment(comment.id, text);
+                if (!result.ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result.error ?? 'Edit failed')),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

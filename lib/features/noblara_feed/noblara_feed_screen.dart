@@ -191,6 +191,12 @@ class NoblaraFeedScreen extends ConsumerWidget {
                             ? () => ref.read(postsProvider.notifier).deletePost(post.id)
                             : null,
                         onEcho: () => ref.read(postsProvider.notifier).toggleEcho(post.id),
+                        onMinorEdit: (currentUserId != null && currentUserId == post.userId && post.canMinorEdit)
+                            ? () => _showMinorEditSheet(context, ref, post)
+                            : null,
+                        onSecondThought: (currentUserId != null && currentUserId == post.userId && post.canSecondThought)
+                            ? () => _showSecondThoughtSheet(context, ref, post)
+                            : null,
                       );
                     },
                     childCount: postsState.posts.length,
@@ -566,17 +572,212 @@ class _TierBadge extends StatelessWidget {
 // Nob card — premium gallery card
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Minor Edit / Second Thought sheets
+// ---------------------------------------------------------------------------
+
+void _showMinorEditSheet(BuildContext context, WidgetRef ref, Post post) {
+  final ctrl = TextEditingController(text: post.isThought ? post.content : post.caption ?? '');
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit_outlined, color: ctx.textSecondary, size: 16),
+              const SizedBox(width: 8),
+              Text('Minor Edit', style: TextStyle(color: ctx.textPrimary, fontSize: 15, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Text('${3 - post.editCount} edits left',
+                  style: TextStyle(color: ctx.textMuted, fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: ctrl,
+            maxLines: null,
+            minLines: 3,
+            maxLength: 300,
+            autofocus: true,
+            style: TextStyle(color: ctx.textPrimary, fontSize: 14, height: 1.5),
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.borderColor)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.borderColor)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.emerald600)),
+              contentPadding: const EdgeInsets.all(14),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.emerald600,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                final text = ctrl.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(ctx);
+                final result = post.isThought
+                    ? await ref.read(postsProvider.notifier).minorEdit(post.id, text)
+                    : await ref.read(postsProvider.notifier).minorEdit(post.id, post.content, newCaption: text);
+                if (!result.ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result.error ?? 'Edit failed')),
+                  );
+                }
+              },
+              child: const Text('Save Edit'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+void _showSecondThoughtSheet(BuildContext context, WidgetRef ref, Post post) {
+  final ctrl = TextEditingController(text: post.isThought ? post.content : post.caption ?? '');
+  final reasonCtrl = TextEditingController();
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_fix_high_rounded, color: AppColors.emerald600, size: 16),
+                const SizedBox(width: 8),
+                Text('Second Thought', style: TextStyle(color: AppColors.emerald600, fontSize: 15, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text('Revise your thinking. The original will be preserved.',
+                style: TextStyle(color: ctx.textMuted, fontSize: 12)),
+            const SizedBox(height: 14),
+            // Original content (read-only)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ctx.surfaceAltColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ctx.borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Original', style: TextStyle(color: ctx.textMuted, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                  const SizedBox(height: 6),
+                  Text(
+                    post.isThought ? post.content : (post.caption ?? ''),
+                    style: TextStyle(color: ctx.textSecondary, fontSize: 13, height: 1.4, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            // New content
+            TextField(
+              controller: ctrl,
+              maxLines: null,
+              minLines: 4,
+              maxLength: 300,
+              autofocus: true,
+              style: TextStyle(color: ctx.textPrimary, fontSize: 14, height: 1.5),
+              decoration: InputDecoration(
+                hintText: 'Your revised thought...',
+                hintStyle: TextStyle(color: ctx.textMuted.withValues(alpha: 0.5)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.borderColor)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: ctx.borderColor)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.emerald600)),
+                contentPadding: const EdgeInsets.all(14),
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Reason (optional)
+            TextField(
+              controller: reasonCtrl,
+              maxLength: 200,
+              style: TextStyle(color: ctx.textSecondary, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Why the change? (optional)',
+                hintStyle: TextStyle(color: ctx.textMuted.withValues(alpha: 0.4), fontSize: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: ctx.borderColor.withValues(alpha: 0.5))),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.emerald600,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  final text = ctrl.text.trim();
+                  if (text.isEmpty) return;
+                  final reason = reasonCtrl.text.trim();
+                  Navigator.pop(ctx);
+                  final result = post.isThought
+                      ? await ref.read(postsProvider.notifier).secondThought(
+                            post.id, text, reason: reason.isNotEmpty ? reason : null)
+                      : await ref.read(postsProvider.notifier).secondThought(
+                            post.id, post.content,
+                            newCaption: text,
+                            reason: reason.isNotEmpty ? reason : null);
+                  if (!result.ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result.error ?? 'Could not save')),
+                    );
+                  }
+                },
+                child: const Text('Publish Second Thought'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _NobCard extends StatelessWidget {
   final Post post;
   final String? currentUserId;
   final ValueChanged<String> onReact;
   final VoidCallback? onDelete;
   final VoidCallback? onEcho;
+  final VoidCallback? onMinorEdit;
+  final VoidCallback? onSecondThought;
 
   const _NobCard({
     super.key,
     required this.post, required this.currentUserId, required this.onReact,
-    this.onDelete, this.onEcho,
+    this.onDelete, this.onEcho, this.onMinorEdit, this.onSecondThought,
   });
 
   Color get _tierColor => switch (post.authorTier) {
@@ -700,13 +901,52 @@ class _NobCard extends StatelessWidget {
                             _ago(post.publishedAt ?? post.createdAt),
                             style: TextStyle(color: context.textMuted, fontSize: 11),
                           ),
+                          if (post.hasSecondThought) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.emerald600.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.25)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.auto_fix_high_rounded,
+                                      color: AppColors.emerald600.withValues(alpha: 0.7), size: 9),
+                                  const SizedBox(width: 3),
+                                  Text('Second Thought',
+                                      style: TextStyle(
+                                        color: AppColors.emerald600.withValues(alpha: 0.8),
+                                        fontSize: 8.5, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                          ] else if (post.isEdited) ...[
+                            const SizedBox(width: 5),
+                            Text('edited',
+                                style: TextStyle(
+                                  color: context.textMuted.withValues(alpha: 0.6),
+                                  fontSize: 10, fontStyle: FontStyle.italic)),
+                          ],
+                          if (post.isFutureNob) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.schedule_rounded,
+                                color: context.textMuted.withValues(alpha: 0.6), size: 12),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
                 if (isOwn)
-                  _OwnerMenu(onDelete: onDelete),
+                  _OwnerMenu(
+                    post: post,
+                    onDelete: onDelete,
+                    onMinorEdit: onMinorEdit,
+                    onSecondThought: onSecondThought,
+                  ),
               ],
             ),
           ),
@@ -811,8 +1051,11 @@ class _NobCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _OwnerMenu extends StatelessWidget {
+  final Post post;
   final VoidCallback? onDelete;
-  const _OwnerMenu({this.onDelete});
+  final VoidCallback? onMinorEdit;
+  final VoidCallback? onSecondThought;
+  const _OwnerMenu({required this.post, this.onDelete, this.onMinorEdit, this.onSecondThought});
 
   @override
   Widget build(BuildContext context) {
@@ -822,8 +1065,22 @@ class _OwnerMenu extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: context.borderColor)),
       onSelected: (val) {
         if (val == 'delete' && onDelete != null) onDelete!();
+        if (val == 'edit' && onMinorEdit != null) onMinorEdit!();
+        if (val == 'second_thought' && onSecondThought != null) onSecondThought!();
       },
       itemBuilder: (_) => [
+        if (post.canMinorEdit)
+          PopupMenuItem(value: 'edit', child: Row(children: [
+            Icon(Icons.edit_outlined, color: context.textSecondary, size: 15),
+            const SizedBox(width: 8),
+            Text('Edit', style: TextStyle(color: context.textSecondary, fontSize: 13)),
+          ])),
+        if (post.canSecondThought)
+          PopupMenuItem(value: 'second_thought', child: Row(children: [
+            Icon(Icons.auto_fix_high_rounded, color: AppColors.emerald600, size: 15),
+            const SizedBox(width: 8),
+            const Text('Second Thought', style: TextStyle(color: AppColors.emerald600, fontSize: 13)),
+          ])),
         PopupMenuItem(value: 'delete', child: const Row(children: [
           Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 15),
           SizedBox(width: 8),

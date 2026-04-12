@@ -156,6 +156,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
         case 'echo_change':
           await _refreshCounts(postId, genAtFire);
           break;
+        case 'second_thought':
+          await _onSecondThought(postId, genAtFire);
+          break;
       }
     } catch (e) {
       debugPrint('[realtime] _handleEvent($type, $postId) failed: $e');
@@ -398,6 +401,7 @@ class PostsNotifier extends StateNotifier<PostsState> {
     String? photoUrl,
     String? caption,
     bool isAnonymous = false,
+    DateTime? revisitAt,
   }) async {
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return null;
@@ -411,6 +415,7 @@ class PostsNotifier extends StateNotifier<PostsState> {
         caption: caption,
         isDraft: false,
         isAnonymous: isAnonymous,
+        revisitAt: revisitAt,
       );
 
       // Enrich the new post with the author profile so it shows the user's
@@ -529,6 +534,96 @@ class PostsNotifier extends StateNotifier<PostsState> {
               : p)
           .toList(),
     );
+  }
+
+  // ── Second Thought / Edit ────────────────────────────────────────────────
+
+  Future<({bool ok, String? error})> minorEdit(
+      String postId, String newContent, {String? newCaption}) async {
+    final idx = state.posts.indexWhere((p) => p.id == postId);
+    final previous = idx >= 0 ? state.posts[idx] : null;
+    if (idx >= 0) {
+      final updated = [...state.posts];
+      updated[idx] = updated[idx].copyWith(
+        content: newContent,
+        caption: newCaption,
+        editCount: updated[idx].editCount + 1,
+        lastEditedAt: DateTime.now(),
+      );
+      state = state.copyWith(posts: updated);
+    }
+    final result = await _repo.performMinorEdit(
+        postId: postId, newContent: newContent, newCaption: newCaption);
+    if (!result.ok && previous != null && mounted) {
+      final rollback = [...state.posts];
+      final i = rollback.indexWhere((p) => p.id == postId);
+      if (i >= 0) rollback[i] = previous;
+      state = state.copyWith(posts: rollback, error: result.error);
+    }
+    return result;
+  }
+
+  Future<({bool ok, String? error})> secondThought(
+      String postId, String newContent,
+      {String? newCaption, String? reason}) async {
+    final idx = state.posts.indexWhere((p) => p.id == postId);
+    final previous = idx >= 0 ? state.posts[idx] : null;
+    if (idx >= 0) {
+      final p = state.posts[idx];
+      final updated = [...state.posts];
+      updated[idx] = p.copyWith(
+        content: newContent,
+        caption: newCaption,
+        hasSecondThought: true,
+        secondThoughtReason: reason,
+        editCount: p.editCount + 1,
+        lastEditedAt: DateTime.now(),
+        originalContent: p.originalContent ?? p.content,
+        originalCaption: p.originalCaption ?? p.caption,
+      );
+      state = state.copyWith(posts: updated);
+    }
+    final result = await _repo.performSecondThought(
+        postId: postId,
+        newContent: newContent,
+        newCaption: newCaption,
+        reason: reason);
+    if (!result.ok && previous != null && mounted) {
+      final rollback = [...state.posts];
+      final i = rollback.indexWhere((p) => p.id == postId);
+      if (i >= 0) rollback[i] = previous;
+      state = state.copyWith(posts: rollback, error: result.error);
+    }
+    if (result.ok) {
+      final post = state.posts.where((p) => p.id == postId).firstOrNull;
+      if (post != null) {
+        _repo.computeQualityScore(
+          postId: postId,
+          content: post.isMoment ? (post.caption ?? '') : newContent,
+          nobType: post.nobType,
+        );
+      }
+    }
+    return result;
+  }
+
+  Future<void> _onSecondThought(String postId, int genAtFire) async {
+    final uid = _ref.read(authProvider).userId;
+    final fresh = await _repo.fetchPostById(postId, userId: uid);
+    if (fresh == null || !mounted) return;
+    if (genAtFire != _laneGen) return;
+    final updated = [...state.posts];
+    final idx = updated.indexWhere((p) => p.id == postId);
+    if (idx >= 0) {
+      updated[idx] = fresh.copyWith(
+        reactions: updated[idx].reactions,
+        reactionCounts: updated[idx].reactionCounts,
+        commentCount: updated[idx].commentCount,
+        echoCount: updated[idx].echoCount,
+        hasEchoed: updated[idx].hasEchoed,
+      );
+      state = state.copyWith(posts: updated);
+    }
   }
 
   // ── Limit check ─────────────────────────────────────────────────────────

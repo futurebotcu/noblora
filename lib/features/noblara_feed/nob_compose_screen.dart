@@ -47,6 +47,8 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
   bool _aiLoading = false;
   bool _isPublishing = false;
   bool _isAnonymous = false;
+  bool _isFutureNob = false;
+  DateTime? _revisitAt;
   String? _feedback;
   bool _feedbackIsPositive = false;
   Timer? _feedbackTimer;
@@ -463,6 +465,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
             caption: _nobType == 'moment' ? _captionCtrl.text.trim() : null,
             photoUrl: _uploadedPhotoUrl,
             isAnonymous: _isAnonymous,
+            revisitAt: _isFutureNob ? _revisitAt : null,
           );
       final success = post != null;
 
@@ -741,6 +744,76 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                           _autoSave();
                         },
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Future Nob toggle ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  if (_isFutureNob) {
+                    setState(() { _isFutureNob = false; _revisitAt = null; });
+                    return;
+                  }
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now().add(const Duration(days: 7)),
+                    firstDate: DateTime.now().add(const Duration(days: 1)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    builder: (ctx, child) => Theme(
+                      data: Theme.of(ctx).copyWith(
+                        colorScheme: const ColorScheme.dark(
+                          primary: AppColors.emerald600,
+                          surface: AppColors.nobSurface,
+                        ),
+                      ),
+                      child: child!,
+                    ),
+                  );
+                  if (picked != null && mounted) {
+                    setState(() { _isFutureNob = true; _revisitAt = picked; });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _isFutureNob
+                        ? const Color(0xFF4A4778).withValues(alpha: 0.12)
+                        : AppColors.nobSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isFutureNob
+                          ? const Color(0xFF4A4778).withValues(alpha: 0.5)
+                          : AppColors.nobBorder.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        color: _isFutureNob ? const Color(0xFF9B7DFF) : AppColors.nobObserver,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _isFutureNob && _revisitAt != null
+                              ? 'Time capsule: revisit ${_revisitAt!.day}/${_revisitAt!.month}/${_revisitAt!.year}'
+                              : 'Set as future thought',
+                          style: TextStyle(
+                            color: _isFutureNob ? const Color(0xFF9B7DFF) : AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: _isFutureNob ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      if (_isFutureNob)
+                        Icon(Icons.close_rounded, color: AppColors.nobObserver, size: 14),
                     ],
                   ),
                 ),

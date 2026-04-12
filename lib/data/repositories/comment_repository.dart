@@ -107,6 +107,26 @@ class CommentRepository {
     await _supabase!.from('post_comments').delete().eq('id', commentId);
   }
 
+  Future<({bool ok, String? error})> editComment({
+    required String commentId,
+    required String newContent,
+  }) async {
+    if (isMockMode) return (ok: true, error: null);
+    try {
+      final result = await _supabase!.rpc('edit_comment', params: {
+        'p_comment_id': commentId,
+        'p_new_content': newContent,
+      });
+      if (result is Map && result['error'] != null) {
+        return (ok: false, error: result['message'] as String? ?? result['error'] as String);
+      }
+      return (ok: true, error: null);
+    } catch (e) {
+      debugPrint('[comments:edit] $e');
+      return (ok: false, error: 'Could not edit comment.');
+    }
+  }
+
   /// Aggregate comment counts via fetch_comment_counts_batch RPC. Comments
   /// remain readable directly (`view_comments` RLS is open) but using the
   /// RPC keeps the count-only path consistent with reactions/echoes and

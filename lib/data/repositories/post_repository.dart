@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/post.dart';
+import '../models/post_revision.dart';
 
 class PostRepository {
   final SupabaseClient? _supabase;
@@ -215,6 +216,7 @@ class PostRepository {
     String? caption,
     bool isDraft = false,
     bool isAnonymous = false,
+    DateTime? revisitAt,
   }) async {
     if (isMockMode) {
       return Post(
@@ -241,6 +243,11 @@ class PostRepository {
     if (photoUrl != null) data['photo_url'] = photoUrl;
     if (caption != null) data['caption'] = caption;
     if (!isDraft) data['published_at'] = DateTime.now().toIso8601String();
+    if (revisitAt != null) {
+      data['is_future_nob'] = true;
+      data['revisit_at'] = revisitAt.toIso8601String();
+      data['future_nob_status'] = 'waiting';
+    }
     final row = await _supabase!.from('posts').insert(data).select().single();
     return Post.fromJson(row);
   }
@@ -248,6 +255,54 @@ class PostRepository {
   Future<void> deletePost(String postId) async {
     if (isMockMode) return;
     await _supabase!.from('posts').delete().eq('id', postId);
+  }
+
+  // ── Second Thought / Edit ─────────────────────────────────────────
+
+  Future<({bool ok, String? error})> performMinorEdit({
+    required String postId,
+    required String newContent,
+    String? newCaption,
+  }) async {
+    if (isMockMode) return (ok: true, error: null);
+    final result = await _supabase!.rpc('perform_minor_edit', params: {
+      'p_post_id': postId,
+      'p_new_content': newContent,
+      if (newCaption != null) 'p_new_caption': newCaption,
+    });
+    if (result is Map && result['error'] != null) {
+      return (ok: false, error: result['message'] as String? ?? result['error'] as String);
+    }
+    return (ok: true, error: null);
+  }
+
+  Future<({bool ok, String? error})> performSecondThought({
+    required String postId,
+    required String newContent,
+    String? newCaption,
+    String? reason,
+  }) async {
+    if (isMockMode) return (ok: true, error: null);
+    final result = await _supabase!.rpc('perform_second_thought', params: {
+      'p_post_id': postId,
+      'p_new_content': newContent,
+      if (newCaption != null) 'p_new_caption': newCaption,
+      if (reason != null) 'p_reason': reason,
+    });
+    if (result is Map && result['error'] != null) {
+      return (ok: false, error: result['message'] as String? ?? result['error'] as String);
+    }
+    return (ok: true, error: null);
+  }
+
+  Future<List<PostRevision>> fetchRevisions(String postId) async {
+    if (isMockMode) return const [];
+    final rows = await _supabase!
+        .from('post_revisions')
+        .select()
+        .eq('post_id', postId)
+        .order('created_at', ascending: true);
+    return rows.map((r) => PostRevision.fromJson(r)).toList();
   }
 
   Future<bool> canPublishToday(String userId, String nobType) async {

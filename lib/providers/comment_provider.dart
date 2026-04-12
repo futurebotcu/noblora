@@ -139,6 +139,15 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
     await repo.deleteComment(commentId);
     await load(); // Reload + resync feed count
   }
+
+  Future<({bool ok, String? error})> editComment(
+      String commentId, String newContent) async {
+    final repo = _ref.read(commentRepositoryProvider);
+    final result =
+        await repo.editComment(commentId: commentId, newContent: newContent);
+    if (result.ok) await load();
+    return result;
+  }
 }
 
 final commentsProvider = StateNotifierProvider.autoDispose

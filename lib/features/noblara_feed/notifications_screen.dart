@@ -212,15 +212,16 @@ class _NotificationTile extends StatelessWidget {
         return Icons.waving_hand_outlined;
       case 'echo':
         return Icons.graphic_eq_rounded;
+      case 'second_thought':
+        return Icons.auto_fix_high_rounded;
+      case 'future_nob_due':
+        return Icons.schedule_rounded;
       default:
         return Icons.notifications_none_rounded;
     }
   }
 
   String get _title {
-    // Anonymous-aware language: when the originating Nob was anonymous, the
-    // recipient should never tie the action to a person — even if the actor
-    // is identifiable, the source post privacy applies. Use "Someone".
     final actor = item.sourceAnonymous ? 'Someone' : 'Someone';
     switch (item.kind) {
       case 'reply':
@@ -229,6 +230,10 @@ class _NotificationTile extends StatelessWidget {
         return '$actor reacted to your Nob';
       case 'echo':
         return '$actor echoed your Nob';
+      case 'second_thought':
+        return 'A Nob you engaged with was revised';
+      case 'future_nob_due':
+        return 'Time to revisit a thought';
       default:
         return '$actor reacted';
     }

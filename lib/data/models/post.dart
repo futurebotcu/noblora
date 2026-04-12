@@ -56,6 +56,19 @@ class Post {
   final bool hasEchoed;
   final bool isAnonymous;
 
+  // Second Thought / revision tracking
+  final int editCount;
+  final bool hasSecondThought;
+  final DateTime? lastEditedAt;
+  final String? secondThoughtReason;
+  final String? originalContent;
+  final String? originalCaption;
+
+  // Future Nob
+  final bool isFutureNob;
+  final DateTime? revisitAt;
+  final String? futureNobStatus; // 'waiting' | 'reminded' | 'revisited'
+
   const Post({
     required this.id,
     required this.userId,
@@ -81,10 +94,27 @@ class Post {
     this.echoCount = 0,
     this.hasEchoed = false,
     this.isAnonymous = false,
+    this.editCount = 0,
+    this.hasSecondThought = false,
+    this.lastEditedAt,
+    this.secondThoughtReason,
+    this.originalContent,
+    this.originalCaption,
+    this.isFutureNob = false,
+    this.revisitAt,
+    this.futureNobStatus,
   });
 
   bool get isThought => nobType == 'thought';
   bool get isMoment => nobType == 'moment';
+  bool get isEdited => editCount > 0;
+  bool get canMinorEdit =>
+      publishedAt != null &&
+      DateTime.now().difference(publishedAt!).inMinutes <= 30 &&
+      editCount < 3;
+  bool get canSecondThought => !hasSecondThought;
+  bool get isFutureNobDue =>
+      isFutureNob && revisitAt != null && DateTime.now().isAfter(revisitAt!);
 
   factory Post.fromJson(Map<String, dynamic> json,
       {Map<String, dynamic>? profile}) {
@@ -113,10 +143,25 @@ class Post {
       tone: json['tone'] as String?,
       authorTier: NobTier.fromString(profile?['nob_tier'] as String?),
       isAnonymous: json['is_anonymous'] as bool? ?? false,
+      editCount: (json['edit_count'] as num?)?.toInt() ?? 0,
+      hasSecondThought: json['has_second_thought'] as bool? ?? false,
+      lastEditedAt: json['last_edited_at'] != null
+          ? DateTime.parse(json['last_edited_at'] as String)
+          : null,
+      secondThoughtReason: json['second_thought_reason'] as String?,
+      originalContent: json['original_content'] as String?,
+      originalCaption: json['original_caption'] as String?,
+      isFutureNob: json['is_future_nob'] as bool? ?? false,
+      revisitAt: json['revisit_at'] != null
+          ? DateTime.parse(json['revisit_at'] as String)
+          : null,
+      futureNobStatus: json['future_nob_status'] as String?,
     );
   }
 
   Post copyWith({
+    String? content,
+    String? caption,
     List<PostReaction>? reactions,
     Map<String, int>? reactionCounts,
     bool? isPinned,
@@ -128,14 +173,23 @@ class Post {
     String? authorName,
     String? authorAvatarUrl,
     NobTier? authorTier,
+    int? editCount,
+    bool? hasSecondThought,
+    DateTime? lastEditedAt,
+    String? secondThoughtReason,
+    String? originalContent,
+    String? originalCaption,
+    bool? isFutureNob,
+    DateTime? revisitAt,
+    String? futureNobStatus,
   }) {
     return Post(
       id: id,
       userId: userId,
-      content: content,
+      content: content ?? this.content,
       nobType: nobType,
       photoUrl: photoUrl,
-      caption: caption,
+      caption: caption ?? this.caption,
       qualityScore: qualityScore,
       isPinned: isPinned ?? this.isPinned,
       isArchived: isArchived,
@@ -154,6 +208,15 @@ class Post {
       echoCount: echoCount ?? this.echoCount,
       hasEchoed: hasEchoed ?? this.hasEchoed,
       isAnonymous: isAnonymous ?? this.isAnonymous,
+      editCount: editCount ?? this.editCount,
+      hasSecondThought: hasSecondThought ?? this.hasSecondThought,
+      lastEditedAt: lastEditedAt ?? this.lastEditedAt,
+      secondThoughtReason: secondThoughtReason ?? this.secondThoughtReason,
+      originalContent: originalContent ?? this.originalContent,
+      originalCaption: originalCaption ?? this.originalCaption,
+      isFutureNob: isFutureNob ?? this.isFutureNob,
+      revisitAt: revisitAt ?? this.revisitAt,
+      futureNobStatus: futureNobStatus ?? this.futureNobStatus,
     );
   }
 
