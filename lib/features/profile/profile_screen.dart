@@ -18,6 +18,16 @@ import '../verification/verification_hub_screen.dart';
 import 'edit/edit_profile_main_screen.dart';
 
 // ---------------------------------------------------------------------------
+// Profile-specific editorial surfaces — lighter than global dark theme
+// to give the profile a "luxury magazine" feel without changing app-wide colors.
+// ---------------------------------------------------------------------------
+
+const _profileBg      = Color(0xFF141A17);  // lifted from 0x0B0D0C → warmer dark
+const _profileCard    = Color(0xFF1E2622);  // lifted from 0x181E1B → visible card
+const _profileElevated = Color(0xFF263029);  // lifted from 0x1D2420 → highlight card
+const _profileBorder   = Color(0xFF354038);  // lifted from 0x2D3932 → visible edge
+
+// ---------------------------------------------------------------------------
 // Profile Screen
 // ---------------------------------------------------------------------------
 
@@ -39,13 +49,13 @@ class ProfileScreen extends ConsumerWidget {
     final isVerified = (p?.trustScore ?? 0) > 60;
 
     return Scaffold(
-      backgroundColor: context.bgColor,
+      backgroundColor: _profileBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: context.bgColor,
+            backgroundColor: _profileBg,
             elevation: 0,
             title: Text(
               'Profile',
@@ -1177,26 +1187,32 @@ class _RichProfileSections extends StatelessWidget {
                   style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5, fontStyle: FontStyle.italic)),
             ),
 
-          // ── Prompts ──
+          // ── Prompts — editorial prompt cards ──
           if (profile.prompts.any((p) => p.hasAnswer))
-            _RichCard(
-              icon: Icons.chat_bubble_outline_rounded,
-              title: 'Conversation Starters',
-              child: Column(
-                children: profile.prompts.where((p) => p.hasAnswer).map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(p.question,
-                          style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
-                      Text(p.answer, style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5)),
-                    ],
-                  ),
-                )).toList(),
+            ...profile.prompts.where((p) => p.hasAnswer).map((p) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                decoration: BoxDecoration(
+                  color: _profileElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.18)),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p.question.toUpperCase(),
+                        style: TextStyle(color: AppColors.emerald600, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+                    const SizedBox(height: 10),
+                    Text(p.answer, style: TextStyle(color: context.textPrimary, fontSize: 15, height: 1.55, fontStyle: FontStyle.italic)),
+                  ],
+                ),
               ),
-            ),
+            )),
 
           // ── Relationship & Style ──
           if (profile.loveLanguages.isNotEmpty || profile.communicationStyle.isNotEmpty || profile.datingStyle.isNotEmpty)
@@ -1323,11 +1339,11 @@ class _RichCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
-          color: context.elevatedColor,
+          color: _profileCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: context.borderColor.withValues(alpha: 0.6)),
+          border: Border.all(color: _profileBorder.withValues(alpha: 0.5)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 16, offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -1379,9 +1395,9 @@ class _MiniChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: context.elevatedColor,
+        color: _profileElevated,
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: context.borderColor.withValues(alpha: 0.5)),
+        border: Border.all(color: _profileBorder.withValues(alpha: 0.4)),
       ),
       child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
     );
@@ -1452,9 +1468,9 @@ class _RealGallerySection extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: photos.length == 1 ? 1 : 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: photos.length == 1 ? 1.3 : 0.8,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: photos.length == 1 ? 1.1 : 0.75,
               ),
               itemCount: photos.length,
               itemBuilder: (_, i) => Container(

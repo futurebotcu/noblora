@@ -10,6 +10,15 @@ import '../../providers/posts_provider.dart';
 import '../../providers/profile_provider.dart';
 
 // ---------------------------------------------------------------------------
+// Profile-specific editorial surfaces (shared palette with profile_screen.dart)
+// ---------------------------------------------------------------------------
+
+const _profileBg       = Color(0xFF141A17);
+const _profileCard     = Color(0xFF1E2622);
+const _profileElevated = Color(0xFF263029);
+const _profileBorder   = Color(0xFF354038);
+
+// ---------------------------------------------------------------------------
 // UserProfileScreen — view another user's public profile from Noblara
 //
 // Privacy: only shows profiles that RLS SELECT allows (is_onboarded &&
@@ -48,12 +57,12 @@ class UserProfileScreen extends ConsumerWidget {
     final nobsAsync = ref.watch(lastNobsProvider(userId));
 
     return Scaffold(
-      backgroundColor: context.bgColor,
+      backgroundColor: _profileBg,
       body: CustomScrollView(
         slivers: [
           // ── App bar with avatar ──
           SliverAppBar(
-            backgroundColor: context.bgColor,
+            backgroundColor: _profileBg,
             surfaceTintColor: Colors.transparent,
             expandedHeight: 280,
             pinned: true,
@@ -299,8 +308,8 @@ class _HeroHeader extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            tierColor.withValues(alpha: 0.08),
-            context.bgColor,
+            tierColor.withValues(alpha: 0.12),
+            _profileBg,
           ],
         ),
       ),
@@ -448,9 +457,9 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: context.elevatedColor,
+        color: _profileElevated,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.borderColor.withValues(alpha: 0.5)),
+        border: Border.all(color: _profileBorder.withValues(alpha: 0.4)),
       ),
       child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w500)),
     );
@@ -504,9 +513,9 @@ class _NobPreview extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+          color: _profileCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _profileBorder.withValues(alpha: 0.35)),
         ),
         child: Text(text,
             maxLines: 3,
@@ -530,9 +539,9 @@ class _PromptCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
-          color: context.elevatedColor,
+          color: _profileElevated,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.20)),
+          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.18)),
           boxShadow: [
             BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
           ],
