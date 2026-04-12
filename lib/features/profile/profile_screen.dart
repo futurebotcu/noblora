@@ -128,6 +128,10 @@ class ProfileScreen extends ConsumerWidget {
                 _ProfileFactsSection(profile: p),
                 const SizedBox(height: AppSpacing.xxxl),
                 _PersonaSection(profile: p),
+                if (p != null) ...[
+                  const SizedBox(height: AppSpacing.xxxl),
+                  _RichProfileSections(profile: p),
+                ],
                 const SizedBox(height: AppSpacing.xxxl),
                 _RealGallerySection(profile: p),
                 const SizedBox(height: AppSpacing.xxxl),
@@ -1075,6 +1079,239 @@ class _ScoreBarRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rich profile sections — prompts, relationship, lifestyle, career, etc.
+// Only renders sections with data, matching UserProfileScreen richness.
+// ---------------------------------------------------------------------------
+
+class _RichProfileSections extends StatelessWidget {
+  final Profile profile;
+  const _RichProfileSections({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Current Focus ──
+          if ((profile.currentFocus ?? '').isNotEmpty)
+            _RichCard(
+              icon: Icons.flag_rounded,
+              title: 'Current Focus',
+              child: Text(profile.currentFocus!,
+                  style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5, fontStyle: FontStyle.italic)),
+            ),
+
+          // ── Prompts ──
+          if (profile.prompts.any((p) => p.hasAnswer))
+            _RichCard(
+              icon: Icons.chat_bubble_outline_rounded,
+              title: 'Conversation Starters',
+              child: Column(
+                children: profile.prompts.where((p) => p.hasAnswer).map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(p.question,
+                          style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      Text(p.answer, style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5)),
+                    ],
+                  ),
+                )).toList(),
+              ),
+            ),
+
+          // ── Relationship & Style ──
+          if (profile.loveLanguages.isNotEmpty || profile.communicationStyle.isNotEmpty || profile.datingStyle.isNotEmpty)
+            _RichCard(
+              icon: Icons.favorite_border_rounded,
+              title: 'Relationship & Style',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.loveLanguages.isNotEmpty)
+                    _FactRow('Love languages', profile.loveLanguages.join(', ')),
+                  if (profile.communicationStyle.isNotEmpty)
+                    _FactRow('Communication', profile.communicationStyle.join(', ')),
+                  if (profile.datingStyle.isNotEmpty)
+                    _FactRow('Dating style', profile.datingStyle.join(', ')),
+                ],
+              ),
+            ),
+
+          // ── Lifestyle ──
+          if (profile.sleepStyle != null || profile.dietStyle != null || profile.fitnessRoutine != null)
+            _RichCard(
+              icon: Icons.self_improvement_rounded,
+              title: 'Lifestyle',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.sleepStyle != null) _FactRow('Sleep', profile.sleepStyle!),
+                  if (profile.dietStyle != null) _FactRow('Diet', profile.dietStyle!),
+                  if (profile.fitnessRoutine != null) _FactRow('Fitness', profile.fitnessRoutine!),
+                ],
+              ),
+            ),
+
+          // ── Career & Building ──
+          if (profile.industry.isNotEmpty || profile.workStyle != null || profile.buildingNow.isNotEmpty)
+            _RichCard(
+              icon: Icons.rocket_launch_outlined,
+              title: 'Career & Building',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.industry.isNotEmpty) _FactRow('Industry', profile.industry.join(', ')),
+                  if (profile.workStyle != null) _FactRow('Work style', profile.workStyle!),
+                  if (profile.buildingNow.isNotEmpty) _FactRow('Building', profile.buildingNow.join(', ')),
+                  if (profile.entrepreneurshipStatus != null) _FactRow('Status', profile.entrepreneurshipStatus!),
+                ],
+              ),
+            ),
+
+          // ── Culture & Taste ──
+          if (profile.musicGenres.isNotEmpty || profile.weekendStyle.isNotEmpty)
+            _RichCard(
+              icon: Icons.palette_outlined,
+              title: 'Culture & Taste',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.musicGenres.isNotEmpty)
+                    Wrap(spacing: 6, runSpacing: 6, children: profile.musicGenres.map((m) =>
+                      _MiniChip(m)).toList()),
+                  if (profile.weekendStyle.isNotEmpty) ...[
+                    if (profile.musicGenres.isNotEmpty) const SizedBox(height: 10),
+                    _FactRow('Weekends', profile.weekendStyle.join(', ')),
+                  ],
+                  if (profile.humorStyle.isNotEmpty)
+                    _FactRow('Humor', profile.humorStyle.join(', ')),
+                ],
+              ),
+            ),
+
+          // ── Travel ──
+          if (profile.countriesVisited.isNotEmpty || profile.travelStyle.isNotEmpty)
+            _RichCard(
+              icon: Icons.flight_outlined,
+              title: 'Travel',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.countriesVisited.isNotEmpty)
+                    _FactRow('Visited', profile.countriesVisited.take(8).join(', ')),
+                  if (profile.livedCountries.isNotEmpty)
+                    _FactRow('Lived in', profile.livedCountries.join(', ')),
+                  if (profile.travelStyle.isNotEmpty)
+                    _FactRow('Style', profile.travelStyle.join(', ')),
+                ],
+              ),
+            ),
+
+          // ── Digital Life ──
+          if (profile.aiTools.isNotEmpty)
+            _RichCard(
+              icon: Icons.memory_rounded,
+              title: 'Digital Life',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(spacing: 6, runSpacing: 6, children: profile.aiTools.map((t) =>
+                    _MiniChip(t)).toList()),
+                  if (profile.techRelation != null) ...[
+                    const SizedBox(height: 10),
+                    _FactRow('Tech', profile.techRelation!),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RichCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Widget child;
+  const _RichCard({required this.icon, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(icon, color: AppColors.emerald600.withValues(alpha: 0.7), size: 16),
+              const SizedBox(width: 8),
+              Text(title, style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+            ]),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FactRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _FactRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label, style: TextStyle(color: context.textMuted, fontSize: 12.5, fontWeight: FontWeight.w500)),
+          ),
+          Expanded(child: Text(value, style: TextStyle(color: context.textPrimary, fontSize: 12.5, height: 1.3))),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String label;
+  const _MiniChip(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: context.surfaceAltColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+      ),
+      child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 11.5, fontWeight: FontWeight.w500)),
     );
   }
 }
