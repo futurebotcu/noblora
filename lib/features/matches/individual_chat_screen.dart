@@ -23,6 +23,7 @@ import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
 import '../match/real_meeting_screen.dart';
 import '../match/video_scheduling_screen.dart';
+import '../noblara_feed/user_profile_screen.dart';
 import 'end_connection_screen.dart';
 
 // Available reaction emojis
@@ -687,7 +688,17 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         backgroundColor: _item.mode.bgTint,
         leading: const BackButton(),
         titleSpacing: 0,
-        title: Row(
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => UserProfileScreen(
+              userId: _item.id,
+              initialName: _item.name,
+              initialAvatarUrl: _item.photoUrl,
+              isMatch: true, // chat = confirmed match/connection
+            ),
+          )),
+          child: Row(
           children: [
             // Avatar
             Container(
@@ -754,6 +765,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
               ),
             ),
           ],
+        ),
         ),
         actions: [
           IconButton(
