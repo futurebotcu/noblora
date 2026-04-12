@@ -1321,21 +1321,24 @@ class _RichCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+          color: context.elevatedColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: context.borderColor.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Icon(icon, color: AppColors.emerald600.withValues(alpha: 0.7), size: 16),
+              Icon(icon, color: AppColors.emerald600, size: 15),
               const SizedBox(width: 8),
-              Text(title, style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1)),
+              Text(title.toUpperCase(), style: TextStyle(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
             ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             child,
           ],
         ),
@@ -1352,15 +1355,15 @@ class _FactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 100,
-            child: Text(label, style: TextStyle(color: context.textMuted, fontSize: 12.5, fontWeight: FontWeight.w500)),
+            child: Text(label, style: TextStyle(color: context.textMuted.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w400)),
           ),
-          Expanded(child: Text(value, style: TextStyle(color: context.textPrimary, fontSize: 12.5, height: 1.3))),
+          Expanded(child: Text(value, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w500, height: 1.3))),
         ],
       ),
     );
@@ -1374,13 +1377,13 @@ class _MiniChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: context.surfaceAltColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+        color: context.elevatedColor,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        border: Border.all(color: context.borderColor.withValues(alpha: 0.5)),
       ),
-      child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 11.5, fontWeight: FontWeight.w500)),
+      child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
     );
   }
 }

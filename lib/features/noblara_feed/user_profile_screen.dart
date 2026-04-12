@@ -403,8 +403,8 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: TextStyle(color: context.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.5));
+    return Text(text.toUpperCase(),
+        style: TextStyle(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2));
   }
 }
 
@@ -448,8 +448,8 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        color: context.elevatedColor,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: context.borderColor.withValues(alpha: 0.5)),
       ),
       child: Text(label, style: TextStyle(color: context.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w500)),
@@ -463,17 +463,19 @@ class _PhotoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cols = urls.length == 1 ? 1 : (urls.length <= 4 ? 2 : 3);
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: cols == 1 ? 1.2 : 0.85,
       ),
       itemCount: urls.length,
       itemBuilder: (_, i) => ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         child: CachedNetworkImage(
           imageUrl: urls[i],
           fit: BoxFit.cover,
@@ -523,24 +525,27 @@ class _PromptCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.15)),
+          color: context.elevatedColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.20)),
+          boxShadow: [
+            BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(question,
-                style: TextStyle(color: AppColors.emerald600.withValues(alpha: 0.8), fontSize: 11,
-                    fontWeight: FontWeight.w600, letterSpacing: 0.3)),
-            const SizedBox(height: 8),
+            Text(question.toUpperCase(),
+                style: TextStyle(color: AppColors.emerald600, fontSize: 10,
+                    fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+            const SizedBox(height: 10),
             Text(answer,
-                style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.5)),
+                style: TextStyle(color: context.textPrimary, fontSize: 15, height: 1.55, fontStyle: FontStyle.italic)),
           ],
         ),
       ),
@@ -561,11 +566,11 @@ class _MiniRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: context.textMuted, size: 15),
+          Icon(icon, color: context.textMuted.withValues(alpha: 0.7), size: 14),
           const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(color: context.textMuted, fontSize: 12.5, fontWeight: FontWeight.w500)),
+          Text('$label  ', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w400)),
           Expanded(child: Text(value,
-              style: TextStyle(color: context.textSecondary, fontSize: 12.5, height: 1.3))),
+              style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w500, height: 1.3))),
         ],
       ),
     );

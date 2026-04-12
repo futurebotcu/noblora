@@ -123,9 +123,9 @@ class Premium {
   static LinearGradient heroGradient({Color? tint}) => LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    stops: const [0.0, 0.5, 1.0],
+    stops: const [0.0, 0.45, 1.0],
     colors: [
-      (tint ?? AppColors.emerald600).withValues(alpha: 0.08),
+      (tint ?? AppColors.emerald600).withValues(alpha: 0.14),
       AppColors.bg.withValues(alpha: 0.0),
       AppColors.bg,
     ],
