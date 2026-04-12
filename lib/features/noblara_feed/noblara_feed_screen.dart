@@ -822,7 +822,7 @@ class _NobCard extends StatelessWidget {
 
           // ── Author row ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 8, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
             child: Row(
               children: [
                 // Avatar — abstract for anonymous, real for normal posts
@@ -888,7 +888,7 @@ class _NobCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: _tierColor.withValues(alpha: 0.08),
+                              color: _tierColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(
@@ -1223,7 +1223,7 @@ class _LaneBar extends StatelessWidget {
       height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
         itemCount: lanes.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {

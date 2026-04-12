@@ -251,7 +251,7 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         color: AppColors.nobSurface,
         borderRadius: BorderRadius.circular(14),
@@ -287,7 +287,7 @@ class _NotificationTile extends StatelessWidget {
                         _title,
                         style: TextStyle(
                           color: context.textPrimary,
-                          fontSize: 13.5,
+                          fontSize: 13,
                           fontWeight: item.isRead
                               ? FontWeight.w500
                               : FontWeight.w700,

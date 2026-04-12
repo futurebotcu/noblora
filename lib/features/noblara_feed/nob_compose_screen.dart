@@ -790,12 +790,12 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: _isFutureNob
-                        ? const Color(0xFF4A4778).withValues(alpha: 0.12)
+                        ? AppColors.violet.withValues(alpha: 0.10)
                         : AppColors.nobSurface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _isFutureNob
-                          ? const Color(0xFF4A4778).withValues(alpha: 0.5)
+                          ? AppColors.violet.withValues(alpha: 0.35)
                           : AppColors.nobBorder.withValues(alpha: 0.3),
                     ),
                   ),
@@ -803,7 +803,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                     children: [
                       Icon(
                         Icons.schedule_rounded,
-                        color: _isFutureNob ? const Color(0xFF9B7DFF) : AppColors.nobObserver,
+                        color: _isFutureNob ? AppColors.violet : AppColors.nobObserver,
                         size: 16,
                       ),
                       const SizedBox(width: 10),
@@ -813,7 +813,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
                               ? 'Time capsule: revisit ${_revisitAt!.day}/${_revisitAt!.month}/${_revisitAt!.year}'
                               : 'Set as future thought',
                           style: TextStyle(
-                            color: _isFutureNob ? const Color(0xFF9B7DFF) : AppColors.textSecondary,
+                            color: _isFutureNob ? AppColors.violet : AppColors.textSecondary,
                             fontSize: 12,
                             fontWeight: _isFutureNob ? FontWeight.w600 : FontWeight.w400,
                           ),

@@ -282,7 +282,7 @@ class _PostSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -342,7 +342,7 @@ class _PostSection extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _tierColor.withValues(alpha: 0.08),
+                            color: _tierColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -715,9 +715,9 @@ class _CommentRow extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 6),
               Text(comment.content, style: TextStyle(color: context.textPrimary, fontSize: 14, height: 1.4)),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   if (onReply != null)
