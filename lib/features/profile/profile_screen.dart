@@ -86,58 +86,70 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: AppSpacing.xl),
-                // Quick Actions Row
+                // ── Identity snapshot (occupation + tagline) ──
+                if (p != null && ((p.occupation ?? '').isNotEmpty || (p.tagline ?? '').isNotEmpty))
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if ((p.occupation ?? '').isNotEmpty)
+                          Text(p.occupation!,
+                              style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.2)),
+                        if ((p.tagline ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text('"${p.tagline}"',
+                              style: TextStyle(color: context.textPrimary.withValues(alpha: 0.7), fontSize: 13, fontStyle: FontStyle.italic, height: 1.4)),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                // ── Compact utility strip ──
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.edit_outlined,
-                          label: 'Edit Profile',
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const EditProfileMainScreen())),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.verified_outlined,
-                          label: 'Verification',
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const VerificationHubScreen())),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.settings_outlined,
-                          label: 'Settings',
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const SettingsScreen())),
-                        ),
-                      ),
+                      _CompactAction(icon: Icons.edit_outlined, label: 'Edit',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileMainScreen()))),
+                      const SizedBox(width: 8),
+                      _CompactAction(icon: Icons.verified_outlined, label: 'Verify',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationHubScreen()))),
+                      const SizedBox(width: 8),
+                      _CompactAction(icon: Icons.settings_outlined, label: 'Settings',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+                      const Spacer(),
+                      const _ActiveModesCompact(),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxl),
-                const _ActiveModesSection(),
-                const SizedBox(height: AppSpacing.xxxl),
-                _ProfileFactsSection(profile: p),
-                const SizedBox(height: AppSpacing.xxxl),
-                _PersonaSection(profile: p),
+
+                // ── Photos (moved up — visual identity first) ──
+                const SizedBox(height: 24),
+                _RealGallerySection(profile: p),
+
+                // ── About / Rich Profile Sections ──
                 if (p != null) ...[
-                  const SizedBox(height: AppSpacing.xxxl),
+                  const SizedBox(height: 28),
                   _RichProfileSections(profile: p),
                 ],
-                const SizedBox(height: AppSpacing.xxxl),
-                _RealGallerySection(profile: p),
-                const SizedBox(height: AppSpacing.xxxl),
+
+                // ── Profile Facts (interests, languages, etc.) ──
+                const SizedBox(height: 24),
+                _ProfileFactsSection(profile: p),
+
+                // ── Mode Persona ──
+                const SizedBox(height: 28),
+                _PersonaSection(profile: p),
+
+                // ── Badges & Signals ──
+                const SizedBox(height: 28),
                 _EarnedBadgesSection(profile: p),
-                const SizedBox(height: AppSpacing.xxxl),
+
+                // ── Recent Nobs ──
+                const SizedBox(height: 28),
                 const _LastNobsSection(),
-                const SizedBox(height: AppSpacing.xxxxl),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -270,7 +282,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              // Name + age
+              // Name + age — editorial hero text
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -279,21 +291,20 @@ class _ProfileHeader extends StatelessWidget {
                     displayName,
                     style: TextStyle(
                       color: context.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  if (age != null) ...[
+                  if (age != null)
                     Text(
                       ', $age',
                       style: TextStyle(
                         color: context.textSecondary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w300,
                       ),
                     ),
-                  ],
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -342,37 +353,29 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 // Quick action button for profile
-class _QuickAction extends StatelessWidget {
+class _CompactAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _CompactAction({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: context.borderSubtleColor, width: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
         ),
-        child: Column(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.emerald500, size: 20),
-            const SizedBox(height: AppSpacing.xs),
-            Text(label,
-                style: TextStyle(
-                    color: context.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500)),
+            Icon(icon, color: context.textMuted, size: 14),
+            const SizedBox(width: 5),
+            Text(label, style: TextStyle(color: context.textSecondary, fontSize: 11, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -380,12 +383,60 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
+class _ActiveModesCompact extends ConsumerWidget {
+  const _ActiveModesCompact();
 
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final modes = ref.watch(activeModesProvider);
+    final active = modes.modes;
+    if (active.isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (active.contains('date'))
+          _ModePill(Icons.favorite_rounded, 'Date', AppColors.emerald500),
+        if (active.contains('bff')) ...[
+          const SizedBox(width: 6),
+          _ModePill(Icons.people_rounded, 'BFF', AppColors.emerald600),
+        ],
+      ],
+    );
+  }
+}
+
+class _ModePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _ModePill(this.icon, this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 11),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
-// Active Modes Section — toggle which modes you participate in
+// Active Modes Section (legacy — kept for mode toggle functionality)
 // ---------------------------------------------------------------------------
 
+// ignore: unused_element
 class _ActiveModesSection extends ConsumerWidget {
   const _ActiveModesSection();
 

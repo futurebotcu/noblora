@@ -95,6 +95,14 @@ class UserProfileScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    // ── Occupation + Identity ──
+                    if ((profile.occupation ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(profile.occupation!,
+                            style: TextStyle(color: context.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
+                      ),
+
                     // ── Bio ──
                     if ((profile.bio ?? '').isNotEmpty) ...[
                       Text(profile.bio!,
@@ -319,9 +327,9 @@ class _HeroHeader extends StatelessWidget {
                     )),
             ),
             const SizedBox(height: 14),
-            // Name
+            // Name — editorial hero
             Text(displayName,
-                style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
+                style: TextStyle(color: context.textPrimary, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
             const SizedBox(height: 8),
             // Tier + mode badges
             Row(
