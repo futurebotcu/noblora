@@ -6,7 +6,6 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../core/utils/mock_mode.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
@@ -688,7 +687,7 @@ class _PersonaSectionState extends State<_PersonaSection> {
             children: NobleMode.values
                 .where((m) =>
                     m != NobleMode.noblara &&
-                    (kSocialEnabled || m != NobleMode.social))
+                    m != NobleMode.social)
                 .map((mode) {
               final isActive = mode == _selectedMode;
               return GestureDetector(
@@ -1099,6 +1098,25 @@ class _RichProfileSections extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Tagline ──
+          if ((profile.tagline ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                '"${profile.tagline}"',
+                style: TextStyle(color: context.textPrimary, fontSize: 15, fontStyle: FontStyle.italic, height: 1.5),
+              ),
+            ),
+
+          // ── Long Bio ──
+          if ((profile.longBio ?? '').isNotEmpty)
+            _RichCard(
+              icon: Icons.auto_stories_rounded,
+              title: 'About Me',
+              child: Text(profile.longBio!,
+                  style: TextStyle(color: context.textPrimary, fontSize: 13.5, height: 1.6)),
+            ),
+
           // ── Current Focus ──
           if ((profile.currentFocus ?? '').isNotEmpty)
             _RichCard(

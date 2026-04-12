@@ -29,6 +29,9 @@ class UserProfileScreen extends ConsumerWidget {
   final String? initialName;
   final String? initialAvatarUrl;
   final NobTier initialTier;
+  /// Whether the viewer has an active match/connection with this user.
+  /// Affects 'Matches only' field visibility. Defaults to false (stranger).
+  final bool isMatch;
 
   const UserProfileScreen({
     super.key,
@@ -36,6 +39,7 @@ class UserProfileScreen extends ConsumerWidget {
     this.initialName,
     this.initialAvatarUrl,
     this.initialTier = NobTier.observer,
+    this.isMatch = false,
   });
 
   @override
@@ -97,7 +101,7 @@ class UserProfileScreen extends ConsumerWidget {
                           style: TextStyle(color: context.textPrimary, fontSize: 15, height: 1.6)),
                       const SizedBox(height: 4),
                     ],
-                    if ((profile.currentFocus ?? '').isNotEmpty && profile.isFieldPublic('current_focus'))
+                    if ((profile.currentFocus ?? '').isNotEmpty && profile.canViewField('current_focus', isMatch: isMatch))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Row(children: [
@@ -120,7 +124,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Prompts / Conversation starters ──
-                    if (profile.prompts.any((p) => p.hasAnswer) && profile.isFieldPublic('prompts')) ...[
+                    if (profile.prompts.any((p) => p.hasAnswer) && profile.canViewField('prompts', isMatch: isMatch)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Conversation Starters'),
                       const SizedBox(height: 10),
@@ -138,7 +142,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Relationship & Style ──
-                    if (profile.isFieldPublic('relationship') && _hasRelationshipData(profile)) ...[
+                    if (profile.canViewField('relationship', isMatch: isMatch) && _hasRelationshipData(profile)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Relationship & Style'),
                       const SizedBox(height: 10),
@@ -151,7 +155,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Lifestyle ──
-                    if (profile.isFieldPublic('lifestyle') && _hasLifestyleData(profile)) ...[
+                    if (profile.canViewField('lifestyle', isMatch: isMatch) && _hasLifestyleData(profile)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Lifestyle'),
                       const SizedBox(height: 10),
@@ -161,7 +165,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Career & Building ──
-                    if (profile.isFieldPublic('career') && _hasCareerData(profile)) ...[
+                    if (profile.canViewField('career', isMatch: isMatch) && _hasCareerData(profile)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Career & Building'),
                       const SizedBox(height: 10),
@@ -174,7 +178,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Culture ──
-                    if (profile.isFieldPublic('culture') && _hasCultureData(profile)) ...[
+                    if (profile.canViewField('culture', isMatch: isMatch) && _hasCultureData(profile)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Culture & Taste'),
                       const SizedBox(height: 10),
@@ -187,7 +191,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Travel ──
-                    if (profile.isFieldPublic('travel') && _hasTravelData(profile)) ...[
+                    if (profile.canViewField('travel', isMatch: isMatch) && _hasTravelData(profile)) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Travel'),
                       const SizedBox(height: 10),
@@ -198,7 +202,7 @@ class UserProfileScreen extends ConsumerWidget {
                     ],
 
                     // ── Digital Life ──
-                    if (profile.isFieldPublic('digital') && profile.aiTools.isNotEmpty) ...[
+                    if (profile.canViewField('digital', isMatch: isMatch) && profile.aiTools.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _SectionLabel('Digital Life'),
                       const SizedBox(height: 10),

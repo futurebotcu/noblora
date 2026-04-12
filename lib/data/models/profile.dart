@@ -338,13 +338,23 @@ class Profile {
     );
   }
 
-  /// Returns true if a field should be visible to another user based on
-  /// the profile owner's visibility preferences.
-  bool isFieldPublic(String fieldKey) {
+  /// Returns true if a field should be visible to a viewer based on the
+  /// profile owner's visibility preferences.
+  ///
+  /// [isMatch] should be true when the viewer has an active match/connection
+  /// with this profile owner (dating or BFF). When null, match status is
+  /// unknown and we fall back to the safe default (hide matches-only fields).
+  bool canViewField(String fieldKey, {bool? isMatch}) {
     final v = visibility[fieldKey];
-    // Default = public if no preference set
-    return v == null || v == 'Public';
+    if (v == null || v == 'Public') return true;
+    if (v == 'Private') return false;
+    // 'Matches only' — visible only if viewer is a confirmed match
+    return isMatch == true;
   }
+
+  /// Convenience for contexts where match status is not available.
+  /// Treats 'Matches only' as hidden (safe default for strangers).
+  bool isFieldPublic(String fieldKey) => canViewField(fieldKey);
 }
 
 // ---------------------------------------------------------------------------
