@@ -12,6 +12,7 @@ import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import 'mood_map_screen.dart';
+import 'user_profile_screen.dart';
 import 'my_nobs_screen.dart';
 import 'nob_compose_screen.dart';
 import 'nob_detail_screen.dart';
@@ -638,13 +639,38 @@ void _showAuthorSheet(BuildContext context, Post post) {
               ),
             ),
             const SizedBox(height: 20),
-            // View Nobs button
+            // View Profile (primary)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.emerald600,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.person_outline_rounded, size: 16),
+                label: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => UserProfileScreen(
+                      userId: post.userId!,
+                      initialName: post.authorName,
+                      initialAvatarUrl: post.authorAvatarUrl,
+                      initialTier: post.authorTier,
+                    ),
+                  ));
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            // View Nobs (secondary)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.emerald600,
-                  side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4)),
+                  side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.3)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
