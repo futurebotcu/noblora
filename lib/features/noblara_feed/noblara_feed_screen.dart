@@ -576,6 +576,95 @@ class _TierBadge extends StatelessWidget {
 // Minor Edit / Second Thought sheets
 // ---------------------------------------------------------------------------
 
+void _showAuthorSheet(BuildContext context, Post post) {
+  if (post.isAnonymous || post.userId == null) return; // safety guard
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) {
+      final tierColor = switch (post.authorTier) {
+        NobTier.noble => AppColors.nobNoble,
+        NobTier.explorer => AppColors.nobExplorer,
+        NobTier.observer => AppColors.nobObserver,
+      };
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Avatar
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: tierColor.withValues(alpha: 0.12),
+                border: Border.all(color: tierColor.withValues(alpha: 0.3), width: 1.5),
+              ),
+              child: post.authorAvatarUrl != null
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: post.authorAvatarUrl!,
+                        fit: BoxFit.cover, width: 64, height: 64,
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        (post.authorName ?? 'N')[0].toUpperCase(),
+                        style: TextStyle(color: tierColor, fontWeight: FontWeight.w700, fontSize: 22),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 14),
+            // Name
+            Text(
+              post.authorName ?? 'Someone',
+              style: TextStyle(color: ctx.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            // Tier badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: tierColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: tierColor.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                post.authorTier.label.toUpperCase(),
+                style: TextStyle(color: tierColor, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // View Nobs button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.emerald600,
+                  side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.article_outlined, size: 16),
+                label: const Text('View their Nobs', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => MyNobsScreen(userId: post.userId, userName: post.authorName),
+                  ));
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 void _showMinorEditSheet(BuildContext context, WidgetRef ref, Post post) {
   final ctrl = TextEditingController(text: post.isThought ? post.content : post.caption ?? '');
   showModalBottomSheet(
@@ -825,54 +914,57 @@ class _NobCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 0),
             child: Row(
               children: [
-                // Avatar — abstract for anonymous, real for normal posts
-                if (post.isAnonymous)
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _tierColor.withValues(alpha: 0.12),
-                      border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
-                    ),
-                    child: Icon(Icons.visibility_off_rounded, color: _tierColor.withValues(alpha: 0.6), size: 14),
-                  )
-                else
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _tierColor.withValues(alpha: 0.12),
-                      border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
-                    ),
-                    child: post.authorAvatarUrl != null
-                        ? ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: post.authorAvatarUrl!,
-                              fit: BoxFit.cover,
-                              width: 32,
-                              height: 32,
-                              memCacheWidth: 96,
-                              errorWidget: (_, __, ___) => Center(
-                                child: Text(
-                                  (post.authorName ?? 'N')[0].toUpperCase(),
-                                  style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
-                                ),
-                              ),
-                            ),
-                          )
-                        : Center(
-                            child: Text(
-                              (post.authorName ?? 'N')[0].toUpperCase(),
-                              style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
-                            ),
-                          ),
-                  ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Avatar + name — tappable for normal posts, static for anonymous
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: (!post.isAnonymous && post.userId != null && !isOwn)
+                      ? () => _showAuthorSheet(context, post)
+                      : null,
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (post.isAnonymous)
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _tierColor.withValues(alpha: 0.12),
+                            border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
+                          ),
+                          child: Icon(Icons.visibility_off_rounded, color: _tierColor.withValues(alpha: 0.6), size: 14),
+                        )
+                      else
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _tierColor.withValues(alpha: 0.12),
+                            border: Border.all(color: _tierColor.withValues(alpha: 0.25), width: 1),
+                          ),
+                          child: post.authorAvatarUrl != null
+                              ? ClipOval(
+                                  child: CachedNetworkImage(
+                                    imageUrl: post.authorAvatarUrl!,
+                                    fit: BoxFit.cover,
+                                    width: 32,
+                                    height: 32,
+                                    memCacheWidth: 96,
+                                    errorWidget: (_, __, ___) => Center(
+                                      child: Text(
+                                        (post.authorName ?? 'N')[0].toUpperCase(),
+                                        style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    (post.authorName ?? 'N')[0].toUpperCase(),
+                                    style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 12),
+                                  ),
+                                ),
+                        ),
+                      const SizedBox(width: 10),
                       Text(
                         post.isAnonymous ? 'Anonymous' : (post.authorName ?? (isOwn ? 'You' : 'Someone')),
                         style: TextStyle(
@@ -882,6 +974,15 @@ class _NobCard extends StatelessWidget {
                           fontStyle: post.isAnonymous ? FontStyle.italic : FontStyle.normal,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       const SizedBox(height: 2),
                       Row(
                         children: [

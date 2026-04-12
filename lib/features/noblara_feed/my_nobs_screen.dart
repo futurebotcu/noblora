@@ -17,6 +17,13 @@ import 'nob_detail_screen.dart';
 // (anonim sistemde başka kullanıcının profil feed'i yoktur, bu sadece sahibe görünür)
 // ---------------------------------------------------------------------------
 
+/// View another user's published Nobs (public, non-anonymous only).
+final _userNobsProvider = FutureProvider.autoDispose
+    .family<List<Post>, String>((ref, userId) async {
+  final repo = ref.watch(postRepositoryProvider);
+  return repo.fetchLastNobs(userId, limit: 30);
+});
+
 final _myNobsProvider = FutureProvider.autoDispose<List<Post>>((ref) async {
   final uid = ref.watch(authProvider).userId;
   if (uid == null) return [];
@@ -54,17 +61,25 @@ final _myNobsProvider = FutureProvider.autoDispose<List<Post>>((ref) async {
 });
 
 class MyNobsScreen extends ConsumerWidget {
-  const MyNobsScreen({super.key});
+  /// When null, shows current user's Nobs.
+  /// When set, shows another user's public Nobs.
+  final String? userId;
+  final String? userName;
+  const MyNobsScreen({super.key, this.userId, this.userName});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(_myNobsProvider);
+    final isOther = userId != null;
+    final async = isOther
+        ? ref.watch(_userNobsProvider(userId!))
+        : ref.watch(_myNobsProvider);
+    final title = isOther ? (userName ?? 'Nobs') : 'My Nobs';
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
-        title: Text('My Nobs', style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text(title, style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.emerald600)),

@@ -9,6 +9,7 @@ import '../../data/models/post.dart';
 import '../../data/models/post_comment.dart';
 import '../../data/models/post_revision.dart';
 import '../../providers/auth_provider.dart';
+import 'my_nobs_screen.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/posts_provider.dart';
 
@@ -286,43 +287,48 @@ class _PostSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Author row — anonymous or normal based on post.isAnonymous
-          Row(
-            children: [
-              if (post.isAnonymous)
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _tierColor.withValues(alpha: 0.12),
-                    border: Border.all(color: _tierColor.withValues(alpha: 0.25)),
-                  ),
-                  child: Icon(Icons.visibility_off_rounded, color: _tierColor.withValues(alpha: 0.6), size: 20),
-                )
-              else
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _tierColor.withValues(alpha: 0.12),
-                    border: Border.all(color: _tierColor.withValues(alpha: 0.25)),
-                  ),
-                  child: post.authorAvatarUrl != null
-                      ? ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: post.authorAvatarUrl!,
-                            fit: BoxFit.cover,
-                            width: 44, height: 44,
+          // Author row — tappable for normal posts, static for anonymous
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: (!post.isAnonymous && post.userId != null)
+                ? () => _showDetailAuthorSheet(context, post)
+                : null,
+            child: Row(
+              children: [
+                if (post.isAnonymous)
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _tierColor.withValues(alpha: 0.12),
+                      border: Border.all(color: _tierColor.withValues(alpha: 0.25)),
+                    ),
+                    child: Icon(Icons.visibility_off_rounded, color: _tierColor.withValues(alpha: 0.6), size: 20),
+                  )
+                else
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _tierColor.withValues(alpha: 0.12),
+                      border: Border.all(color: _tierColor.withValues(alpha: 0.25)),
+                    ),
+                    child: post.authorAvatarUrl != null
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: post.authorAvatarUrl!,
+                              fit: BoxFit.cover,
+                              width: 44, height: 44,
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              (post.authorName ?? 'N')[0].toUpperCase(),
+                              style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 16),
+                            ),
                           ),
-                        )
-                      : Center(
-                          child: Text(
-                            (post.authorName ?? 'N')[0].toUpperCase(),
-                            style: TextStyle(color: _tierColor, fontWeight: FontWeight.w700, fontSize: 16),
-                          ),
-                        ),
-                ),
-              const SizedBox(width: 12),
+                  ),
+                const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,6 +392,7 @@ class _PostSection extends StatelessWidget {
                 ),
               ),
             ],
+          ),
           ),
 
           const SizedBox(height: 16),
@@ -1288,6 +1295,82 @@ void _showCommentEditSheet(
                 }
               },
               child: const Text('Save'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Author profile sheet (detail screen)
+// ---------------------------------------------------------------------------
+
+void _showDetailAuthorSheet(BuildContext context, Post post) {
+  if (post.isAnonymous || post.userId == null) return;
+  final tierColor = switch (post.authorTier) {
+    NobTier.noble => AppColors.nobNoble,
+    NobTier.explorer => AppColors.nobExplorer,
+    NobTier.observer => AppColors.nobObserver,
+  };
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.nobSurface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: tierColor.withValues(alpha: 0.12),
+              border: Border.all(color: tierColor.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: post.authorAvatarUrl != null
+                ? ClipOval(child: CachedNetworkImage(
+                    imageUrl: post.authorAvatarUrl!, fit: BoxFit.cover, width: 64, height: 64))
+                : Center(child: Text(
+                    (post.authorName ?? 'N')[0].toUpperCase(),
+                    style: TextStyle(color: tierColor, fontWeight: FontWeight.w700, fontSize: 22))),
+          ),
+          const SizedBox(height: 14),
+          Text(post.authorName ?? 'Someone',
+              style: TextStyle(color: ctx.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: tierColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: tierColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(post.authorTier.label.toUpperCase(),
+                style: TextStyle(color: tierColor, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.emerald600,
+                side: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.4)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.article_outlined, size: 16),
+              label: const Text('View their Nobs', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => MyNobsScreen(userId: post.userId, userName: post.authorName),
+                ));
+              },
             ),
           ),
         ],
