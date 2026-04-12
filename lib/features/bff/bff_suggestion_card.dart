@@ -6,7 +6,7 @@ import '../../core/theme/premium.dart';
 import '../../data/models/bff_suggestion.dart';
 
 const _accent = AppColors.emerald500;
-const _accentLight = Color(0xFF2FC3CC);
+const _accentLight = AppColors.emerald350;
 
 class BffSuggestionCard extends StatelessWidget {
   final BffSuggestion suggestion;

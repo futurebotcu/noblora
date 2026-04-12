@@ -63,7 +63,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return AppColors.emerald600;
       case NobleMode.social:
-        return AppColors.emerald350;
+        return AppColors.emerald700;
       case NobleMode.noblara:
         return AppColors.emerald500;
     }
@@ -76,7 +76,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.social:
-        return AppColors.emerald350.withValues(alpha: 0.14);
+        return AppColors.emerald700.withValues(alpha: 0.14);
       case NobleMode.noblara:
         return AppColors.emerald600.withValues(alpha: 0.14);
     }
