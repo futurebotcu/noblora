@@ -75,6 +75,146 @@ String moodLabel(String? mood) {
 }
 
 // ---------------------------------------------------------------------------
+// Country Insight models (for AI panel)
+// ---------------------------------------------------------------------------
+
+class CountryInsightData {
+  final String countryCode;
+  final String timeWindow;
+  final int totalPosts;
+  final int uniqueAuthors;
+  final double avgQuality;
+  final String? dominantMood;
+  final List<MoodSlice> moodBreakdown;
+  final List<TopicSlice> topTopics;
+  final int totalEngagement;
+  final String dataQuality;
+
+  const CountryInsightData({
+    required this.countryCode,
+    required this.timeWindow,
+    required this.totalPosts,
+    required this.uniqueAuthors,
+    required this.avgQuality,
+    required this.dominantMood,
+    required this.moodBreakdown,
+    required this.topTopics,
+    required this.totalEngagement,
+    required this.dataQuality,
+  });
+
+  bool get isInsufficient => dataQuality == 'insufficient';
+
+  factory CountryInsightData.fromJson(Map<String, dynamic> j) {
+    final eng = j['engagement'] as Map<String, dynamic>? ?? {};
+    return CountryInsightData(
+      countryCode: j['country_code'] as String,
+      timeWindow: j['time_window'] as String? ?? 'unknown',
+      totalPosts: (j['total_posts'] as num?)?.toInt() ?? 0,
+      uniqueAuthors: (j['unique_authors'] as num?)?.toInt() ?? 0,
+      avgQuality: (j['avg_quality'] as num?)?.toDouble() ?? 0.5,
+      dominantMood: j['dominant_mood'] as String?,
+      moodBreakdown: (j['mood_breakdown'] as List? ?? [])
+          .map((e) => MoodSlice.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      topTopics: (j['top_topics'] as List? ?? [])
+          .map((e) => TopicSlice.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      totalEngagement: ((eng['reactions'] as num?)?.toInt() ?? 0) +
+          ((eng['echoes'] as num?)?.toInt() ?? 0) +
+          ((eng['comments'] as num?)?.toInt() ?? 0),
+      dataQuality: j['data_quality'] as String? ?? 'insufficient',
+    );
+  }
+}
+
+class AISummary {
+  final String title;
+  final String text;
+  final String? viralTopic;
+  final String? viralReason;
+  final double confidence;
+
+  const AISummary({
+    required this.title,
+    required this.text,
+    this.viralTopic,
+    this.viralReason,
+    required this.confidence,
+  });
+
+  factory AISummary.fromJson(Map<String, dynamic> j) => AISummary(
+        title: j['summary_title'] as String? ?? '',
+        text: j['summary_text'] as String? ?? '',
+        viralTopic: j['viral_topic'] as String?,
+        viralReason: j['viral_reason'] as String?,
+        confidence: (j['confidence'] as num?)?.toDouble() ?? 0.5,
+      );
+}
+
+// ---------------------------------------------------------------------------
+// Providers — insight data + AI summary (keyed by country code)
+// ---------------------------------------------------------------------------
+
+final countryInsightDataProvider = FutureProvider.autoDispose
+    .family<CountryInsightData, String>((ref, countryCode) async {
+  if (isMockMode) {
+    return CountryInsightData(
+      countryCode: countryCode,
+      timeWindow: '72h',
+      totalPosts: 6,
+      uniqueAuthors: 4,
+      avgQuality: 0.7,
+      dominantMood: 'curious',
+      moodBreakdown: const [MoodSlice(mood: 'curious', count: 3), MoodSlice(mood: 'quiet', count: 2)],
+      topTopics: const [TopicSlice(topic: 'travel', count: 3), TopicSlice(topic: 'work', count: 2)],
+      totalEngagement: 8,
+      dataQuality: 'moderate',
+    );
+  }
+  final res = await Supabase.instance.client.rpc(
+    'fetch_country_insight_data',
+    params: {'p_country': countryCode},
+  );
+  return CountryInsightData.fromJson(Map<String, dynamic>.from(res as Map));
+});
+
+final countryAISummaryProvider = FutureProvider.autoDispose
+    .family<AISummary?, ({String code, String name, CountryInsightData data})>(
+        (ref, args) async {
+  if (isMockMode || args.data.isInsufficient) return null;
+  try {
+    final res = await Supabase.instance.client.functions.invoke(
+      'nob-country-insight',
+      body: {
+        'country_code': args.code,
+        'country_name': args.name,
+        'time_window': args.data.timeWindow,
+        'total_posts': args.data.totalPosts,
+        'unique_authors': args.data.uniqueAuthors,
+        'avg_quality': args.data.avgQuality,
+        'dominant_mood': args.data.dominantMood,
+        'mood_breakdown': args.data.moodBreakdown
+            .map((m) => {'mood': m.mood, 'count': m.count})
+            .toList(),
+        'top_topics': args.data.topTopics
+            .map((t) => {'topic': t.topic, 'count': t.count})
+            .toList(),
+        'engagement': {'reactions': args.data.totalEngagement, 'echoes': 0, 'comments': 0},
+        'data_quality': args.data.dataQuality,
+      },
+    );
+    if (res.data is Map && res.data['summary_title'] != null) {
+      return AISummary.fromJson(Map<String, dynamic>.from(res.data));
+    }
+    return null;
+  } catch (e) {
+    debugPrint('[countryAISummary] $e');
+    return null;
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Provider — fetch country list (autoDispose: refetch every open)
 // ---------------------------------------------------------------------------
 
@@ -103,11 +243,21 @@ final countryMoodsProvider =
 // Screen
 // ---------------------------------------------------------------------------
 
-class MoodMapScreen extends ConsumerWidget {
+class MoodMapScreen extends ConsumerStatefulWidget {
   const MoodMapScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MoodMapScreen> createState() => _MoodMapScreenState();
+}
+
+class _MoodMapScreenState extends ConsumerState<MoodMapScreen> {
+  /// Currently selected country canonical name (for inline insight panel).
+  String? _selectedCountry;
+  /// Resolved CountryMood for the selected country (for color/mood access).
+  CountryMood? _selectedMood;
+
+  @override
+  Widget build(BuildContext context) {
     final asyncCountries = ref.watch(countryMoodsProvider);
 
     return Scaffold(
@@ -143,12 +293,10 @@ class MoodMapScreen extends ConsumerWidget {
                   builder: (_) => _CountryListSheet(countries: list),
                 );
                 if (picked != null && btnCtx.mounted) {
-                  showModalBottomSheet(
-                    context: btnCtx,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (_) => _CountryDetailSheet(country: picked),
-                  );
+                  setState(() {
+                    _selectedCountry = picked.countryCode;
+                    _selectedMood = picked;
+                  });
                 }
               },
             ),
@@ -160,6 +308,10 @@ class MoodMapScreen extends ConsumerWidget {
             onPressed: () {
               HapticFeedback.selectionClick();
               ref.invalidate(countryMoodsProvider);
+              setState(() {
+                _selectedCountry = null;
+                _selectedMood = null;
+              });
             },
           ),
         ],
@@ -199,7 +351,7 @@ class MoodMapScreen extends ConsumerWidget {
                 child: WorldMapView(
                   coloredCountries: coloredCountries,
                   onCountryTap: (name) =>
-                      _openCountryDetailFor(context, ref, countries, name),
+                      _onCountryTap(countries, name),
                 ),
               ),
 
@@ -211,14 +363,56 @@ class MoodMapScreen extends ConsumerWidget {
                 child: _WorldSummaryStrip(countries: countries),
               ),
 
-              // ── Bottom legend ──────────────────────────────────────────
+              // ── Bottom: legend OR insight panel ────────────────────────
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 child: SafeArea(
                   top: false,
-                  child: _MoodLegend(),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, anim) => SlideTransition(
+                      position: Tween(
+                        begin: const Offset(0, 0.3),
+                        end: Offset.zero,
+                      ).animate(anim),
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: _selectedCountry != null
+                        ? _CountryInsightPanel(
+                            key: ValueKey(_selectedCountry),
+                            countryCode: _selectedMood?.countryCode ?? _selectedCountry!,
+                            countryName: _selectedCountry!,
+                            accentColor: moodColor(_selectedMood?.dominantMood),
+                            onClose: () => setState(() {
+                              _selectedCountry = null;
+                              _selectedMood = null;
+                            }),
+                            onDeepDive: () {
+                              final country = _selectedMood ??
+                                  CountryMood(
+                                    countryCode: _selectedCountry!,
+                                    dominantMood: 'unknown',
+                                    postCount: 0,
+                                    moodIntensityAvg: 0,
+                                  );
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                isScrollControlled: true,
+                                builder: (_) =>
+                                    _CountryDetailSheet(country: country),
+                              );
+                            },
+                          )
+                        : KeyedSubtree(
+                            key: const ValueKey('legend'),
+                            child: _MoodLegend(),
+                          ),
+                  ),
                 ),
               ),
             ],
@@ -228,12 +422,7 @@ class MoodMapScreen extends ConsumerWidget {
     );
   }
 
-  void _openCountryDetailFor(
-    BuildContext context,
-    WidgetRef ref,
-    List<CountryMood> countries,
-    String canonicalName,
-  ) {
+  void _onCountryTap(List<CountryMood> countries, String canonicalName) {
     HapticFeedback.selectionClick();
     final norm = normalizeCountryName(canonicalName);
     CountryMood? mood;
@@ -243,19 +432,10 @@ class MoodMapScreen extends ConsumerWidget {
         break;
       }
     }
-    final country = mood ??
-        CountryMood(
-          countryCode: canonicalName,
-          dominantMood: 'unknown',
-          postCount: 0,
-          moodIntensityAvg: 0,
-        );
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _CountryDetailSheet(country: country),
-    );
+    setState(() {
+      _selectedCountry = canonicalName;
+      _selectedMood = mood;
+    });
   }
 }
 
@@ -1232,6 +1412,454 @@ class _SampleCard extends StatelessWidget {
               height: 1.45,
               fontStyle: FontStyle.italic,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Country Insight Panel — inline AI-powered summary at the bottom of the map
+// ---------------------------------------------------------------------------
+
+class _CountryInsightPanel extends ConsumerWidget {
+  final String countryCode;
+  final String countryName;
+  final Color accentColor;
+  final VoidCallback onClose;
+  final VoidCallback onDeepDive;
+
+  const _CountryInsightPanel({
+    super.key,
+    required this.countryCode,
+    required this.countryName,
+    required this.accentColor,
+    required this.onClose,
+    required this.onDeepDive,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final insightAsync = ref.watch(countryInsightDataProvider(countryCode));
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+      decoration: BoxDecoration(
+        color: AppColors.nobSurface.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 24,
+            spreadRadius: -6,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: insightAsync.when(
+        loading: () => _buildShell(
+          context,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: AppColors.emerald600),
+              ),
+            ),
+          ),
+        ),
+        error: (e, _) => _buildShell(
+          context,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Text(
+                'Could not load insight right now.',
+                style: TextStyle(color: context.textMuted, fontSize: 12),
+              ),
+            ),
+          ),
+        ),
+        data: (data) {
+          if (data.isInsufficient) {
+            return _buildShell(
+              context,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        color: context.textMuted, size: 16),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Not enough anonymous activity in this region yet.',
+                      style: TextStyle(
+                          color: context.textMuted,
+                          fontSize: 12.5,
+                          height: 1.4),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${data.totalPosts} ${data.totalPosts == 1 ? 'post' : 'posts'} in the last 7 days',
+                      style: TextStyle(
+                          color: context.textMuted.withValues(alpha: 0.7),
+                          fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return _buildDataPanel(context, ref, data);
+        },
+      ),
+    );
+  }
+
+  Widget _buildShell(BuildContext context, {required Widget child}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildHeader(context),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accentColor,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.5),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              countryName,
+              style: TextStyle(
+                color: context.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: onDeepDive,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.open_in_full_rounded,
+                  color: context.textMuted, size: 14),
+            ),
+          ),
+          GestureDetector(
+            onTap: onClose,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(Icons.close_rounded,
+                  color: context.textMuted, size: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataPanel(
+      BuildContext context, WidgetRef ref, CountryInsightData data) {
+    final moodC = moodColor(data.dominantMood);
+
+    // Trigger AI summary fetch (keyed by aggregate data to avoid redundant calls)
+    final aiAsync = ref.watch(countryAISummaryProvider(
+      (code: countryCode, name: countryName, data: data),
+    ));
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeader(context),
+        const SizedBox(height: 10),
+
+        // ── Mood + stats row ─────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: moodC.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: moodC.withValues(alpha: 0.35)),
+                ),
+                child: Text(
+                  moodLabel(data.dominantMood),
+                  style: TextStyle(
+                      color: moodC,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${data.totalPosts} posts',
+                style: TextStyle(color: context.textMuted, fontSize: 11),
+              ),
+              const SizedBox(width: 6),
+              Text('·', style: TextStyle(color: context.textMuted)),
+              const SizedBox(width: 6),
+              Text(
+                '${data.uniqueAuthors} voices',
+                style: TextStyle(color: context.textMuted, fontSize: 11),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.nobSurfaceAlt,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  data.timeWindow == '72h' ? '3 days' : '7 days',
+                  style: TextStyle(
+                      color: context.textMuted,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Topics ───────────────────────────────────────────────────
+        if (data.topTopics.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 28,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: data.topTopics.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (_, i) {
+                final t = data.topTopics[i];
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.nobSurfaceAlt,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.nobBorder.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    '${t.topic} (${t.count})',
+                    style: TextStyle(
+                        color: context.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+
+        // ── AI summary ───────────────────────────────────────────────
+        const SizedBox(height: 10),
+        aiAsync.when(
+          loading: () => Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1,
+                      color: AppColors.emerald600.withValues(alpha: 0.5)),
+                ),
+                const SizedBox(width: 8),
+                Text('Generating insight…',
+                    style: TextStyle(
+                        color: context.textMuted,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic)),
+              ],
+            ),
+          ),
+          error: (_, __) => _buildAiFallback(context, data),
+          data: (ai) {
+            if (ai == null) return _buildAiFallback(context, data);
+            return _buildAiSummary(context, data, ai);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAiFallback(BuildContext context, CountryInsightData data) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_outlined,
+                  color: context.textMuted.withValues(alpha: 0.5), size: 13),
+              const SizedBox(width: 6),
+              Text(
+                'AI summary unavailable right now',
+                style: TextStyle(
+                    color: context.textMuted,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Based on recent anonymous Nob activity.',
+            style: TextStyle(
+                color: context.textMuted.withValues(alpha: 0.6),
+                fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiSummary(
+      BuildContext context, CountryInsightData data, AISummary ai) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.auto_awesome_rounded,
+                  color: AppColors.emerald600.withValues(alpha: 0.8),
+                  size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  ai.title,
+                  style: TextStyle(
+                    color: context.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // Summary text
+          Text(
+            ai.text,
+            style: TextStyle(
+              color: context.textSecondary,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+
+          // Viral topic highlight
+          if (ai.viralTopic != null && ai.viralTopic!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.emerald600.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: AppColors.emerald600.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.trending_up_rounded,
+                      color: AppColors.emerald600, size: 13),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      ai.viralTopic!,
+                      style: const TextStyle(
+                        color: AppColors.emerald600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 8),
+
+          // Footer
+          Row(
+            children: [
+              Text(
+                'Based on anonymous Nob activity',
+                style: TextStyle(
+                    color: context.textMuted.withValues(alpha: 0.5),
+                    fontSize: 9.5),
+              ),
+              const Spacer(),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ai.confidence >= 0.7
+                      ? AppColors.emerald600
+                      : ai.confidence >= 0.4
+                          ? const Color(0xFFC48A2C)
+                          : context.textMuted,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                ai.confidence >= 0.7
+                    ? 'High confidence'
+                    : ai.confidence >= 0.4
+                        ? 'Moderate'
+                        : 'Limited data',
+                style: TextStyle(
+                    color: context.textMuted.withValues(alpha: 0.6),
+                    fontSize: 9.5),
+              ),
+            ],
           ),
         ],
       ),
