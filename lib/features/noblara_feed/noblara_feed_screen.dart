@@ -11,6 +11,7 @@ import '../../core/utils/video_assets.dart';
 import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
+import '../social/social_events_screen.dart';
 import 'mood_map_screen.dart';
 import 'my_nobs_screen.dart';
 import 'nob_compose_screen.dart';
@@ -103,6 +104,11 @@ class NoblaraFeedScreen extends ConsumerWidget {
                                 icon: Icons.public_rounded,
                                 onTap: () => Navigator.push(context,
                                     MaterialPageRoute(builder: (_) => const MoodMapScreen())),
+                              ),
+                              _HeaderIcon(
+                                icon: Icons.event_rounded,
+                                onTap: () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => const SocialEventsScreen())),
                               ),
                               _NotificationsHeaderIcon(),
                               _HeaderIcon(

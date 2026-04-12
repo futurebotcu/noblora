@@ -10,7 +10,7 @@ import '../../data/models/post.dart';
 import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
-import '../../providers/bff_provider.dart';
+
 import '../../providers/event_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -47,8 +47,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
   @override
   void initState() {
     super.initState();
-    // Social tab is omitted when the Social layer is disabled.
-    _tabs = TabController(length: kSocialEnabled ? 5 : 4, vsync: this);
+    // Social module removed — 4 tabs only.
+    _tabs = TabController(length: 4, vsync: this);
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) setState(() => _animate = true);
     });
@@ -169,31 +169,23 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
               dividerColor: context.borderSubtleColor, tabAlignment: TabAlignment.start,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
               unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-              tabs: [
-                const Tab(text: 'Overview'),
-                const Tab(text: 'Interest'),
-                if (kSocialEnabled) const Tab(text: 'Social'),
-                const Tab(text: 'Activity'),
-                const Tab(text: 'Market'),
+              tabs: const [
+                Tab(text: 'Overview'),
+                Tab(text: 'Interest'),
+                Tab(text: 'Activity'),
+                Tab(text: 'Market'),
               ],
             ),
           ),
         ],
         body: TabBarView(controller: _tabs, children: [
           _OverviewTab(p: p, tc: tc, animate: _animate, ai: _ai, aiLoading: _aiLoading,
-            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
             matchState: ref.watch(matchProvider),
-            eventState: kSocialEnabled
-                ? ref.watch(eventListProvider)
-                : const EventListState()),
+            eventState: const EventListState()),
           _InterestTab(p: p, tc: tc,
-            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
             matchState: ref.watch(matchProvider),
             signalsReceived: _signalsReceived, signalsSent: _signalsSent,
             notesReceived: _notesReceived, notesSent: _notesSent, connections: _connectionCount),
-          if (kSocialEnabled)
-            // Trade-off: full state passed to child — .select() won't reduce rebuilds here.
-            _SocialTab(bffState: ref.watch(bffProvider), eventState: ref.watch(eventListProvider)),
           _ActivityTab(activity: _recentActivity),
           const _MarketTab(),
         ]),
@@ -325,47 +317,8 @@ class _InterestTab extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// TAB 3: SOCIAL (BFF + Events)
 // ═══════════════════════════════════════════════════════════════════
-
-class _SocialTab extends StatelessWidget {
-  final BffState bffState; final EventListState eventState;
-  const _SocialTab({required this.bffState, required this.eventState});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasAny = bffState.suggestions.isNotEmpty || bffState.reachOuts.isNotEmpty || eventState.events.isNotEmpty;
-
-    return ListView(padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-      if (!hasAny) ...[
-        const SizedBox(height: AppSpacing.xxxxl),
-        Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.groups_outlined, color: context.textMuted.withValues(alpha: 0.2), size: 48),
-          const SizedBox(height: AppSpacing.lg),
-          Text('All clear', style: TextStyle(color: context.textMuted, fontSize: 14)),
-          const SizedBox(height: AppSpacing.xs),
-          Text('Plans and social activity will appear here.', style: TextStyle(color: context.textMuted.withValues(alpha: 0.6), fontSize: 12)),
-        ])),
-      ] else ...[
-        _Sec('Friendship circle'),
-        _Stat(Icons.auto_awesome_rounded, 'Suggestions for you', '${bffState.suggestions.length}'),
-        if (bffState.reachOuts.isNotEmpty)
-          _Stat(Icons.waving_hand_rounded, 'Reach outs', '${bffState.reachOuts.length}'),
-        const SizedBox(height: AppSpacing.xxl),
-
-        _Sec('Your events'),
-        _Stat(Icons.event_rounded, 'Upcoming', '${eventState.events.length}'),
-        if (eventState.events.isNotEmpty)
-          ...eventState.events.take(3).map((e) =>
-              _Upcoming(Icons.event_rounded, e.title, '${e.timeLabel} \u00B7 ${e.attendeeCount}/${e.maxAttendees}', const Color(0xFFAB47BC))),
-      ],
-      const SizedBox(height: AppSpacing.xxxxl),
-    ]);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// TAB 4: ACTIVITY (private movement log)
+// TAB 3: ACTIVITY (private movement log)
 // ═══════════════════════════════════════════════════════════════════
 
 class _ActivityTab extends StatelessWidget {

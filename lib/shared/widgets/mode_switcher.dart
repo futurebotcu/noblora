@@ -3,14 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/mock_mode.dart';
 import '../../providers/mode_provider.dart';
 
 /// Modes offered to the user in the mode switcher + mode selection dialog.
-/// Social is excluded when the feature flag is off.
-const List<NobleMode> _availableModes = kSocialEnabled
-    ? [NobleMode.date, NobleMode.bff, NobleMode.social]
-    : [NobleMode.date, NobleMode.bff];
+/// Social module removed — only Date and BFF remain.
+const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff];
 
 class ModeSwitcher extends ConsumerWidget {
   const ModeSwitcher({super.key});

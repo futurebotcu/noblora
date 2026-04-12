@@ -226,12 +226,8 @@ class SettingsScreen extends ConsumerWidget {
                 n.notif('notes'), (_) => n.toggleNotif('notes')),
             _Toggle(Icons.people_outline, 'BFF Suggestions',
                 n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-            if (kSocialEnabled) ...[
-              _Toggle(Icons.event_outlined, 'Event Activity',
-                  n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
-              _Toggle(Icons.forum_outlined, 'Event Chat',
-                  n.notif('event_chat'), (_) => n.toggleNotif('event_chat')),
-            ],
+            _Toggle(Icons.event_outlined, 'Event Activity',
+                n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
             _Toggle(Icons.verified_outlined, 'Verification',
                 n.notif('verification'), (_) => n.toggleNotif('verification')),
             _Toggle(Icons.shield_outlined, 'Safety Alerts',
@@ -278,10 +274,9 @@ class SettingsScreen extends ConsumerWidget {
                 s['message_preview'] as bool? ?? true,
                 (_) => n.toggleBool('message_preview'),
                 sub: 'Show content in inbox list'),
-            if (kSocialEnabled)
-              _Toggle(Icons.exit_to_app_rounded, 'Leave Event Chat After End',
-                  s['leave_event_chat_auto'] as bool? ?? true,
-                  (_) => n.toggleBool('leave_event_chat_auto')),
+            _Toggle(Icons.exit_to_app_rounded, 'Leave Event Chat After End',
+                s['leave_event_chat_auto'] as bool? ?? true,
+                (_) => n.toggleBool('leave_event_chat_auto')),
           ]),
 
           // ── 8. AI PREFERENCES ───────────────────────────────────
