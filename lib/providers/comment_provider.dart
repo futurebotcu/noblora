@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -86,7 +87,9 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
             },
           )
           .subscribe();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[comments:realtime] subscribe failed: $e');
+    }
   }
 
   Future<void> load() async {
@@ -102,7 +105,8 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
       // Sync absolute count back to feed posts state.
       final total = state.totalCount;
       _ref.read(postsProvider.notifier).setCommentCount(postId, total);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[comments:load] $e');
       state = state.copyWith(isLoading: false);
     }
   }

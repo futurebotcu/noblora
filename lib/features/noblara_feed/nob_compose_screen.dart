@@ -326,6 +326,7 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         await _uploadVideoThumbnail(basePath, url);
       }
 
+      if (!mounted) return;
       setState(() => _uploadedPhotoUrl = url);
     } catch (e) {
       if (mounted) {

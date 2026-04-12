@@ -258,8 +258,10 @@ class PostRepository {
       return result as bool? ?? false;
     } catch (e) {
       debugPrint('[canPublishToday] RPC failed: $e');
-      // On error, allow publish — RLS will enforce the actual limit
-      return true;
+      // Rethrow so the caller can show a connection-error message instead
+      // of silently allowing unlimited publishes. Server-side RLS still
+      // enforces limits, but the UX is clearer when we surface the failure.
+      rethrow;
     }
   }
 

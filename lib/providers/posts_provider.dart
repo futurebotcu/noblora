@@ -221,7 +221,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
       if (mounted) {
         state = state.copyWith(dynamicMoodLanes: lanes);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[_loadDynamicLanes] $e');
+    }
   }
 
   Future<void> _loadLane() async {
@@ -266,7 +268,8 @@ class PostsNotifier extends StateNotifier<PostsState> {
         isLoadingMore: false,
         hasMore: more.length >= _pageSize,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[loadMore] $e');
       state = state.copyWith(isLoadingMore: false);
     }
   }
@@ -304,7 +307,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
               PostReaction.fromJson(Map<String, dynamic>.from(r));
           myReactionsByPost[reaction.postId] = reaction;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[enrich:myReactions] $e');
+      }
     }
 
     Map<String, Map<String, int>> ownCountsMap = {};
@@ -375,12 +380,12 @@ class PostsNotifier extends StateNotifier<PostsState> {
         : await repo.echo(postId: postId, userId: uid);
 
     if (!ok) {
-      // Rollback
+      debugPrint('[toggleEcho] server rejected, rolling back');
       final rollbackPosts = [...state.posts];
       final i = rollbackPosts.indexWhere((p) => p.id == postId);
       if (i >= 0) {
         rollbackPosts[i] = rollbackPosts[i].copyWith(hasEchoed: wasEchoed, echoCount: post.echoCount);
-        state = state.copyWith(posts: rollbackPosts);
+        state = state.copyWith(posts: rollbackPosts, error: 'Echo failed. Try again.');
       }
     }
   }
@@ -425,7 +430,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
               authorTier: NobTier.fromString(profile['nob_tier'] as String?),
             );
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[createNob:enrich] profile fetch failed: $e');
+        }
       }
 
       state = state.copyWith(posts: [enriched, ...state.posts], isSubmitting: false);
@@ -506,8 +513,10 @@ class PostsNotifier extends StateNotifier<PostsState> {
         await _repo.react(
             postId: postId, userId: userId, reactionType: reactionType);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[react] server error, rolling back: $e');
       _applyReactionState(postId, previousReactions, previousCounts);
+      state = state.copyWith(error: 'Reaction failed. Try again.');
     }
   }
 
