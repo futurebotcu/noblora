@@ -377,9 +377,9 @@ class _CompactAction extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: context.surfaceColor,
+          color: _profileCard,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: context.borderColor.withValues(alpha: 0.4)),
+          border: Border.all(color: _profileBorder.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -535,7 +535,7 @@ class _ActiveModesSection extends ConsumerWidget {
                       width: 44,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: isActive ? accent : context.surfaceAltColor,
+                        color: isActive ? accent : _profileElevated,
                         borderRadius:
                             BorderRadius.circular(AppSpacing.radiusCircle),
                       ),
@@ -761,11 +761,11 @@ class _PersonaSectionState extends State<_PersonaSection> {
                   decoration: BoxDecoration(
                     color: isActive
                         ? mode.accentColor.withValues(alpha: 0.15)
-                        : context.surfaceColor,
+                        : _profileCard,
                     borderRadius:
                         BorderRadius.circular(AppSpacing.radiusCircle),
                     border: Border.all(
-                      color: isActive ? mode.accentColor : context.borderColor,
+                      color: isActive ? mode.accentColor : _profileBorder.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Row(
@@ -1000,10 +1000,10 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.xxl),
             decoration: BoxDecoration(
-              color: context.surfaceColor,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              color: _profileCard,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               border:
-                  Border.all(color: AppColors.emerald500.withValues(alpha: 0.2)),
+                  Border.all(color: _profileBorder.withValues(alpha: 0.4)),
             ),
             child: Column(
               children: [
@@ -1064,7 +1064,7 @@ class _NobleScorecardSectionState extends ConsumerState<_NobleScorecardSection> 
                     builder: (_, value, __) => LinearProgressIndicator(
                       value: value,
                       minHeight: 6,
-                      backgroundColor: context.surfaceAltColor,
+                      backgroundColor: _profileElevated,
                       valueColor:
                           const AlwaysStoppedAnimation(AppColors.emerald500),
                     ),
@@ -1131,7 +1131,7 @@ class _ScoreBarRow extends StatelessWidget {
               builder: (_, value, __) => LinearProgressIndicator(
                 value: value,
                 minHeight: 4,
-                backgroundColor: context.surfaceAltColor,
+                backgroundColor: _profileElevated,
                 valueColor: AlwaysStoppedAnimation(
                     AppColors.emerald500.withValues(alpha: 0.6)),
               ),
@@ -1495,7 +1495,7 @@ class _RealGallerySection extends StatelessWidget {
                             strokeWidth: 2, color: AppColors.emerald500.withValues(alpha: 0.3))),
                         ),
                         errorWidget: (_, __, ___) => Container(
-                          color: context.surfaceAltColor,
+                          color: _profileElevated,
                           child: Icon(Icons.image_outlined, color: context.textDisabled, size: 28),
                         ),
                       ),
@@ -1673,13 +1673,13 @@ class _LastNobsSection extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.md, vertical: AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: context.surfaceColor,
+                      color: _profileCard,
                       borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusSm),
+                          BorderRadius.circular(AppSpacing.radiusMd),
                       border: Border.all(
                         color: nob.isPinned
-                            ? AppColors.emerald600.withValues(alpha: 0.25)
-                            : context.borderColor,
+                            ? AppColors.emerald600.withValues(alpha: 0.3)
+                            : _profileBorder.withValues(alpha: 0.35),
                       ),
                     ),
                     child: Row(

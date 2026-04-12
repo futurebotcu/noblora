@@ -490,7 +490,7 @@ class _PhotoGrid extends StatelessWidget {
           fit: BoxFit.cover,
           memCacheWidth: 360,
           errorWidget: (_, __, ___) => Container(
-            color: context.surfaceAltColor,
+            color: _profileElevated,
             child: Icon(Icons.image_not_supported_outlined, color: context.textMuted, size: 20),
           ),
         ),
