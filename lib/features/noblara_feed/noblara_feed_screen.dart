@@ -61,9 +61,9 @@ class NoblaraFeedScreen extends ConsumerWidget {
               // ── Gallery Header ──
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Column(
@@ -72,20 +72,20 @@ class NoblaraFeedScreen extends ConsumerWidget {
                             Text(
                               'THE GALLERY',
                               style: TextStyle(
-                                color: context.textMuted,
-                                fontSize: 11,
+                                color: context.textMuted.withValues(alpha: 0.7),
+                                fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 3,
+                                letterSpacing: 3.5,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             Text(
                               'Community',
                               style: TextStyle(
                                 color: context.textPrimary,
-                                fontSize: 32,
+                                fontSize: 26,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
+                                letterSpacing: -0.3,
                                 height: 1.1,
                               ),
                             ),
@@ -326,8 +326,8 @@ class _ComposeFab extends StatelessWidget {
         onTap();
       },
       child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
@@ -792,7 +792,7 @@ class _NobCard extends StatelessWidget {
     final isOwn = currentUserId != null && currentUserId == post.userId;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: BorderRadius.circular(18),
@@ -822,7 +822,7 @@ class _NobCard extends StatelessWidget {
 
           // ── Author row ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 0),
             child: Row(
               children: [
                 // Avatar — abstract for anonymous, real for normal posts
@@ -962,15 +962,15 @@ class _NobCard extends StatelessWidget {
               children: [
                 if (post.isThought && post.content.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                     child: Text(
                       post.content,
                       style: TextStyle(
                         color: context.textPrimary,
-                        fontSize: post.content.length < 120 ? 18 : 15,
+                        fontSize: post.content.length < 120 ? 16 : 14.5,
                         fontStyle: post.content.length < 120 ? FontStyle.italic : FontStyle.normal,
-                        height: 1.6,
-                        letterSpacing: 0.1,
+                        height: 1.5,
+                        letterSpacing: 0.05,
                       ),
                     ),
                   ),
@@ -998,7 +998,7 @@ class _NobCard extends StatelessWidget {
 
           // ── Like + Reply + Echo ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             child: Row(
               children: [
                 _ReactionBtn(
@@ -1007,7 +1007,7 @@ class _NobCard extends StatelessWidget {
                   isActive: myReaction?.reactionType == 'appreciate',
                   onTap: () => onReact('appreciate'),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => Navigator.push(context, MaterialPageRoute(
@@ -1016,13 +1016,14 @@ class _NobCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat_bubble_outline_rounded, color: context.textMuted, size: 16),
-                      const SizedBox(width: 4),
-                      Text(post.commentCount > 0 ? '${post.commentCount}' : 'Reply', style: TextStyle(color: context.textMuted, fontSize: 12)),
+                      Icon(Icons.chat_bubble_outline_rounded, color: context.textSecondary, size: 15),
+                      const SizedBox(width: 5),
+                      Text(post.commentCount > 0 ? '${post.commentCount}' : 'Reply',
+                          style: TextStyle(color: context.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 _EchoBtn(
                   count: post.echoCount,
                   isActive: post.hasEchoed,
@@ -1151,7 +1152,7 @@ class _ReactionBtnState extends State<_ReactionBtn>
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: widget.isActive ? activeColor.withValues(alpha: 0.35) : context.borderSubtleColor),
           ),
-          child: Icon(widget.icon, size: 16, color: widget.isActive ? activeColor : context.textMuted),
+          child: Icon(widget.icon, size: 15, color: widget.isActive ? activeColor : context.textSecondary),
         ),
       ),
     );
@@ -1170,7 +1171,7 @@ class _EchoBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? AppColors.emerald600 : context.textMuted;
+    final color = isActive ? AppColors.emerald600 : context.textSecondary;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -1180,10 +1181,10 @@ class _EchoBtn extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.graphic_eq_rounded, color: color, size: 16),
-          const SizedBox(width: 4),
+          Icon(Icons.graphic_eq_rounded, color: color, size: 15),
+          const SizedBox(width: 5),
           Text(count > 0 ? '$count' : 'Echo',
-              style: TextStyle(color: color, fontSize: 12, fontWeight: isActive ? FontWeight.w600 : FontWeight.w400)),
+              style: TextStyle(color: color, fontSize: 12, fontWeight: isActive ? FontWeight.w600 : FontWeight.w500)),
         ],
       ),
     );
@@ -1242,26 +1243,26 @@ class _LaneBar extends StatelessWidget {
               }
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
+              duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: isActive
                     ? AppColors.emerald600.withValues(alpha: 0.14)
-                    : context.surfaceAltColor,
+                    : context.surfaceColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isActive
                       ? AppColors.emerald600.withValues(alpha: 0.5)
-                      : context.borderSubtleColor,
+                      : context.borderColor.withValues(alpha: 0.45),
                 ),
               ),
               child: Center(
                 child: Text(
                   lane.label,
                   style: TextStyle(
-                    color: isActive ? AppColors.emerald350 : context.textMuted,
+                    color: isActive ? AppColors.emerald350 : context.textSecondary,
                     fontSize: 12,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
               ),
