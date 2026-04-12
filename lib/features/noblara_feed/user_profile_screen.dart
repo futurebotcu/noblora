@@ -13,10 +13,10 @@ import '../../providers/profile_provider.dart';
 // Profile-specific editorial surfaces (shared palette with profile_screen.dart)
 // ---------------------------------------------------------------------------
 
-const _profileBg       = Color(0xFF141A17);
-const _profileCard     = Color(0xFF1E2622);
-const _profileElevated = Color(0xFF263029);
-const _profileBorder   = Color(0xFF354038);
+const _profileBg       = Color(0xFF1A211E);  // warm dark sage (editorial base)
+const _profileCard     = Color(0xFF283130);  // lifted card
+const _profileElevated = Color(0xFF323B38);  // highlight card (prompts, chips)
+const _profileBorder   = Color(0xFF445049);  // strong visible edge
 
 // ---------------------------------------------------------------------------
 // UserProfileScreen — view another user's public profile from Noblara

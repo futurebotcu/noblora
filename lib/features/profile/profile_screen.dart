@@ -22,10 +22,11 @@ import 'edit/edit_profile_main_screen.dart';
 // to give the profile a "luxury magazine" feel without changing app-wide colors.
 // ---------------------------------------------------------------------------
 
-const _profileBg      = Color(0xFF141A17);  // lifted from 0x0B0D0C → warmer dark
-const _profileCard    = Color(0xFF1E2622);  // lifted from 0x181E1B → visible card
-const _profileElevated = Color(0xFF263029);  // lifted from 0x1D2420 → highlight card
-const _profileBorder   = Color(0xFF354038);  // lifted from 0x2D3932 → visible edge
+const _profileBg       = Color(0xFF1A211E);  // warm dark sage (editorial base)
+const _profileCard     = Color(0xFF283130);  // lifted card (clearly distinct from bg)
+const _profileElevated = Color(0xFF323B38);  // highlight card (prompts, chips)
+const _profileBorder   = Color(0xFF445049);  // strong visible edge
+const _profileDivider  = Color(0xFF3A4440);  // section divider
 
 // ---------------------------------------------------------------------------
 // Profile Screen
@@ -609,10 +610,9 @@ class _ProfileFactsSection extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.xxxl),
           decoration: BoxDecoration(
-            gradient: Premium.surfaceGradient,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
-            boxShadow: Premium.shadowSm,
+            color: _profileCard,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: _profileBorder.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: [
@@ -620,12 +620,10 @@ class _ProfileFactsSection extends StatelessWidget {
                 width: 56, height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.emerald600.withValues(alpha: 0.12), AppColors.emerald600.withValues(alpha: 0.04)],
-                  ),
+                  color: _profileElevated,
                 ),
                 child: Icon(Icons.auto_awesome_outlined,
-                    color: AppColors.emerald500.withValues(alpha: 0.6), size: 24),
+                    color: AppColors.emerald600.withValues(alpha: 0.7), size: 24),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text('Build your story',
@@ -645,17 +643,19 @@ class _ProfileFactsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ABOUT', style: Premium.sectionHeader(context.textMuted)),
+          Text('ABOUT', style: TextStyle(color: context.textSecondary, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2)),
           const SizedBox(height: AppSpacing.lg),
           if (facts.isNotEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: Premium.surfaceGradient,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
-                boxShadow: Premium.shadowSm,
+                color: _profileCard,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: _profileBorder.withValues(alpha: 0.4)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 14, offset: const Offset(0, 4)),
+                ],
               ),
               child: Column(
                 children: facts.asMap().entries.map((entry) {
@@ -663,26 +663,27 @@ class _ProfileFactsSection extends StatelessWidget {
                   final isLast = entry.key == facts.length - 1;
                   return Column(children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
                           Container(
                             width: 32, height: 32,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.emerald600.withValues(alpha: 0.08),
+                              color: _profileElevated,
                             ),
-                            child: Icon(f.$1, size: 15, color: AppColors.emerald500),
+                            child: Icon(f.$1, size: 14, color: AppColors.emerald600),
                           ),
                           const SizedBox(width: AppSpacing.md),
-                          Text(f.$2, style: TextStyle(color: context.textMuted, fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.2)),
+                          Text(f.$2, style: TextStyle(color: context.textMuted.withValues(alpha: 0.7), fontSize: 11, fontWeight: FontWeight.w400, letterSpacing: 0.3)),
                           const Spacer(),
-                          Text(f.$3,
-                              style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                          Flexible(child: Text(f.$3,
+                              style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.end)),
                         ],
                       ),
                     ),
-                    if (!isLast) Divider(height: 1, color: context.borderSubtleColor, indent: 44),
+                    if (!isLast) Divider(height: 1, color: _profileDivider.withValues(alpha: 0.5), indent: 44),
                   ]);
                 }).toList(),
               ),
@@ -693,15 +694,14 @@ class _ProfileFactsSection extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: p.interests.map((interest) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.emerald600.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                  border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.15)),
-                  boxShadow: [BoxShadow(color: AppColors.emerald600.withValues(alpha: 0.04), blurRadius: 8)],
+                  color: _profileElevated,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  border: Border.all(color: _profileBorder.withValues(alpha: 0.35)),
                 ),
                 child: Text(interest,
-                    style: TextStyle(color: AppColors.emerald500, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.1)),
+                    style: TextStyle(color: context.textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
               )).toList(),
             ),
           ],
