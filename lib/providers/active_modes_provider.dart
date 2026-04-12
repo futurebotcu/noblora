@@ -4,8 +4,8 @@ import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 
 /// Modes the user is allowed to toggle in this build.
-/// Social module removed — only date and bff remain.
-const Set<String> _allowedModes = {'date', 'bff'};
+/// Date, BFF, and Event (internally stored as 'social' for DB compat).
+const Set<String> _allowedModes = {'date', 'bff', 'social'};
 
 // ---------------------------------------------------------------------------
 // State — set of mode strings the user has opted into

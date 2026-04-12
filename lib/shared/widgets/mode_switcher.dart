@@ -6,8 +6,8 @@ import '../../core/theme/app_tokens.dart';
 import '../../providers/mode_provider.dart';
 
 /// Modes offered to the user in the mode switcher + mode selection dialog.
-/// Social module removed — only Date and BFF remain.
-const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff];
+/// Date, BFF, Event (Event reuses the social enum value internally).
+const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff, NobleMode.social];
 
 class ModeSwitcher extends ConsumerWidget {
   const ModeSwitcher({super.key});

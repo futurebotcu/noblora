@@ -11,7 +11,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return 'Noble BFF';
       case NobleMode.social:
-        return 'Noble Social';
+        return 'Noble Event';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -24,7 +24,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return 'Build your circle';
       case NobleMode.social:
-        return 'Join the scene';
+        return 'Join events';
       case NobleMode.noblara:
         return 'Community feed';
     }
@@ -37,7 +37,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return 'BFF';
       case NobleMode.social:
-        return 'Social';
+        return 'Event';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -50,7 +50,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return Icons.people_rounded;
       case NobleMode.social:
-        return Icons.explore_rounded;
+        return Icons.event_rounded;
       case NobleMode.noblara:
         return Icons.article_rounded;
     }
@@ -63,7 +63,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return AppColors.emerald600;
       case NobleMode.social:
-        return AppColors.violet;
+        return AppColors.emerald350;
       case NobleMode.noblara:
         return AppColors.emerald500;
     }
@@ -76,7 +76,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.social:
-        return AppColors.violet.withValues(alpha: 0.14);
+        return AppColors.emerald350.withValues(alpha: 0.14);
       case NobleMode.noblara:
         return AppColors.emerald600.withValues(alpha: 0.14);
     }
@@ -89,7 +89,7 @@ extension NobleModeX on NobleMode {
       case NobleMode.bff:
         return const Color(0xFF0A0E0D);
       case NobleMode.social:
-        return const Color(0xFF0C0B0F);
+        return AppColors.bg;
       case NobleMode.noblara:
         return AppColors.bg;
     }

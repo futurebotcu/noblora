@@ -5,7 +5,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
-import '../../core/utils/mock_mode.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
@@ -73,10 +72,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return const BffScreen();
     }
 
-    // Social mode → events feed (only when Social layer is enabled).
-    // If the user's saved mode is 'social' but the feature is off, we fall
-    // through to the default Date feed below.
-    if (kSocialEnabled && mode == NobleMode.social) {
+    // Event mode → events feed (reuses social enum value internally).
+    if (mode == NobleMode.social) {
       return const SocialEventsScreen();
     }
 
