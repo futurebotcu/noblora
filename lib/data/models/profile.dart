@@ -63,6 +63,13 @@ class Profile {
   final String? fitnessRoutine;
   final String? workStyle;
   final String? entrepreneurshipStatus;
+  final String? secondaryRole;
+  final String? socialEnergy;
+  final String? workIntensity;
+  final String? educationLevel;
+  final String? relocationOpenness;
+  final List<String> interestedIn;
+  final List<String> firstMeetPreference;
   final List<String> buildingNow;
   final List<String> industry;
   final List<String> aiTools;
@@ -131,6 +138,13 @@ class Profile {
     this.fitnessRoutine,
     this.workStyle,
     this.entrepreneurshipStatus,
+    this.secondaryRole,
+    this.socialEnergy,
+    this.workIntensity,
+    this.educationLevel,
+    this.relocationOpenness,
+    this.interestedIn = const [],
+    this.firstMeetPreference = const [],
     this.buildingNow = const [],
     this.industry = const [],
     this.aiTools = const [],
@@ -234,6 +248,13 @@ class Profile {
       fitnessRoutine: pd['fitness_routine'] as String?,
       workStyle: pd['work_style'] as String?,
       entrepreneurshipStatus: pd['entrepreneurship_status'] as String?,
+      secondaryRole: pd['secondary_role'] as String?,
+      socialEnergy: pd['social_energy'] as String?,
+      workIntensity: pd['work_intensity'] as String?,
+      educationLevel: pd['education_level'] as String?,
+      relocationOpenness: pd['relocation_openness'] as String?,
+      interestedIn: strList(pd['interested_in']),
+      firstMeetPreference: strList(pd['first_meet_preference']),
       buildingNow: strList(pd['building_now']),
       industry: strList(pd['industry']),
       aiTools: strList(pd['ai_tools']),

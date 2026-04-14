@@ -46,13 +46,14 @@ class MiniIntroRepository {
   }
 
   /// Realtime stream for intros on a match.
+  /// ascending: true — SupabaseStreamBuilder defaults to DESC, we want oldest first.
   Stream<List<MiniIntro>> watchForMatch(String matchId) {
     if (isMockMode) return const Stream.empty();
     return _supabase!
         .from('mini_intros')
         .stream(primaryKey: ['id'])
         .eq('match_id', matchId)
-        .order('created_at')
+        .order('created_at', ascending: true)
         .map((rows) => rows.map((r) => MiniIntro.fromJson(r)).toList());
   }
 

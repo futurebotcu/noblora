@@ -127,6 +127,11 @@ class MessagesRepository {
   /// Live stream of messages, ordered oldest → newest.
   /// Supabase realtime streams don't support LIMIT, so we trim client-side
   /// to avoid loading thousands of messages into memory.
+  ///
+  /// IMPORTANT: SupabaseStreamBuilder.order() defaults to DESCENDING (this
+  /// differs from PostgREST `.order()` which defaults to ascending). We pass
+  /// `ascending: true` explicitly AND re-sort client-side as a safety net —
+  /// one slip here made new messages appear at the top of the chat.
   Stream<List<ChatMessage>> messagesStream(String conversationId) {
     final db = _supabase;
     if (isMockMode || db == null) return const Stream.empty();
@@ -134,9 +139,10 @@ class MessagesRepository {
         .from('messages')
         .stream(primaryKey: ['id'])
         .eq('conversation_id', conversationId)
-        .order('created_at')
+        .order('created_at', ascending: true)
         .map((rows) {
-          final all = rows.map((r) => ChatMessage.fromJson(r)).toList();
+          final all = rows.map((r) => ChatMessage.fromJson(r)).toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
           // Keep last 200 messages to prevent memory bloat
           if (all.length > 200) return all.sublist(all.length - 200);
           return all;
@@ -420,11 +426,12 @@ class MessagesRepository {
   Stream<List<MessageReaction>> reactionsStream(String conversationId) {
     final db = _supabase;
     if (isMockMode || db == null) return const Stream.empty();
-    // Get message IDs in this conversation and stream their reactions
+    // Get message IDs in this conversation and stream their reactions.
+    // ascending: true — SupabaseStreamBuilder defaults to DESC, see messagesStream note.
     return db
         .from('message_reactions')
         .stream(primaryKey: ['id'])
-        .order('created_at')
+        .order('created_at', ascending: true)
         .map((rows) {
           return rows
               .map((r) => MessageReaction.fromJson(r))
