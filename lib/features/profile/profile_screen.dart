@@ -43,10 +43,6 @@ const _profileBorder   = Color(0xFF445049);  // strong visible edge
 
 enum _ViewerContext {
   self,
-  // ignore: unused_field
-  match,
-  // ignore: unused_field
-  stranger,
 }
 
 class _CuratedProfile {
@@ -119,7 +115,7 @@ class _CuratedProfile {
     if (p == null) return false;
     return p.canViewField(
       fieldKey,
-      isMatch: viewerContext == _ViewerContext.match,
+      isMatch: false,
     );
   }
 
@@ -339,8 +335,6 @@ class ProfileScreen extends ConsumerWidget {
       activeModes: modesState.modes.toSet(),
       displayName: displayName,
       userId: auth.userId,
-      // ProfileScreen is the SELF profile view; the viewed-profile variant
-      // will pass _ViewerContext.match or .stranger when it lands.
       viewerContext: _ViewerContext.self,
     );
 
