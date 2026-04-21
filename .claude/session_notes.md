@@ -86,3 +86,114 @@ Hangi dalga ile başlayacağımız kullanıcı kararı. CLAUDE.md §5'e göre
 scope creep yok — bir dalga bitmeden sonrakine geçme.
 
 ---
+
+## 2026-04-21 — Dalga 1 Hijyen + CI Fix
+
+### Hedef (scope limiti bu 3 madde)
+1. CI'daki flutter analyze failure'ı çöz
+2. 3 adet // ignore: kullanımını kaldır
+3. 10 mekanik catch (_) → catch (e, st) + debugPrint
+
+### Kural
+- Branch: dalga-1-hygiene (main'e push YOK)
+- Her 3 değişiklikte: flutter analyze + flutter test çalıştır
+- Emülatör smoke test gerekli noktalarda yapılacak
+- Scope creep yasak — yukarıdaki 3 madde dışına çıkılmayacak
+- Şüphede DUR, sor
+
+### Risk haritası
+- CI fix: sıfır risk (app dışı)
+- ignore kaldırma: sıfır risk (unused field'lar)
+- catch (_) düzeltme: düşük risk — catch BLOCK İÇİ DEĞİŞMEYECEK,
+  sadece parametre değişecek + debugPrint eklenecek
+
+### R-kod risk alanları (CLAUDE.md §8)
+- **R3:** 3 `// ignore:`'in ikisi `profile_screen.dart:46,48` — dosya
+  1677 satır, `_substantive` filter mahalli. Unused field'ları
+  silmek davranış değiştirmez ama dosyaya dokunduk sayılır.
+- **R4:** catch (_) listesinden seçilecek 10 örnekte
+  `feed_repository.dart:49` (R4 olay mahalli) **hariç tutulacak** —
+  orada davranış değişikliği gerekir, hijyen değil.
+- **R7:** "CI fail çözüldü" iddiası kanıtsız yapılmayacak — local
+  yeşil ≠ CI yeşil (aşağıya bakın).
+
+### CI anomali — araştırma notu
+- Run: https://github.com/futurebotcu/noblora/actions/runs/24676092155
+- Fail eden adım: #7 `Static analysis` (`flutter analyze --fatal-infos`)
+- Skipped: #8 test, #9 apk (önceki adım fail)
+- Yerel repro denemesi:
+  - `flutter --version` → 3.35.4 (CI ile aynı)
+  - `flutter analyze --fatal-infos` → **"No issues found! (ran in 77.6s)"**
+  - Commit: 17ecc26 (main tepesi, CI'ın koştuğu aynı SHA)
+- Log zip indirme: HTTP 403 (anonim erişim yok, PAT gerek)
+- **Durum:** Hata henüz görünür değil. Yerel yeşil, CI kırmızı.
+  Olası nedenler (doğrulanmadı): `pub get` sonrası platform-specific
+  warning (CI linux, local windows), `.dart_tool` cache farkı,
+  `--fatal-infos` ile `info`-level uyarı CI'da tetikleniyor olabilir.
+- **Plan:** kullanıcıdan GitHub PAT ya da log erişimi istenecek —
+  yoksa "tahmin ederek fix" denenmeyecek (R7 tuzağı).
+
+### CI fix uygulandı — milestone
+- Kullanıcı CI UI'dan fail log'u yapıştırdı:
+  `warning • The asset file '.env' doesn't exist • pubspec.yaml:41:7`
+  `--fatal-infos` warning'i error'a çeviriyor → analyze red
+- Yerel `.env` var (gitignore), CI temiz ortam → yok. Doğru davranış.
+- Fix: `.github/workflows/validate.yml`'ye "Install dependencies"
+  öncesi tek satır: `cp .env.example .env` (mock mode)
+- Commit: **c2abef6** (dalga-1-hygiene)
+- Push: `origin/dalga-1-hygiene`
+- Workflow tetikleyici (`on: push: branches: [main, master]`) feature
+  branch'ine reaksiyon vermedi — bugün keşfedildi. PR event'i ise
+  target main olduğu için tetikleniyor.
+- **PR #1** açıldı (draft, main ← dalga-1-hygiene), CI çalıştı.
+- CI sonucu:
+  - Static analysis: ✅ **yeşil** (ilk defa — fix tuttu)
+  - Run tests: ❌ kırmızı, **80 pass / 106 fail**. Fail sayısı envanter
+    beklentileriyle örtüşüyor (171 banned ihlal + 103 roundtrip — bir
+    kısmı subtest gruplandırmasıyla 106'ya düşüyor). Yeni / beklenmedik
+    fail yok.
+  - Build APK: ⏭️ skipped (test fail → sonraki adımlar atlandı)
+- Dalga 1 Adım 1 kapandı. Adım 2/3 devam ediyor.
+
+### Dalga 1 kapanışı
+- Commit'ler (hepsi `dalga-1-hygiene` branch'inde, PR #1):
+  - `c2abef6` — ci: .env prepare
+  - `f206764` — ADIM A: `_ViewerContext` match/stranger + stale yorum
+  - `8fcbc45` — ADIM B: 10 mekanik catch (_) → catch (e, st) + debugPrint
+- CI Run **24732202002** sonucu:
+  - `.env` prepare: ✅, Install: ✅, Static analysis: ✅, Tests: ❌
+    (beklenen — envanter kalanı), Build APK: ⏭️
+- İhlal sayıları: `// ignore:` 3→1 (admin_screen.dart:575 kaldı, scope),
+  `catch (_)` 48→38 (kalan 38 + 1 ignore Dalga 4'e ertelendi), roundtrip
+  103 fail değişmedi (Dalga 2'de kapanacak).
+
+## 2026-04-21 — Dalga 2: Profile copyWith Fix (R1 Kapatma)
+
+### Hedef
+`Profile.copyWith` eksik 36 alanı kapsayacak şekilde genişletilecek:
+- 1 top-level: `lastActiveAt`
+- 35 rich (profile_data nested): longBio, tagline, currentFocus, pronouns,
+  wantsChildren, relationshipType, datingStyle, communicationStyle,
+  loveLanguages, musicGenres, movieGenres, weekendStyle, humorStyle,
+  sleepStyle, dietStyle, fitnessRoutine, workStyle, entrepreneurshipStatus,
+  secondaryRole, socialEnergy, workIntensity, educationLevel,
+  relocationOpenness, interestedIn, firstMeetPreference, buildingNow,
+  industry, aiTools, socialMediaUsage, techRelation, travelStyle,
+  livedCountries, wishlistCountries, prompts, visibility
+
+### Kural
+- Yalnızca `Profile.copyWith` değişiyor — constructor / fromJson / toJson
+  korunuyor (toJson fix Dalga 2b'ye bırakıldı)
+- Başarı ölçütü: `test/guardrails/profile_roundtrip_guardrail_test.dart`
+  içindeki "copyWith preserves all fields" grubunda 36 test yeşile dönecek
+
+### Risk
+- R1 area: Profile modeli. CLAUDE.md §7 Model Protokolü uygulanacak
+  (fromJson + toJson + copyWith + draft — bu dalgada sadece copyWith;
+  fromJson zaten tam, toJson eksik ama Dalga 2b scope'unda).
+- Dokunma: tek metod. Çevre dokunulmuyor.
+- Paradigma tuzağı: mevcut `value ?? this.field` nullable paradigması —
+  `null` geçilirse eski değer korunur, "null'a çevir" edemezsin. Bu
+  mevcut davranış; değiştirmiyoruz (scope dışı).
+
+---
