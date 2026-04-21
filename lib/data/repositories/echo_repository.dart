@@ -48,7 +48,8 @@ class EchoRepository {
           .eq('user_id', userId)
           .maybeSingle();
       return row != null;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[EchoRepository.hasEchoed] error: $e\n$st');
       return false;
     }
   }
@@ -70,7 +71,8 @@ class EchoRepository {
         counts[pid] = (r['cnt'] as num).toInt();
       }
       return counts;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[EchoRepository.echoCountsBatch] error: $e\n$st');
       return {};
     }
   }
@@ -85,7 +87,8 @@ class EchoRepository {
           .eq('user_id', userId)
           .inFilter('post_id', postIds);
       return rows.map((r) => r['post_id'] as String).toSet();
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[EchoRepository.userEchoedPostIds] error: $e\n$st');
       return {};
     }
   }

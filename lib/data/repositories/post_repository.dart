@@ -63,7 +63,8 @@ class PostRepository {
         List<Map<String, dynamic>>.from(rows),
       );
       return list.isEmpty ? null : list.first;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[PostRepository.fetchPostById] error: $e\n$st');
       return null;
     }
   }
@@ -100,7 +101,8 @@ class PostRepository {
       final commentCount =
           commentRows.isEmpty ? 0 : (commentRows.first['cnt'] as num).toInt();
       return (reactions: reactionMap, echo: echoCount, comment: commentCount);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[PostRepository.fetchAggregateCountsFor] error: $e\n$st');
       return (reactions: <String, int>{}, echo: 0, comment: 0);
     }
   }
@@ -114,7 +116,8 @@ class PostRepository {
         return rows.map((r) => r['mood'] as String).toList();
       }
       return [];
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[PostRepository.discoverDynamicMoodLanes] error: $e\n$st');
       return [];
     }
   }
@@ -158,7 +161,8 @@ class PostRepository {
         }
       }
       return map;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[PostRepository.getOwnReactionCountsBatch] error: $e\n$st');
       return {};
     }
   }

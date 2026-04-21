@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum NobTier {
   observer,
   explorer,
@@ -228,7 +230,8 @@ class Post {
   PostReaction? myReaction(String uid) {
     try {
       return reactions.firstWhere((r) => r.userId == uid);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[Post.myReaction] error: $e\n$st');
       return null;
     }
   }

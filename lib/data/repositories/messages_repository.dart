@@ -244,7 +244,8 @@ class MessagesRepository {
           .isFilter('read_at', null)
           .limit(100);
       return (rows as List).length;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[MessagesRepository.totalUnreadCount] error: $e\n$st');
       return 0;
     }
   }

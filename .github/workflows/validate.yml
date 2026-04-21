@@ -32,6 +32,9 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
+      - name: Prepare .env for CI (mock mode)
+        run: cp .env.example .env
+
       - name: Install dependencies
         run: flutter pub get
 
