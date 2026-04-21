@@ -145,7 +145,8 @@ class CommentRepository {
         counts[pid] = (r['cnt'] as num).toInt();
       }
       return counts;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[CommentRepository.commentCountsBatch] error: $e\n$st');
       return {};
     }
   }
