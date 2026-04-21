@@ -18,10 +18,23 @@ alan boş. Ya da başka bir alanı düzenleyip kaydettiğinde X alanı siliniyor
 
 **Tekrar sayısı:** 3
 
+**Status:** PARTIALLY CLOSED (2026-04-21)
+- **copyWith drift:** CLOSED — Dalga 2, commit `1013aba` (`dalga-2-profile-copywith` branch, PR #2)
+- **toJson serialize eksikliği:** OPEN — `Profile.toJson` sadece 5/73 alan yazıyor, `profile_data` nested JSONB hiç üretilmiyor. Dalga 2b'de kapanacak.
+
+**Kanıt (2026-04-21):**
+- Test: `profile_roundtrip_guardrail_test` copyWith preserves-all-fields grubu **36 fail → 0 fail**
+- Full suite: **117 pass / 69 fail** (dünkü baseline 81/105'ten +36/-36, regresyon sıfır)
+- Analyze: `No issues found`
+- Commit SHA: `1013aba`
+- PR: https://github.com/futurebotcu/noblora/pull/2
+- CI run: 24733594100 — analyze ✅, test ❌ (beklenen, kalan 67 fail toJson grubunda + 38 catch(_) + 1 ignore)
+
 **Dokunma protokolü:**
 - `lib/data/models/profile.dart` dosyasına alan ekliyorsan CLAUDE.md §7 Model Protokolü'nü takip et
 - `copyWith` + `fromJson` + `toJson` + draft — dördü de aynı PR'da güncellenmeli
 - `test/guardrails/profile_roundtrip_guardrail_test.dart` yeni alan için genişletilmeli
+- **Yeni alan eklerken copyWith'i güncellemek artık yeterli değil** — R1 kapanışı toJson'u DA kapsayacak (Dalga 2b sonrası). Alan eklerken 4'lü (copyWith + fromJson + toJson + draft) hepsi şart.
 
 ---
 
