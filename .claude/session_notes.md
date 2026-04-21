@@ -197,3 +197,48 @@ scope creep yok — bir dalga bitmeden sonrakine geçme.
   mevcut davranış; değiştirmiyoruz (scope dışı).
 
 ---
+
+## 2026-04-21 — Dalga 2b: Profile.toJson Fix (R1 Full Close + R2 Close)
+
+### Hedef
+`Profile.toJson` 5 alan → 73 alan'a genişletilecek:
+- 37 top-level JSON key (38 alan, `userId` `id`'den türediği için tek key)
+- 35 rich alan → `profile_data` nested JSONB Map'i içinde
+- `PromptAnswer.toJson` metodu YAZILACAK (mevcut sınıfta yok — `prompts`
+  alanının serialize edilebilmesi için gerekli; aynı dosya, ayrı sınıf)
+- `visibility` `Map<String, String>` doğrudan yazılır
+
+### Başarı ölçütü
+- `profile_roundtrip_guardrail_test` toJson grubu: **67 fail → 0 fail**
+- Full suite: 117/69 → **~184/2 beklenen** (sadece 38 catch_ + 1 ignore
+  guardrail fail'leri kalır; copyWith/roundtrip grubunun tamamı yeşil)
+- `flutter analyze --fatal-infos`: yeşil kalmalı
+- Regresyon: sıfır
+
+### Kural
+- `Profile.toJson` + `PromptAnswer.toJson` (aynı dosya) değişecek
+- `Profile.copyWith` dokunulmaz (Dalga 2'de yeşillendi)
+- `Profile.fromJson` dokunulmaz (zaten 73 alanı okuyor)
+- Constructor dokunulmaz
+- Başka dosya YOK
+
+### Risk
+- R1 area — Profile modeli, yüksek hassasiyet
+- Key eşleşmesi zorunlu: fromJson'un okuduğu her key toJson'da AYNEN
+  üretilmeli. Tek harflik mismatch = sessiz veri kaybı.
+- fromJson fallback key'leri (`full_name`, `hobbies`, `photos`, `mode`)
+  toJson'da yazılmayacak — primary key'ler yazılır (`display_name`,
+  `interests`, `photo_urls`, `current_mode`).
+- Özel serializer: `lastActiveAt.toIso8601String()`, `nobTier.name`,
+  `prompts.map((p) => p.toJson())`.
+
+### R-kod çapraz referans
+- R1 — copyWith half closed; bu dalga ikinci yarıyı kapatır.
+- R2 — profile_draft ↔ fromJson asenkron; Profile.toJson fix'i
+  aslında R2'nin de bir yüzüdür (draft da toJson üzerinden yazıyor
+  olabilir). Dokunma protokolü §7 "fromJson + toJson + copyWith + draft"
+  diyor — draft kodunu incelemek bu dalgada Görev 2, toJson fix'ten
+  sonra. Eğer draft Profile.toJson'u çağırıyorsa R2 buradan kapanır;
+  değilse ayrı mini-iş.
+
+---
