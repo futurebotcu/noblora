@@ -402,7 +402,9 @@ class ProfileDraft {
       socialEnergy: pd['social_energy'] as String?,
       personalityStyle: pd['personality_style'] as String?,
       organizationStyle: pd['organization_style'] as String?,
-      lookingFor: row['looking_for'] != null ? [row['looking_for'] as String] : strList(pd['looking_for']),
+      lookingFor: strList(pd['looking_for']).isNotEmpty
+          ? strList(pd['looking_for'])
+          : (row['looking_for'] != null ? [row['looking_for'] as String] : <String>[]),
       relationshipType: strList(pd['relationship_type']),
       datingStyle: strList(pd['dating_style']),
       communicationStyle: strList(pd['communication_style']),
@@ -528,6 +530,7 @@ class ProfileDraft {
       'zodiac': zodiac,
       'from_country': country,
       'occupation': primaryRole,
+      'countries_visited': visitedCountries,
       'photo_urls': photoUrls,
       'photos': photoUrls,
       'prompts_answered': prompts.where((p) => p.answer.trim().isNotEmpty).length,
