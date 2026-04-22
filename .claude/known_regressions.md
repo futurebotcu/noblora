@@ -150,6 +150,51 @@ yansıtmadı. Uygulanmış olmak ≠ etkili olmak.
 
 ---
 
+## R5b: Pre-existing Cosmetic Dead Permissive Policies (5 satır)
+
+**Belirti:** Supabase advisor `rls_policy_always_true` WARN'larından **5'i**
+davranışsal etki yapmıyor — `polroles={0}` PostgreSQL quirk'i nedeniyle
+hiçbir role'e uygulanamıyor. Pre-smoke test (Dalga 3, 2026-04-22) her birini
+kanıtladı: dış user'ın bypass denemesi RLS tarafından reddedildi.
+
+**Etkilenen policy'ler (revize, Dalga 3 sonrası):**
+
+| Tablo | Policy | CMD | Test sonucu |
+|-------|--------|-----|-------------|
+| matches | matches_insert_system | INSERT | RLS reddetti (dead) |
+| conversation_participants | cp_insert_own | INSERT | RLS reddetti (dead) |
+| conversations | conv_insert_own | INSERT | RLS reddetti (dead) |
+| real_meetings | rm_insert_own | INSERT | RLS reddetti (dead) |
+| video_sessions | video_insert_own | INSERT | RLS reddetti (dead) |
+
+**LİSTEDEN ÇIKARILANLAR:**
+- `notifications_insert_system` — Dalga 3'te DROP edildi (commit zinciri).
+- `gating_insert_system` + `gating_update_system` — Dalga 3'te restrictive yedek
+  ile değiştirildi (R5 ana kayıt: AKTİF bypass'tı, kanıtlanmış).
+- `video_sessions.video_update_own` — intra-match scope intentional. SELECT
+  policy match-bound olduğu için dış user erişemiyor; iç user (match parçası)
+  birbirinin session'ını yönetebilir, bu kasıtlı (call'daki iki kullanıcı).
+
+**Kök neden hipotezi:** Adlandırma yanıltıcı — `_own` / `_system` eki var ama
+gerçek qual `true`. `polroles` array'inde OID 0 var ama PostgreSQL'in iç RLS
+değerlendirmesi bunu PUBLIC olarak çözmüyor (catalog quirk). Sonuç: policy
+syntactically present, semantically inert.
+
+**Tespit tarihi:** 2026-04-22 (Dalga 3 pre-smoke testleri).
+
+**Tekrar sayısı:** 1 (toplu envanter)
+
+**Status:** OPEN — Dalga 3 kapsamı dışı, **Dalga 3b** (cosmetic-only DROP PR).
+
+**Dokunma protokolü (Dalga 3b için):**
+- Davranışsal risk YOK — sadece advisor temizlik
+- Tek migration: 5 `DROP POLICY IF EXISTS ...` komutu
+- Apply sonrası advisor karşılaştırma: 5 cache_key gitmeli
+- Smoke test isteğe bağlı (davranış değişmediği zaten kanıtlı)
+- Düşük öncelik (cosmetic), yüksek öncelikli işler bittikten sonra
+
+---
+
 ## R6: Video Call WebRTC'siz Yazıldı
 
 **Belirti:** Video call butonuna basıldığında ekran açılıyor ama gerçek
