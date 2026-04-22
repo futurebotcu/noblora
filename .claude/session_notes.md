@@ -197,3 +197,116 @@ scope creep yok — bir dalga bitmeden sonrakine geçme.
   mevcut davranış; değiştirmiyoruz (scope dışı).
 
 ---
+
+## 2026-04-21 — Dalga 2b: Profile.toJson Fix (R1 Full Close + R2 Close)
+
+### Hedef
+`Profile.toJson` 5 alan → 73 alan'a genişletilecek:
+- 37 top-level JSON key (38 alan, `userId` `id`'den türediği için tek key)
+- 35 rich alan → `profile_data` nested JSONB Map'i içinde
+- `PromptAnswer.toJson` metodu YAZILACAK (mevcut sınıfta yok — `prompts`
+  alanının serialize edilebilmesi için gerekli; aynı dosya, ayrı sınıf)
+- `visibility` `Map<String, String>` doğrudan yazılır
+
+### Başarı ölçütü
+- `profile_roundtrip_guardrail_test` toJson grubu: **67 fail → 0 fail**
+- Full suite: 117/69 → **~184/2 beklenen** (sadece 38 catch_ + 1 ignore
+  guardrail fail'leri kalır; copyWith/roundtrip grubunun tamamı yeşil)
+- `flutter analyze --fatal-infos`: yeşil kalmalı
+- Regresyon: sıfır
+
+### Kural
+- `Profile.toJson` + `PromptAnswer.toJson` (aynı dosya) değişecek
+- `Profile.copyWith` dokunulmaz (Dalga 2'de yeşillendi)
+- `Profile.fromJson` dokunulmaz (zaten 73 alanı okuyor)
+- Constructor dokunulmaz
+- Başka dosya YOK
+
+### Risk
+- R1 area — Profile modeli, yüksek hassasiyet
+- Key eşleşmesi zorunlu: fromJson'un okuduğu her key toJson'da AYNEN
+  üretilmeli. Tek harflik mismatch = sessiz veri kaybı.
+- fromJson fallback key'leri (`full_name`, `hobbies`, `photos`, `mode`)
+  toJson'da yazılmayacak — primary key'ler yazılır (`display_name`,
+  `interests`, `photo_urls`, `current_mode`).
+- Özel serializer: `lastActiveAt.toIso8601String()`, `nobTier.name`,
+  `prompts.map((p) => p.toJson())`.
+
+### R-kod çapraz referans
+- R1 — copyWith half closed; bu dalga ikinci yarıyı kapatır.
+- R2 — profile_draft ↔ fromJson asenkron; Profile.toJson fix'i
+  aslında R2'nin de bir yüzüdür (draft da toJson üzerinden yazıyor
+  olabilir). Dokunma protokolü §7 "fromJson + toJson + copyWith + draft"
+  diyor — draft kodunu incelemek bu dalgada Görev 2, toJson fix'ten
+  sonra. Eğer draft Profile.toJson'u çağırıyorsa R2 buradan kapanır;
+  değilse ayrı mini-iş.
+
+---
+
+## 2026-04-21 — End of Day (Dalga 1 + 2 + 2b kapanış)
+
+### Bugünün commit zinciri
+- `0065791` — Dalga 1 (.env fix + 10 catch (_) logs + unused enum cleanup)
+- `02bf129` — Dalga 2 (Profile.copyWith fix — 36 alan, R1 half closed, PR #2 merge)
+- `9028441` — Dalga 2b session note (prep)
+- `2feeb9e` — Dalga 2b fix (Profile.toJson 5 → 73 alan, R1 FULLY CLOSED)
+
+### Branch durumu
+- Aktif branch: `dalga-2b-profile-tojson`
+- Uzaktaki hali: push edildi, tracking origin/dalga-2b-profile-tojson
+- PR: YARIN açılacak (2026-04-22), bugün açılmadı
+- Main: 2 commit geride (Dalga 2b henüz merge değil)
+
+### Test skorları (tam yolculuk)
+- Başlangıç (Dalga 1 öncesi): **80 pass / 106 fail**
+- Dalga 1 sonrası: 90 / 96 (catch_ + enum ayıklaması)
+- Dalga 2 sonrası: 117 / 69 (copyWith 36 alan)
+- Dalga 2b sonrası: **184 pass / 2 fail** ← bugünün kapanış skoru
+- Kalan 2 fail: tamamen beklenen — guardrail testleri (catch_ + ignore
+  lint pattern'leri), Profile modeliyle ilgisi yok
+
+### R1 — FULLY CLOSED (test seviyesinde)
+- copyWith 36 alan yeşil (Dalga 2)
+- fromJson zaten 73 alan okuyor (dokunulmadı)
+- toJson 73 alan üretiyor (Dalga 2b)
+- Roundtrip guardrail: tüm toJson grubu yeşil
+- **Üretim path uyarısı:** Profile.toJson uygulamada profile yazımı
+  için *doğrudan* çağrılmıyor — asıl yazım yolu `ProfileDraft`.
+  Profile.toJson fix'i guardrail/DB write için doğru, ama kullanıcı
+  akışındaki veri kaybı riski ProfileDraft kanadında.
+
+### R2 — Yeniden tanımlandı
+Eski tanım: "profile_draft ↔ fromJson asenkron, draft yazıyor
+fromJson okumuyor". Dalga 2b esnasında kanıtla netleşti:
+- Asıl asimetri `ProfileDraft` ile `Profile` arasında.
+- Somut kanıt: `lookingFor` alanı. ProfileDraft tarafında bir şekilde
+  korunuyor ama Profile ↔ draft çevriminde kaybolabilir (hipotez,
+  guardrail ile doğrulanacak).
+- R2'nin Profile.toJson fix'iyle kapandığı varsayımı **yanlıştı** —
+  fix doğru ama R2'nin kök nedeni başka: ProfileDraft.toJson /
+  fromJson / Profile.fromDraft / Profile.toDraft asimetri zinciri.
+
+### Yarın: Dalga 2c planı
+**Hedef:** ProfileDraft roundtrip guardrail + fix
+- Görev A: `test/guardrails/profile_draft_roundtrip_test.dart` yaz
+  (mevcut `profile_roundtrip_guardrail_test` deseninden çoğalt)
+- Görev B: Her Profile alanı için `profile → draft → profile`
+  roundtrip — alan kaybı varsa kırmızı
+- Görev C: İlk çalıştırmadaki fail listesi = R2'nin tam yüzey alanı
+- Görev D: Fail'leri ProfileDraft.toJson / fromJson / Profile.fromDraft
+  / toDraft'ta kapat (§7 protokolü — 4'ünü de güncelle)
+- Görev E: Guardrail yeşil → R2 FULLY CLOSED
+
+**İlk adım (yarın sabah):**
+1. CLAUDE.md + known_regressions.md oku
+2. Bu branch'ten yeni branch aç: `dalga-2c-profile-draft`
+3. ProfileDraft kodunu oku — hangi dosya, kaç alan, toJson/fromJson
+   sınırı
+4. Roundtrip guardrail test dosyasını yaz, kırmızı ölçümü al
+
+### Bugünkü scope disiplini
+- Plan: Profile.toJson tek fix
+- Yapılan: Profile.toJson tek fix + session note
+- Scope creep: YOK (3'lü limit aşılmadı)
+
+---
