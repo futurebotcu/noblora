@@ -310,3 +310,62 @@ fromJson okumuyor". Dalga 2b esnasında kanıtla netleşti:
 - Scope creep: YOK (3'lü limit aşılmadı)
 
 ---
+
+## 2026-04-22 — Dalga 2c: ProfileDraft Asymmetry Fix (R2 FULLY CLOSE)
+
+### Hedef
+`ProfileDraft.toUpdateMap` ↔ `ProfileDraft.fromDbRow` asymmetry'lerini
+kapat. Test-first yaklaşım: önce guardrail testi yaz (kırmızı ölç),
+sonra DB kontratına saygılı fix uygula.
+
+### Branch durumu (oturum başı)
+- Aktif branch: `dalga-2c-profile-draft` (yeni, taze main `b044e2e`'den)
+- Önceki yerel `dalga-2c-profile-draft` (base 02bf129) silindi → restart
+- Eski `dalga-2b-profile-tojson` lokal+remote silindi (PR #3 merge edildi)
+- Main: `b044e2e` (Dalga 2b PR #3 merge — Profile.toJson 73 alan dahil)
+
+### DB kontrat raporu (mcp__supabase__execute_sql, public.profiles)
+- `looking_for`: **`text`** (single-value) — top-level tek string
+- `countries_visited`: **`text[]`** (ARRAY) — top-level liste, default `'{}'`
+- `visited_countries`: YOK (kolon ismi `countries_visited` tek doğru)
+- `profile_data`: `jsonb` — rich nested
+- `interests` / `hobbies`: ikisi de `text[]` (legacy mirror canlı)
+- `photo_urls` / `photos`: ikisi de `text[]` (legacy mirror canlı)
+
+### Tespit edilen 2 kritik asimetri (test-öncesi analiz)
+1. **`lookingFor`**: write doğru (row=first, pd=full list), read YANLIŞ
+   (row öncelikli → tüm liste kaybolur, sadece first kalır).
+   Fix: read precedence ters çevir — önce `pd['looking_for']`, sonra row fallback.
+2. **`visitedCountries`**: write tamamen eksik (toUpdateMap'te yok),
+   read doğru (`row['countries_visited']`). Fix: write top-level row
+   key olarak ekle.
+
+### Plan (test-first, 3 adım)
+- **ADIM 1:** `test/guardrails/profile_draft_roundtrip_guardrail_test.dart`
+  yaz. 73 alan subtest, sembolik dolu değerler. Çalıştır → 2 fail (lookingFor,
+  visitedCountries) + 71 pass beklenen. Çıktıyı kullanıcıya göster.
+- **ADIM 2:** Fix uygula:
+  - `fromDbRow` lookingFor read precedence değişikliği
+  - `toUpdateMap` visitedCountries top-level write ekle
+  - Test tekrar çalıştır → 73/73 yeşil hedef
+- **ADIM 3:** Commit + push + PR aç. URL'i kullanıcıya ver.
+
+### Kural
+- SADECE `lib/features/profile/edit/profile_draft.dart` + yeni test dosyası
+- `Profile` modeline dokunulmuyor (R1 zaten kapalı, b044e2e ile)
+- `profile_repository.dart`'a dokunmuyoruz
+- Scope creep yasak — 3 madde dışına çıkılmıyor
+- Her adımda kullanıcı onayı
+
+### Risk
+- R2 area — `ProfileDraft` canlı üretim path'i
+- Test kırmızı olduğu sürece commit YOK
+- DB kontratı netleşti — write kontratı korunuyor (`looking_for` text kalır)
+
+### Bugün öğrenilen ders (işlenmesi)
+- "PR #3 merge edildi" iddiasını kanıtsız kabul ettim, R7 tuzağına düştüm
+  (oturum başında dalga-2b branch'ini sildim, neyse remote sağlamdı).
+  Düzeltme: branch işlemlerinden önce `git ls-remote origin <branch>` +
+  `git log origin/main` ile kanıt al. Sözlü iddia ≠ kanıt.
+
+---

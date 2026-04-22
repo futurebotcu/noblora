@@ -38,22 +38,43 @@ alan boş. Ya da başka bir alanı düzenleyip kaydettiğinde X alanı siliniyor
 
 ---
 
-## R2: profile_draft ↔ fromJson Asenkron (Sessiz Veri Kaybı)
+## R2: ProfileDraft ↔ fromDbRow Asenkron (Sessiz Veri Kaybı)
 
 **Belirti:** Kullanıcı profil düzenleme ekranında alan dolduruyor, draft
 yazılıyor ama geri açıldığında alan boş. Hata yok, veri yok.
 
-**Kök neden:** Draft `toJson` ile serialize ediyor ama `fromJson` o alanı
-okumuyor (ya da tersi). Sync yok, iki yan sessizce drift etmiş.
+**Kök neden:** `ProfileDraft.toUpdateMap` (yazma) ile `ProfileDraft.fromDbRow`
+(okuma) arasında asimetri. Yazılan key okunmuyor (ya da tersi), ya da
+aynı alan iki yere yazılıp tek yerden okunup kayıp oluşuyor.
 
-**Tespit tarihi:** 2 ayrı oturumda tekrar etti.
+**Tespit tarihi:** 2 ayrı oturumda tekrar etti (Mart 2026 + 2026-04-22).
 
 **Tekrar sayısı:** 2
 
+**Status:** FULLY CLOSED (2026-04-22)
+- **Dalga 2c, commit `1c8730e`** (`dalga-2c-profile-draft` branch)
+- DB kontrat raporu (mcp__supabase__execute_sql ile public.profiles):
+  `looking_for` text (single), `countries_visited` text[] (array)
+- İki kanıtlanmış asimetri:
+  - **`lookingFor`**: write doğru (row=first, pd=full list), read yanlış
+    (row öncelikli → liste kayboluyor, sadece first kalıyor). Fix: read
+    precedence ters çevrildi (pd list primary, row fallback for legacy).
+  - **`visitedCountries`**: `toUpdateMap`'te `countries_visited` write
+    tamamen eksik → her save'de siliniyor. Fix: top-level row key eklendi.
+- Test-first: yeni guardrail `profile_draft_roundtrip_guardrail_test.dart`
+  73 alan subtest. İlk run **71/2** (lookingFor + visitedCountries fail),
+  fix sonrası **73/0** yeşil.
+- Full suite 184/2 → **257/2** (regresyon sıfır, kalan 2 fail banned
+  patterns — R2 ile ilgisiz).
+
 **Dokunma protokolü:**
-- Draft kodu her değiştiğinde `fromJson` üzerinden roundtrip testi ekle
-- `test/guardrails/profile_parse_guardrail_test.dart` mevcut, yeni alanlar için genişletilmeli
-- Sessiz drop yerine `assert` ya da log ekle: parse edilmeyen key → uyarı
+- `ProfileDraft`'a alan eklendiğinde `profile_draft_roundtrip_guardrail_test.dart`
+  da güncellenmeli (73 alan subtest deseni)
+- `toUpdateMap` ↔ `fromDbRow` simetrisi guardrail tarafından zorlanır
+- DB kolon ismi/tipi değişiminde `mcp__supabase__execute_sql` ile
+  şema doğrula (kontrat = kanıt)
+- Yeni alan için: write key + read key + tip eşleşmesi → roundtrip test
+  yeşil olana kadar commit yok
 
 ---
 
