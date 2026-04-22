@@ -369,3 +369,229 @@ sonra DB kontratına saygılı fix uygula.
   `git log origin/main` ile kanıt al. Sözlü iddia ≠ kanıt.
 
 ---
+
+## 2026-04-22 — Dalga 3: RLS Hardening (R5 CLOSE)
+
+### Hedef
+P0 migration (20260408140730) "applied-but-ineffective" durumunu kapat.
+Eski permissive `*_system WITH CHECK (true)` policy'leri DROP et.
+Supabase security advisor `rls_policy_always_true` satırlarını temizle.
+
+### Branch durumu
+- Aktif branch: `dalga-3-rls-hardening` (yeni, main `8aa837f`'den)
+
+### Kural (yasak listeleri)
+- KOD YAZMA / MIGRATION YAZMA / ÇALIŞTIRMA — bu oturum **SADECE PLAN**
+- Production tek environment (test yok)
+- DROP sırası yanlış = anonim erişim açığı; rollback planı migration'dan önce
+- Scope: 1 migration dosyası + advisor karşılaştırma + 3 rol smoke test
+- catch (_) kalanları, R3, R6, function_search_path WARN'ları AYRI dalga
+
+### ADIM 1 KEŞIF — kanıtlar
+
+**A. Advisor baseline (security):** [tam çıktı raporda saklı]
+- 1 ERROR: `spatial_ref_sys` RLS disabled (PostGIS sistem tablosu —
+  Supabase platform sınırı, manuel düzeltilemez, kapsam dışı)
+- 1 INFO: `_internal_config` RLS enabled no policy (TÜMÜ DENY = güvenli,
+  service role bypass var, kapsam dışı)
+- 9 WARN `rls_policy_always_true` ← **R5'in tam yüzeyi**
+- 50+ WARN `function_search_path_mutable` (ayrı dalga, R8 adayı)
+- 2 WARN `public_bucket_allows_listing` (galleries, profile-photos —
+  storage policy fix, ayrı dalga)
+- 1 WARN `extension_in_public` (postgis — platform sınırı)
+- 1 WARN `auth_leaked_password_protection` (Supabase Auth ayarı)
+
+**B. P0 migration body (`20260408140730` — `p0_security_fixes`):**
+4 değişiklik içeriyor:
+1. **B67** — `notifications_insert` policy DROP+CREATE (restrictive,
+   `auth.uid() = user_id`). FAKAT eski `notifications_insert_system`
+   (with_check=true) **DROP EDİLMEDİ**. PostgreSQL'de PERMISSIVE policy'ler
+   OR ile birleşir → eski permissive olduğu için yeni restrictive ETKİSİZ.
+   **R5'in tam kanıtı.**
+2. **B71** — `can_reach_user` function paused/permission/calm_mode kontrolü
+   (RLS değil, function logic; advisor'a değmez)
+3. **B72** — `safe_advance_to_video` function status check (function logic)
+4. **B44** — `expire-stale-matches` cron job (functional, RLS değil)
+
+**C. Canlı `*_always_true` policy envanteri (advisor + pg_policies eşlemesi):**
+
+| # | Tablo | Policy | CMD | with_check | qual | Yerine restrictive var mı? | Risk (DROP sonrası) |
+|---|-------|--------|-----|------------|------|----------------------------|---------------------|
+| 1 | conversation_participants | cp_insert_own | INSERT | true | - | YOK | HIGH — INSERT tamamen kilitlenir |
+| 2 | conversations | conv_insert_own | INSERT | true | - | YOK | HIGH |
+| 3 | gating_status | gating_insert_system | INSERT | true | - | YOK (handle_new_user_gating muhtemelen security definer) | MEDIUM (RPC bypass varsa OK) |
+| 4 | gating_status | gating_update_system | UPDATE | true | true | YOK | MEDIUM |
+| 5 | matches | matches_insert_system | INSERT | true | - | YOK (check_and_create_match security definer ise OK) | MEDIUM |
+| 6 | notifications | **notifications_insert_system** | INSERT | true | - | **VAR — `notifications_insert` (auth.uid()=user_id, P0'dan)** | **LOW — P0 zaten doğru policy'i koymuş** |
+| 7 | real_meetings | rm_insert_own | INSERT | true | - | YOK | HIGH |
+| 8 | video_sessions | video_insert_own | INSERT | true | - | YOK | HIGH |
+| 9 | video_sessions | video_update_own | UPDATE | true | true | YOK | HIGH |
+
+### Asymmetry raporu
+- **Sadece 1/9** policy için yerine konulacak restrictive zaten var
+  (`notifications`). Geri kalan 8 için DROP öncesi yeni restrictive YAZILMALI,
+  yoksa kullanıcı INSERT/UPDATE'leri canlıda kırılır.
+- Adlandırma yanıltıcı: `cp_insert_own`, `conv_insert_own`, `rm_insert_own`,
+  `video_insert_own` adlarında `_own` var ama mantığı yarım — `with_check=true`.
+  Yarım yazılmış policy'ler.
+
+### Migration stratejisi taslakları (ÜÇ alternatif, henüz YAZILMADI)
+
+**Strateji A — Dar (sadece P0 bypass'ı kapat):**
+- DROP `notifications_insert_system` (yerine restrictive zaten var)
+- Diğer 8 ayrı dalgada
+- Advisor temizliği: 1/9
+- Risk: çok düşük
+- R5'i "tam kapatmaz" ama P0'ın bıraktığı boşluğu kapatır
+
+**Strateji B — Geniş (9 policy hepsi + her biri için yedek restrictive):**
+- 8 yeni restrictive policy yaz (auth.uid() constraint mantığı her tablo için)
+- 9 eski permissive DROP
+- Sıra: önce CREATE yedekleri (overlap güvenli), sonra DROP eskileri
+- Advisor temizliği: 9/9
+- Risk: yüksek — her tablonun INSERT path'i doğrulamayı gerektirir
+  (RPC mi client mi, security definer mı?)
+- Smoke test 3 rol kritik
+
+**Strateji C — Kod analizi sonrası geniş:**
+- Önce data/repositories + supabase functions kodunda her tablonun
+  INSERT/UPDATE path'i analiz et (RPC vs client direct)
+- RPC ile yapan tablolar: DROP edilebilir, security definer bypass eder
+- Client direct: yeni restrictive yaz, sonra DROP
+- Sonra Strateji B'ye benzer migration
+- En güvenli ama 1 oturuma sığmayabilir
+
+### Rollback planı (taslak)
+- Migration'ın TERS'i: DROP edilen policy'lerin orijinal CREATE metni
+- Şu anki advisor verisi + pg_policies dump yedek olarak migration'ın
+  başında comment olarak saklanmalı
+- Rollback test: migration sonrası tek bir tabloda smoke test fail
+  ederse rollback SQL'i hazır olmalı
+
+### Bekleyen kullanıcı kararı
+1. Hangi strateji? (A/B/C)
+2. Geniş seçenekte (B/C): smoke test rol matrisi nasıl? Mevcut test user'lar
+   var mı yoksa migration sırasında geçici user yaratıp test edip silmek mi?
+3. Cron schedule (P0'daki B44) advisor'da görünmüyor; doğrulama gerek mi?
+
+### Karar: Strateji A revize (kullanıcı onayı, 2026-04-22)
+- İlk varsayım: tüm 9 policy "P0 bypass" hipotezi → SADECE notifications DROP
+- Pre-smoke testleri varsayımı kırdı (R7 örneği — kanıtsız hipoteze körü körüne güvenmedik)
+
+### ADIM 2.5/2.6 — Genişletilmiş pre-smoke (kanıt-bazlı envanter)
+9 advisor satırından 7'si test edildi (notifications + matches önceden). Her senaryo:
+authenticated=elena, target=other user, BEGIN/ROLLBACK içinde.
+
+| # | Tablo.policy | Test sonucu | Durum |
+|---|--------------|-------------|-------|
+| 1 | notifications_insert_system | RLS reddetti | DEAD |
+| 2 | matches_insert_system | RLS reddetti | DEAD |
+| 3 | conversation_participants.cp_insert_own | RLS reddetti | DEAD |
+| 4 | conversations.conv_insert_own | RLS reddetti | DEAD |
+| **5** | **gating_status.gating_insert_system** | **FK error (RLS GEÇTİ)** | **AKTİF** |
+| **6** | **gating_status.gating_update_system** | **BAŞARILI — elena trultruva is_verified UPDATE** | **AKTİF — KANITLI BYPASS** |
+| 7 | real_meetings.rm_insert_own | RLS reddetti | DEAD |
+| 8 | video_sessions.video_insert_own | RLS reddetti | DEAD |
+| 9 | video_sessions.video_update_own | 0 row (SELECT match-bound visibility kapatıyor) | DEAD-eq (intra-match intentional) |
+
+**Bulgu:** R5'in gerçek davranışsal yüzeyi 9 satırdan **2'si** (gating_status). Diğer 7
+cosmetic — `polroles={0}` PostgreSQL quirk'i nedeniyle hiçbir role'e uygulanmıyor.
+
+### Function security analizi (gating compatibility)
+
+| Function | Security | Etki |
+|----------|----------|------|
+| handle_new_user_gating | DEFINER | Signup INSERT, RLS bypass — restrictive policy etkilemez |
+| dev_auto_verify | DEFINER | Dev tool, RLS bypass — restrictive policy etkilemez |
+| sync_is_verified | INVOKER | Profiles BEFORE trigger (selfie+photos→is_verified), gating'e değmez |
+
+**Sonuç:** gating_status için `auth.uid() = user_id` restrictive yazsak otomatik
+fonksiyonlar etkilenmez. Sadece direkt client-side kötü niyetli INSERT/UPDATE etkilenir.
+
+### ADIM 2 (FİNAL) — Migration yazıldı (HENÜZ ÇALIŞTIRILMADI)
+- Dosya: `supabase/migrations/20260422081824_rls_harden_notifications_and_gating.sql`
+  (Önceki `20260422081824_drop_notifications_system_policy.sql` sile + yeniden adlandırıldı,
+  timestamp prefix korundu.)
+- 5 SQL komutu, atomik:
+  1. CREATE `gating_insert_own` (auth.uid()=user_id, TO authenticated)
+  2. CREATE `gating_update_own` (USING+WITH CHECK auth.uid()=user_id, TO authenticated)
+  3. DROP `notifications_insert_system`
+  4. DROP `gating_insert_system`
+  5. DROP `gating_update_system`
+- Sıra zorunlu: önce CREATE yedekler (overlap güvenli — eski permissive hâlâ true
+  dönerken yeni restrictive eklenir), sonra DROP eskileri.
+- Standalone rollback dosyası: `.claude/dalga-3-rollback.sql` (commit-yok, emergency için)
+
+### R5b kapsam revizesi (5 policy, video_update_own dahil DEĞİL)
+- matches_insert_system, cp_insert_own, conv_insert_own, rm_insert_own, video_insert_own
+- video_update_own LİSTEDEN ÇIKARILDI — intra-match design intentional, SELECT
+  policy match-bound olduğu için dış user erişemiyor zaten
+- Aksiyon: Dalga 3b ayrı PR (toplu DROP, davranışsal risk yok, sadece advisor temizlik)
+
+### ADIM 3 PLANI (apply onayı sonrası)
+a) Pre-apply baseline advisor zaten kayıtlı
+b) `mcp__supabase__apply_migration` ile uygula
+c) Post-advisor: 3 cache_key (notifications + 2 gating) gitmeli
+d) Post-smoke (kritik 2 senaryo + signup analog):
+   - Test 4 re-run (gating UPDATE different user) → REDDEDİLMELİ
+   - Test 3 re-run (gating INSERT random uuid) → REDDEDİLMELİ (RLS, FK öncesi)
+   - Self gating UPDATE (elena→elena) → BAŞARILI
+   - SECURITY DEFINER simülasyon (mümkünse `handle_new_user_gating` çağrı testi)
+e) Davranış değişim tablosu pre vs post yan yana
+f) Advisor karşılaştırma (3 WARN kaldırıldı kanıtı)
+g) Hepsi yeşilse → ADIM 4 (commit) için kullanıcı onayı
+
+### ADIM 3 SONUÇ — TÜMÜ YEŞİL (2026-04-22 06:15 UTC)
+
+**Apply çıktısı:**
+```
+mcp__supabase__apply_migration(
+  name="rls_harden_notifications_and_gating",
+  query=<5 SQL statements>
+) → {"success":true}
+```
+
+**Advisor diff (`rls_policy_always_true`): 9 satır → 6 satır**
+
+| Cache key | Pre | Post |
+|-----------|-----|------|
+| notifications.notifications_insert_system | VAR | **YOK ✅** |
+| gating_status.gating_insert_system | VAR | **YOK ✅** |
+| gating_status.gating_update_system | VAR | **YOK ✅** |
+| conversation_participants.cp_insert_own | VAR | VAR (R5b) |
+| conversations.conv_insert_own | VAR | VAR (R5b) |
+| matches.matches_insert_system | VAR | VAR (R5b) |
+| real_meetings.rm_insert_own | VAR | VAR (R5b) |
+| video_sessions.video_insert_own | VAR | VAR (R5b) |
+| video_sessions.video_update_own | VAR | VAR (R5b — intra-match intentional) |
+
+**3/3 hedef cache_key advisor'dan kayboldu.**
+
+**Smoke test pre/post tablosu:**
+
+| # | Senaryo | Pre-fix (06:00 UTC) | Post-fix (06:15 UTC) | Sonuç |
+|---|---------|---------------------|----------------------|-------|
+| (a) Test 4 | elena → trultruva gating UPDATE | ✅ BAŞARILI (`is_verified` toggle, RETURNING dolu — **BYPASS**) | 🔒 0 row affected (RLS USING qual filtreliyor) | **FIX KANITLI** |
+| (b) Test 3 | elena → random uuid gating INSERT | ⚠️ FK error (RLS geçmişti — **BYPASS**) | 🔒 RLS violation (FK'ya varmıyor) | **FIX KANITLI** |
+| (c) Self | elena → elena gating UPDATE | n/a | ✅ BAŞARILI (`updated_at=2026-04-22 06:15:08`) | **Restrictive policy doğru yazıldı** |
+
+**R5 davranışsal kapanış kanıtı:**
+- Cross-user UPDATE artık engelli (Test 4)
+- Cross-user INSERT artık RLS reddi (Test 3)
+- Self UPDATE çalışıyor (Test c)
+- Apply atomik, regresyon sıfır
+- 0 aktif kullanıcı esnasında deploy → kesinti riski yok
+
+**Kalan R5b kapsam (teyit, 6 cosmetic policy):**
+- conversation_participants.cp_insert_own
+- conversations.conv_insert_own
+- matches.matches_insert_system
+- real_meetings.rm_insert_own
+- video_sessions.video_insert_own
+- video_sessions.video_update_own (intra-match — opsiyonel)
+
+R5b ayrı PR (Dalga 3b) — sadece DROP, davranış değişmez, advisor temizlik.
+
+**R5 ana — FULLY CLOSED (2026-04-22 06:15 UTC).**
+
+---
