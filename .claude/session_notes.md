@@ -595,3 +595,199 @@ R5b ayrı PR (Dalga 3b) — sadece DROP, davranış değişmez, advisor temizlik
 **R5 ana — FULLY CLOSED (2026-04-22 06:15 UTC).**
 
 ---
+
+## Sabah kapanış — 2026-04-22 09:30
+
+**Bugünün net iki kazanımı:**
+- R2 (ProfileDraft asymmetry, lookingFor + visitedCountries
+  sessiz veri kaybı) tam kanıtlı fix
+- R5 (gating_status cross-user UPDATE bypass) davranışsal kanıtlı
+  fix, pre-smoke'da Elena → Trultruva is_verified toggle
+  BAŞARILIYDI, post-smoke'da 0 row
+
+**Bugünün iki R7 dersi:**
+- Branch state iddiaları kanıtsız kabul edilmez (git ls-remote
+  zorunlu)
+- Advisor satırları hipotez yapar, pre-smoke test kanıt yapar.
+  3/9 varsayımımız yanlış çıktı (aslında %66 dead, %22 aktif,
+  %11 intentional). Pre-smoke olmadan yanlış fix yapılırdı.
+
+**Yarın ilk 15 dakika:**
+1. CLAUDE.md oku (anayasayı tazele)
+2. known_regressions.md oku (R3, R4, R5b, R6 güncel kayıtlar)
+3. session_notes.md son kayıt oku (bu rapor)
+4. Dalga seçimi — A/B/C/D/E, taze kafayla tercih
+5. Seçilen dalga için oturum açılış ritüeli (yeni session_notes
+   kaydı + branch)
+
+---
+
+## 2026-04-23 — Dalga 3b: R5b Cosmetic Dead Policy Cleanup
+
+### Hedef
+5 cosmetic dead permissive policy DROP. Advisor temizlik. Davranış
+değişmez (dün pre-smoke'da hepsi reddedilmişti — R5b kaydında kanıtlı).
+
+### Branch durumu (oturum başı)
+- Aktif branch: `dalga-3b-r5b-cleanup` (yeni, taze main `42aaf75`'ten)
+- Main: up-to-date with origin (Dalga 3 PR #5 merge edilmiş)
+- Working tree: dünün "Sabah kapanış" session_notes ekleri uncommitted,
+  branch'a beraber taşındı
+
+### Başarı ölçütü
+- Migration: tek dosya, 5 `DROP POLICY IF EXISTS` komutu
+- Advisor: `rls_policy_always_true` 6 → 1 WARN (5 hedef temizlenir,
+  `video_update_own` kalır — intentional intra-match)
+- Smoke test: opsiyonel (davranış değişmeyeceği zaten kanıtlı, R5b kaydı)
+- Rollback: hazır olsun ama gereksiz beklenir
+
+### Kural
+- SADECE cosmetic DROP — kod dokunulmaz
+- Yeni restrictive policy YAZMA (dead zaten, gerek yok)
+- Scope creep yasak — 3 madde limiti
+- CLAUDE.md §6 5 adım protokol uygulanacak (baseline → migration → post → side-by-side → "fix" tanımı)
+
+### R5b target listesi
+1. `matches.matches_insert_system` (INSERT)
+2. `conversation_participants.cp_insert_own` (INSERT)
+3. `conversations.conv_insert_own` (INSERT)
+4. `real_meetings.rm_insert_own` (INSERT)
+5. `video_sessions.video_insert_own` (INSERT)
+
+`video_sessions.video_update_own` LİSTEDEN ÇIKARILDI — intra-match
+intentional, SELECT match-bound (R5b kaydında kanıtlı).
+
+### ADIM 1 KEŞIF — kanıt taze (2026-04-23)
+
+**A. Advisor `rls_policy_always_true` (taze, beklendiği gibi 6 satır):**
+
+| # | cache_key | Hedef mi? |
+|---|-----------|-----------|
+| 1 | `..._conversation_participants_cp_insert_own` | ✅ R5b |
+| 2 | `..._conversations_conv_insert_own` | ✅ R5b |
+| 3 | `..._matches_matches_insert_system` | ✅ R5b |
+| 4 | `..._real_meetings_rm_insert_own` | ✅ R5b |
+| 5 | `..._video_sessions_video_insert_own` | ✅ R5b |
+| 6 | `..._video_sessions_video_update_own` | ❌ intentional, listede DEĞİL |
+
+5/5 hedef cache_key advisor'da mevcut.
+
+**B. pg_policies envanteri (5/5 mevcut):**
+
+| Tablo | Policy | cmd | permissive | roles | qual | with_check |
+|-------|--------|-----|------------|-------|------|------------|
+| conversation_participants | cp_insert_own | INSERT | PERMISSIVE | {public} | null | true |
+| conversations | conv_insert_own | INSERT | PERMISSIVE | {public} | null | true |
+| matches | matches_insert_system | INSERT | PERMISSIVE | {public} | null | true |
+| real_meetings | rm_insert_own | INSERT | PERMISSIVE | {public} | null | true |
+| video_sessions | video_insert_own | INSERT | PERMISSIVE | {public} | null | true |
+
+**Anomali notu:** R5b kaydı `polroles={0}` (PostgreSQL pg_policy ham OID
+quirk) diyordu. `pg_policies` view ise `roles={public}` gösteriyor (OID 0
+→ PUBLIC çevirisi). Görünüm farkı; davranışsal sonuç aynı (pre-smoke
+RLS reddetti). DROP risksiz çünkü policy zaten etkili değil.
+
+**Diğer advisor satırları (kapsam dışı, kayıt için):**
+- 1 ERROR `spatial_ref_sys` (PostGIS sistem tablosu, platform sınırı)
+- 1 INFO `_internal_config` RLS enabled no policy (deny-by-default güvenli)
+- 60+ WARN `function_search_path_mutable` (R8 adayı, ayrı dalga)
+- 1 WARN `extension_in_public` postgis (platform sınırı)
+- 2 WARN `public_bucket_allows_listing` (galleries + profile-photos, ayrı dalga)
+- 1 WARN `auth_leaked_password_protection` (Supabase Auth ayarı)
+- 1 WARN `rls_policy_always_true video_update_own` (R5b'den çıkarıldı, intentional)
+
+### ADIM 2 — Dosyalar yazıldı (apply YOK, kullanıcı onayı bekliyor)
+
+**Timestamp seçimi:** `20260423105809` (UTC `date -u +%Y%m%d%H%M%S` çıktısı,
+dünkü `20260422081824`'ten sonra).
+
+**Yazılan dosyalar:**
+- `supabase/migrations/20260423105809_drop_r5b_dead_policies.sql`
+  - 5 `DROP POLICY IF EXISTS ... ON ...` komutu
+  - Header: scope, evidence ref, SECURITY DEFINER not-relevant gerekçesi
+  - Inline rollback (5 CREATE POLICY commented)
+  - Footer: 5 advisor cache_key + beklenen post-apply sayım (6 → 1)
+- `.claude/dalga-3b-rollback.sql`
+  - 5 CREATE POLICY (orijinal permissive'leri geri yarat)
+  - Header: use-case (rollback gereksiz beklenir, ama ihtiyat için var)
+
+**Henüz yapılmadı:**
+- Migration apply
+- Post-apply advisor karşılaştırma
+- Smoke test (opsiyonel, davranış değişmez beklenir)
+- known_regressions.md R5b kaydını "CLOSED" işaretleme
+- Commit + push + PR
+
+### ADIM 3 PLANI (apply onayı sonrası)
+a) `mcp__supabase__apply_migration` ile uygula
+b) Post-advisor: 5 hedef cache_key gitmeli (6 → 1, sadece video_update_own kalır)
+c) Side-by-side karşılaştırma raporu
+d) Opsiyonel smoke (kullanıcı tercihi):
+   - 5 tablonun her biri için authenticated cross-user INSERT denemesi
+   - Hepsi RLS tarafından reddedilmeli (zaten ediyordu, kanıt tazeleme)
+e) known_regressions.md R5b → CLOSED + Dalga 3 main entry'ye link
+f) session_notes ADIM 3 sonuç tablosu
+g) Commit + push + PR
+
+### ADIM 3 SONUÇ — TÜMÜ YEŞİL (2026-04-23 ~10:58 UTC)
+
+**Apply çıktısı:**
+```
+mcp__supabase__apply_migration(
+  project_id="xgkkslbeuydbbcvlhsli",
+  name="drop_r5b_dead_policies",
+  query=<5 DROP POLICY IF EXISTS, 5 satır>
+) → {"success":true}
+```
+
+**pg_policies post-check (5 hedef policyname):**
+```sql
+SELECT policyname, tablename, cmd FROM pg_policies
+WHERE schemaname='public' AND policyname IN (5 hedef);
+→ []   (boş — 5/5 DROP başarılı)
+```
+
+**Advisor `rls_policy_always_true` side-by-side (6 → 1):**
+
+| # | Cache key | Pre (~10:58 UTC) | Post (~10:58 UTC) |
+|---|-----------|------------------|-------------------|
+| 1 | `..._conversation_participants_cp_insert_own` | VAR | **YOK ✅** |
+| 2 | `..._conversations_conv_insert_own` | VAR | **YOK ✅** |
+| 3 | `..._matches_matches_insert_system` | VAR | **YOK ✅** |
+| 4 | `..._real_meetings_rm_insert_own` | VAR | **YOK ✅** |
+| 5 | `..._video_sessions_video_insert_own` | VAR | **YOK ✅** |
+| 6 | `..._video_sessions_video_update_own` | VAR | VAR (intentional, R5b dışı) |
+
+**5/5 hedef cache_key advisor'dan kayboldu.** Beklenti tutmuş.
+
+**Smoke test:** Skip — Dalga 3 pre-smoke (2026-04-22) ile 5 policy dead kanıtlı,
+davranışsal değişim beklenmiyor, advisor count düşüşü + pg_policies boş çıktısı
+tek kanıt olarak yeterli.
+
+**Diğer advisor satırları değişmedi (R5b dışı, kapsam dışı):**
+- 1 ERROR `spatial_ref_sys` (PostGIS, platform sınırı)
+- 1 INFO `_internal_config` (deny-by-default güvenli)
+- 60+ WARN `function_search_path_mutable` (R8 adayı, ayrı dalga)
+- 1 WARN `extension_in_public postgis` (platform sınırı)
+- 2 WARN `public_bucket_allows_listing` (galleries + profile-photos, ayrı dalga)
+- 1 WARN `auth_leaked_password_protection` (Supabase Auth)
+
+**R5b — FULLY CLOSED (2026-04-23 ~10:58 UTC).**
+
+**RLS cephesi durumu (Dalga 3 + 3b kümülatif):**
+- Başlangıç (2026-04-22 sabah): 9 `rls_policy_always_true` WARN
+- Dalga 3 sonrası: 6 WARN (3 satır temizlendi — gating + notifications)
+- Dalga 3b sonrası: **1 WARN** (5 satır temizlendi — R5b cosmetic)
+- Kalan 1: `video_update_own` intentional (intra-match design)
+
+**R-kod sayacı (Dalga 3b sonrası):**
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b, test-level)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- R3 ⏳ OPEN (profile_screen `_substantive` filter, ayrı dalga)
+- R4 🟡 PARTIAL (10/48 catch_(_) düzeltildi Dalga 1, kalan 38 ayrı dalga)
+- R5 ✅ FULLY CLOSED (Dalga 3)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 ⏳ OPEN (video call WebRTC altyapı)
+- R7 disipliner — her oturumda kanıt-zorunlu, ayrı kayıt yok
+
+
