@@ -51,6 +51,24 @@ class FeedRepository {
       }
     }
 
+    // Step 1.5: Discoverability filter (incognito_mode + mode_visible + paused).
+    // Calls is_discoverable per candidate via batch RPC. R8 fix — incognito enforce.
+    // Backend RPC filter_discoverable_ids wraps is_discoverable() from
+    // migration 20260401000011 (incognito_mode = true → only visible to existing matches).
+    if (toFetch.isNotEmpty) {
+      final discoverableRows = await client.rpc('filter_discoverable_ids', params: {
+        'candidate_ids': toFetch.toList(),
+        'mode': mode,
+        'requester_id': userId,
+      });
+      if (discoverableRows is List) {
+        final discoverableIds =
+            discoverableRows.map((e) => e as String).toSet();
+        toFetch = toFetch.intersection(discoverableIds);
+        if (toFetch.isEmpty) return [];
+      }
+    }
+
     // Step 2: build filtered query
     // Mode visibility column name
     final visibleCol = switch (mode) {
