@@ -257,3 +257,69 @@ gerçekte uydurma.
   değil
 - Audit / review yazarken her iddianın yanında kaynak (dosya:satır ya da
   komut çıktısı)
+
+---
+
+## R8: UI_ONLY Settings — Write-Never-Read Pattern
+
+**Belirti:** `profiles` tablosunda 8+ setting kolonu (`incognito_mode`,
+`hide_exact_distance`, `show_city_only`, `show_last_active`,
+`show_status_badge`, `calm_mode`, `message_preview`,
+`notification_preferences`) DB'ye yazılıyor (UI toggle ya da default),
+feed/repository/UI **okumuyor**. Kullanıcı "incognito aç" der, DB değeri
+değişir, davranış DEĞİŞMEZ. "Ayar uygulandı" illüzyonu.
+
+**Etkilenen setting envanteri (FEATURE_REGISTRY.md:42-49 + README.md:101):**
+
+| Setting | UI toggle | Enforce yeri | Status |
+|---------|-----------|--------------|--------|
+| incognito_mode | settings_screen.dart:188 ✅ | feed_repository Step 1.5 ✅ (Dalga 6) | **CLOSED** |
+| hide_exact_distance | YOK ❌ | feed render ❌ | ayrı dalga 6b |
+| show_city_only | araştırılacak | araştırılacak | ileride |
+| show_last_active | settings_screen.dart:196 ✅ | araştırılacak | ileride |
+| show_status_badge | settings_screen.dart:199 ✅ | araştırılacak | ileride |
+| calm_mode | settings_screen.dart:192 ✅ | can_reach_user RPC ✅ (KISMEN — feed'de değil, signal/note/reach permission'da) | ileride incele |
+| message_preview | araştırılacak | araştırılacak | ileride |
+| notification_preferences | settings_screen.dart ✅ | push system YOK | büyük iş |
+
+**Kök neden hipotezi:** Özellikler iteratif yazıldı, "önce DB kolonu + UI
+toggle, enforce sonra" planı bazı özelliklerde gerçekleşmedi. Backend
+enforce mantığı kısmen yazıldı (`is_discoverable`, `can_reach_user`
+RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
+
+**Tespit tarihi:** 2026-04-23 (Dalga 6 keşfi).
+
+**Tekrar sayısı:** 1 (toplu envanter) — 8 setting altında.
+
+**Status:** KISMEN CLOSED (2026-04-23)
+- **incognito_mode:** CLOSED — Dalga 6, batch RPC `filter_discoverable_ids`
+  + feed_repository Step 1.5 entegrasyonu. 3 senaryo SQL kanıtıyla yeşil.
+- **Diğer 7 setting:** OPEN — gelecek dalgalar (her biri ayrı keşif)
+
+**Kanıt (incognito_mode, 2026-04-23 ~12:35 UTC):**
+- Migration: `supabase/migrations/20260423122907_filter_discoverable_ids_batch.sql`
+- Apply: `{"success":true}`
+- SQL test senaryoları (BEGIN/ROLLBACK içinde, kalıcı state değişmedi):
+
+  | # | Senaryo | Beklenen | Gerçek |
+  |---|---------|----------|--------|
+  | 1 | Elena (non-incognito) + Marcus requester | `[elena_id]` | ✅ `[elena_id]` |
+  | 2 | Elena (incognito) + match yok | `[]` | ✅ `[]` |
+  | 3 | Elena (incognito) + match var | `[elena_id]` | ✅ `[elena_id]` |
+
+- Feed integration: `feed_repository.dart` Step 1.5 (satır 54+)
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 257 pass / 2 fail (baseline korundu, regresyon sıfır;
+  kalan 2 fail R4 banned_patterns guardrail, R8 ile ilgisiz)
+- Rollback: `.claude/dalga-6-rollback.sql` (standalone, DROP FUNCTION)
+
+**Test stratejisi (diğer setting'ler için):**
+- Her setting için: DB'ye değer yaz → davranış değişti mi smoke test
+- Render gerektirenler (hide_distance, show_city_only): emülatör smoke
+- Backend-only kontrol edilebilenler (incognito gibi): SQL execute ile RPC test
+
+**Dokunma protokolü:**
+- Yeni setting eklerken: DB kolonu + UI toggle + enforce yeri **3'lü zorunlu**
+- Mevcut setting'i fix ederken: önce keşif (backend RPC var mı, client
+  çağırıyor mu), sonra fix
+- "DB yazıldı = ayar uygulandı" varsayımı YASAK — enforce path'i kanıtlanmalı

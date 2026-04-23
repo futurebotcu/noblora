@@ -790,4 +790,244 @@ tek kanıt olarak yeterli.
 - R6 ⏳ OPEN (video call WebRTC altyapı)
 - R7 disipliner — her oturumda kanıt-zorunlu, ayrı kayıt yok
 
+---
+
+## Akşam kapanış — 2026-04-23
+
+### Bugün kapanan
+- **R5b FULLY CLOSED** (Dalga 3b, 5 cosmetic dead policy DROP, PR #6 merge)
+
+### Kümülatif R-kod durumu (4 gün)
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- R3 AÇIK (`_substantive` filter prompts)
+- R4 KISMEN (48 → 38 `catch (_)`)
+- R5 ✅ FULLY CLOSED (Dalga 3)
+- R5b ✅ FULLY CLOSED (Dalga 3b — bugün akşam)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- R7 META (kanıt disiplini, her oturumda)
+
+### Advisor RLS cephesi (gün boyu seyir)
+- Başlangıçta (Dalga 3 öncesi): 9 `rls_policy_always_true` WARN
+- Sabah (Dalga 3 sonrası): 6 WARN
+- Akşam (Dalga 3b sonrası): **1 WARN** (`video_update_own` intentional)
+
+### Main commit zinciri (6 PR squash commit)
+- `6c36bf6` — Dalga 3b PR #6 (R5b CLOSED)
+- `42aaf75` — Dalga 3 PR #5 (R5 CLOSED)
+- `8aa837f` — Dalga 2c PR #4 (R2 CLOSED)
+- `b044e2e` — Dalga 2b PR #3 (R1 toJson)
+- `02bf129` — Dalga 2 PR #2 (R1 copyWith)
+- `0065791` — Dalga 1 (.env + 10 catch logs)
+
+### Test durumu
+- 257/2 (değişmedi, bugünkü iş tamamen DB tarafıydı)
+- Kalan 2 fail: guardrail (catch_ + ignore pattern envanteri, R4 kapsamında)
+
+### R7 uyarısı (bugün)
+gh CLI yoktu (bash + PowerShell ikisinde de bulunamadı).
+Pre-filled URL ile çözüldü (compare URL + URL-encoded title/body).
+Tekrarlanan manuel PR açma disiplinine devam. Token / `gh` kurulum
+kararı Dalga 5 sonrasına ertelendi.
+
+### Yarın için seçenekler (kararı taze kafayla ver)
+A) **Dalga 4** — R4 catch (_) hijyeni (38 örnek, ~1-1.5 saat)
+B) **Dalga 5** — Direct `Supabase.instance.client` çıkarma (121 çağrı / 46 dosya, 3-5 saat, 1 oturuma sığmaz, alt dalgalara böl)
+C) **Dalga 6** — Feed incognito enforce (~45 dakika)
+D) **Dalga 7** — Video WebRTC altyapı (R6, 1-2 hafta, ayrı sprint)
+
+### Yarın ilk 15 dakika
+1. CLAUDE.md oku
+2. known_regressions.md oku (özellikle R3, R4, R6)
+3. session_notes.md son kayıt oku (bu rapor)
+4. Dalga seçimi (A/B/C/D)
+5. Seçilen dalga için oturum açılış ritüeli (yeni session_notes kaydı + branch)
+
+---
+
+## 2026-04-23 15:00 — Dalga 6: Feed Incognito + Hide-Distance Enforce
+
+### Hedef (keşif sonrası netleşti)
+- `incognito_mode` toggle DB'ye yazılıyor (settings_screen direct SQL),
+  feed query okumuyor → **incognito user'lar feed'e düşüyor (kullanıcıya
+  illüzyon).** FEATURE_REGISTRY zaten UI_ONLY işaretlemiş.
+- `hide_exact_distance` toggle DB'ye yazılıyor (kolon var,
+  migration 20260401000004), feed UI okumuyor → **mesafe her zaman
+  gösteriliyor.**
+
+### Branch durumu
+- Aktif branch: `dalga-6-feed-incognito-enforce` (yeni, main `6c36bf6`'tan)
+- `git pull origin main` başarısız: DNS error (`Could not resolve host:
+  github.com`) — internet/DNS geçici sorun. Lokal main `origin/main` ile
+  zaten "up to date" görünüyor (pull öncesi status). Etkisi yok.
+- Working tree: dünün akşam kapanış session_notes ekleri uncommitted,
+  branch'a beraber taşındı.
+
+### R-kod referans uyarısı (KULLANIN BİLDİRİLDİ)
+Kullanıcı talimatında "(R6)" dedi ama known_regressions.md R6 = **Video
+Call WebRTC** (büyük iş, ayrı sprint). Bu Dalga 6 farklı bir konu —
+FEATURE_REGISTRY UI_ONLY settings sorunları için known_regressions'da
+mevcut R-kod YOK. Kapanış için yeni R-kod (R8 önerisi) açmak gerekecek.
+Karar plan onayında.
+
+### ADIM 1 KEŞIF — kanıtlar (KOD YAZILMADI)
+
+**A. R-kod kaydı durumu:**
+- known_regressions.md'de bu konu için **KAYIT YOK**. R6 video call.
+- Ancak `README.md:101` ve `FEATURE_REGISTRY.md:42-49` zaten dokumante:
+  "Incognito mode | UI_ONLY | Yes (written) | Never read" + 8 benzer
+  setting (calm_mode, show_city_only, hide_exact_distance, show_last_active,
+  show_status_badge, message_preview, notification_prefs, delete_account).
+- Bu Dalga 6 sadece **incognito + hide-distance** kapsıyor (kullanıcı
+  scope'u). Diğer 6 UI_ONLY setting ileride.
+
+**B. Settings nerede yazılıyor:**
+- `lib/features/settings/settings_screen.dart:35-46` — `_load()` doğrudan
+  `Supabase.instance.client.from('profiles').select(...)` yapıyor; 22 kolon
+  okuyor (incognito_mode dahil).
+- `:64-76` — `_save(column, value)` doğrudan
+  `client.from('profiles').update({column: value})` ile her toggle'ı tek
+  kolon yazıyor.
+- `:188-191` — UI: `_Toggle('Incognito Mode', s['incognito_mode'], n.toggleBool('incognito_mode'))`,
+  alt yazı: "Only connections can discover you" (söz vaadi var).
+- **Hide-distance toggle ekranda YOK** — ne settings'te ne profile_edit'te.
+  Kolon DB'de var (`hide_exact_distance`, migration 20260401000004:36)
+  ama UI hiç toggle göstermiyor. **Bu sürpriz bulgu.**
+- `lib/features/onboarding/onboarding_flow_screen.dart:153` — onboarding
+  defaults `'incognito_mode': false` set ediyor.
+- `lib/features/profile/edit/sections/visibility_section.dart` — bu
+  AYRI bir sistem (profil alanlarının Public/Matches/Private dropdown'ı).
+  Incognito/distance ile ilgisi YOK.
+
+**C. DB kontratı (migration 20260401000004 + 20260401000011):**
+- `profiles.incognito_mode` BOOLEAN NOT NULL DEFAULT FALSE
+- `profiles.hide_exact_distance` BOOLEAN NOT NULL DEFAULT FALSE
+- `profiles.show_city_only` BOOLEAN NOT NULL DEFAULT FALSE
+- `profiles.show_last_active` BOOLEAN NOT NULL DEFAULT TRUE
+- **RPC `is_discoverable(target_id, mode, requester_id)` SECURITY DEFINER
+  MEVCUT** (migration 20260401000011:23-57):
+  - is_paused → false döner
+  - mode_visible (dating/bff/social) → false ise false
+  - **incognito_mode → matches tablosunda
+    (user1_id, user2_id) eşleşme yoksa false döner**
+  - Tam mantık zaten yazılı, sadece feed çağırmıyor.
+
+**D. Feed enforce yeri:**
+- `lib/data/repositories/feed_repository.dart:63-70` — Step 2 query:
+  ```dart
+  var query = client.from('profiles').select()
+      .eq('is_verified', true)
+      .eq('is_paused', false)
+      .eq(visibleCol, true)            // dating_visible/bff_visible/social_visible
+      .filter('active_modes', 'cs', '{"$mode"}')
+      .inFilter('id', toFetch.toList());
+  ```
+  - `is_paused`, `mode_visible` ✅ (ediyor)
+  - **`incognito_mode` ❌ filtre YOK** ← bu boşluk
+  - **`is_discoverable` RPC ❌ çağrılmıyor** (varlığından bihaber)
+- `feed_repository.dart:49` — **R4 banned pattern `catch (_)`** (geo
+  filter try). **Scope dışı, R4 hijyen dalgasına bırakılmalı.** Bugün
+  dokunulmaz.
+
+**E. Distance gösterimi yeri:**
+- `lib/data/models/profile_card.dart:23-46` — privacy display alanları:
+  `showCityOnly`, `showStatusBadge`, `showLastActive` ProfileCard'ta var
+  ve `fromDb`'de okunuyor. **`hideExactDistance` alanı YOK.**
+- `fetch_nearby_profiles` RPC mesafe hesaplıyor ama `feed_repository`
+  bu RPC'yi sadece **filtreleme için** kullanıyor (Step 1b), mesafe
+  değerini ProfileCard'a taşımıyor. Yani mesafe **ProfileCard'da hiç
+  yok şu an**. UI tarafında mesafe gösterimi YOK gibi görünüyor —
+  daha derin grep gerekiyor (feed_screen render'ında).
+
+### Fix hipotezleri (plan onayı için)
+
+**Incognito enforce — seçenekler:**
+- **Hipotez 1 (en temiz):** Feed query Step 2'ye `.eq('incognito_mode',
+  false)` ekle → tüm incognito user'lar feed'den çıkar. AMA bu, incognito
+  user'ın *connection*'larına da görünmemesini sağlar (söz: "Only
+  connections can discover you"). Bu söze uymaz.
+- **Hipotez 2 (söze uyar):** Feed query'ye matches subquery'li OR ekle:
+  `incognito_mode = false OR id IN (SELECT user_id FROM matches WHERE
+  match has requester)`. Karmaşık ama doğru.
+- **Hipotez 3 (en temiz mimari):** `is_discoverable` RPC'sini batch eden
+  yeni bir RPC yaz: `filter_discoverable_ids(ids[], mode, requester) →
+  ids[]`. feed_repository Step 1.5 olarak bunu çağırır. RPC SECURITY
+  DEFINER zaten yazılı, batch versiyonu küçük migration.
+- **Hipotez 4 (pragmatik):** Feed'i `fetch_nearby_profiles` benzeri yeni
+  bir RPC `fetch_discoverable_feed(...)` ile baştan yaz. Daha büyük iş.
+
+**Hide-distance enforce — seçenekler:**
+- **Hipotez A (eksik UI tamamla + render):** Önce settings'e toggle ekle
+  (kolon zaten var). Sonra ProfileCard'a `hideExactDistance` field ekle,
+  fromDb okur, UI render'ı kontrol eder. **Ama mesafe ProfileCard'da
+  şu an hiç yok** → önce mesafe taşıma mekanizması gerek.
+- **Hipotez B (sadece backend hazırlık):** UI toggle ekle + DB kolonunu
+  okuyup ProfileCard'a taşı. Render fix'i mesafe gösterimi mevcut olduğunda.
+
+### Önerilen küçük scope (45 dakika için)
+- **Sadece incognito** kapat (Hipotez 3 batch RPC + feed Step 1.5).
+- **Hide-distance**: ayrı dalga (mesafe render'ı henüz UI'da yok,
+  hazır altyapı eksik — küçük iş değil).
+- ya da: **Sadece incognito** Hipotez 1 (yanlış ama hızlı) — **kabul edilemez,
+  söze uymaz.**
+
+### Kullanıcı kararları (2026-04-23 plan onayı)
+1. **R-kod:** R8 AÇ ("UI_ONLY Settings — Write-Never-Read Pattern")
+2. **Incognito hipotezi:** H3 (Batch RPC `filter_discoverable_ids`)
+3. **Hide-distance:** ayrı dalga (Dalga 6b, mesafe render altyapısı yok)
+4. **Hide-distance toggle UI:** bugün HAYIR (yeni UI_ONLY setting yaratma)
+
+### ADIM 3 SONUÇ — TÜMÜ YEŞİL (2026-04-23 ~12:35 UTC)
+
+**Apply çıktısı:**
+```
+mcp__supabase__apply_migration(
+  project_id="xgkkslbeuydbbcvlhsli",
+  name="filter_discoverable_ids_batch",
+  query=<CREATE FUNCTION + GRANT>
+) → {"success":true}
+```
+
+**3 Senaryo SQL test (BEGIN/ROLLBACK, kalıcı state değişmedi):**
+
+| # | Senaryo | Beklenen | Gerçek |
+|---|---------|----------|--------|
+| 1 | Elena (non-incognito) + Marcus requester | `[elena_id]` | ✅ `[elena_id]` |
+| 2 | Elena (incognito) + match yok | `[]` | ✅ `[]` |
+| 3 | Elena (incognito) + match var | `[elena_id]` | ✅ `[elena_id]` |
+
+**Feed integration:**
+- `lib/data/repositories/feed_repository.dart` Step 1.5 (geo filter'dan
+  sonra, Step 2 query'den önce)
+- RPC çağrısı: `filter_discoverable_ids(toFetch.toList(), mode, userId)`
+- Defense-in-depth: Step 2'deki `.eq('is_paused', false)` ve mode_visible
+  filtreleri korundu (RPC değişirse ek güvenlik)
+- Fail-loud: try/catch yok, RPC exception propagate (R4 örüntüsünden uzak)
+
+**Kod sağlığı:**
+- `flutter analyze --fatal-infos`: `No issues found!` ✅
+- `flutter test`: **257 pass / 2 fail** ✅ (baseline korundu, regresyon sıfır;
+  kalan 2 fail R4 guardrail — R8 ile ilgisiz)
+
+**R-kod durumu sonrası (Dalga 6 sonrası):**
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- R3 AÇIK (`_substantive` filter, ayrı dalga)
+- R4 KISMEN (10/48 catch_(_) düzeltildi, R4 hijyen dalgası bekliyor)
+- R5 ✅ FULLY CLOSED (Dalga 3)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- R7 META (kanıt disiplini)
+- **R8 KISMEN CLOSED** (incognito_mode CLOSED Dalga 6; 7 setting OPEN)
+
+**Advisor beklentisi (post-apply):**
+- `function_search_path_mutable` sayısı **-1** (yeni RPC `SET search_path = public`)
+- `rls_policy_always_true` değişmez (1 kalır, video_update_own intentional)
+
+### Kalan adımlar (commit + push + PR)
+- Commit 1: migration + rollback
+- Commit 2: feed_repository.dart
+- Commit 3: docs (session_notes + known_regressions R8)
+- Push + pre-fill PR URL (DNS sorunu nedeniyle bekleniyor)
+
 
