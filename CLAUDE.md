@@ -66,6 +66,18 @@ CI'da otomatik zorlar.
 | `Supabase.instance.client` (screen/widget içinde) | Veri erişimi mimariyi kırıyor | Yalnızca `lib/data/repositories/` altında |
 | 500+ satır yeni dosya | Split zor, regresyon riski yüksek | Önce split planı sun, sonra yaz |
 
+**CI Baseline (guardrail envanter politikası):**
+
+`no_banned_patterns_test` envanteri kasıtlı **baseline fail** olarak yazıldı.
+CI `conclusion=failure` görünür ama PR-kabul edilebilir sayılır EĞER:
+- `flutter analyze --fatal-infos` yeşil
+- Test sayısı önceki PR'dan artmamış (ör. 257/2 → 257/2, regresyon yok)
+- Yeni banned pattern eklemedi
+
+CI yeşile tam dönüş hedefi: R4 (`catch (_)` kalan 38) + Dalga 5
+(`Supabase.instance.client` kalan 121 dış çağrı) tamamlandığında.
+Şu an **257 pass / 2 fail** hedef baseline'dır; bu 2 fail envanter için.
+
 ---
 
 ## 5. SCOPE CREEP YASAĞI
