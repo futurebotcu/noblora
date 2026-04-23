@@ -184,14 +184,32 @@ syntactically present, semantically inert.
 
 **Tekrar sayısı:** 1 (toplu envanter)
 
-**Status:** OPEN — Dalga 3 kapsamı dışı, **Dalga 3b** (cosmetic-only DROP PR).
+**Status:** FULLY CLOSED (2026-04-23) — Dalga 3b kapsadı.
 
-**Dokunma protokolü (Dalga 3b için):**
-- Davranışsal risk YOK — sadece advisor temizlik
-- Tek migration: 5 `DROP POLICY IF EXISTS ...` komutu
-- Apply sonrası advisor karşılaştırma: 5 cache_key gitmeli
-- Smoke test isteğe bağlı (davranış değişmediği zaten kanıtlı)
-- Düşük öncelik (cosmetic), yüksek öncelikli işler bittikten sonra
+**Kanıt (2026-04-23 ~10:58 UTC):**
+- Migration: `supabase/migrations/20260423105809_drop_r5b_dead_policies.sql`
+- Apply: `mcp__supabase__apply_migration(name="drop_r5b_dead_policies") → {"success":true}`
+- pg_policies post-check (5 hedef policyname): **boş** (5/5 silindi)
+- Advisor `rls_policy_always_true`: **6 → 1 WARN**
+  - 5/5 hedef cache_key kayboldu:
+    - `..._conversation_participants_cp_insert_own` ✅
+    - `..._conversations_conv_insert_own` ✅
+    - `..._matches_matches_insert_system` ✅
+    - `..._real_meetings_rm_insert_own` ✅
+    - `..._video_sessions_video_insert_own` ✅
+  - Kalan 1 satır: `..._video_sessions_video_update_own` (intentional, intra-match)
+- Smoke test: **skip**, gerekçe — Dalga 3 pre-smoke (2026-04-22) bu 5 policy'i
+  zaten dead olarak kanıtladı (her biri authenticated cross-user INSERT'i
+  RLS tarafından reddedildi). Davranışsal değişim beklenmiyor; advisor count
+  düşüşü + pg_policies boş çıktısı tek kanıt.
+- Commit SHA (migration + rollback): `2845e99` (Dalga 3b PR)
+- Rollback: `.claude/dalga-3b-rollback.sql` (standalone, gereksiz beklenir)
+
+**Dokunma protokolü (gelecekte ileride benzer cosmetic dead policies çıkarsa):**
+- Önce pre-smoke ile dead/aktif ayrımı yap (R5b ile aynı pattern: cross-user
+  INSERT/UPDATE RLS'e takılıyor mu?)
+- Dead ise sadece DROP yeterli, replacement gereksiz
+- Apply sonrası advisor count + pg_policies post-check ikili kanıt yeterli
 
 ---
 
