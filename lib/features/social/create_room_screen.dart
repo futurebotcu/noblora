@@ -77,7 +77,8 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
         });
         return;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[room] AI validation failed: $e');
       // AI check failed — allow creation with default score
     }
 

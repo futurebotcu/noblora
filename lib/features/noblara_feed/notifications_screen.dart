@@ -94,7 +94,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ref.invalidate(noblaraUnreadCountProvider);
           ref.invalidate(noblaraNotificationsProvider);
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[notif] mark-read failed: $e');
+      }
     });
   }
 

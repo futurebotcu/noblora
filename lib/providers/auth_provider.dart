@@ -161,7 +161,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Initialization failed — clear any stale session and go to login.
       try {
         await _repo.signOut();
-      } catch (_) { /* Intentional: best-effort cleanup on init failure */ }
+      } catch (e) {
+        debugPrint('[auth] init cleanup signOut failed: $e');
+        /* best-effort cleanup on init failure */
+      }
       state = AuthState(
         isInitialized: true,
         isLoading: false,
@@ -204,7 +207,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Email confirmation disabled — user is immediately signed in.
         // On localhost: auto-verify so the gating flow is skipped in dev.
         if (isDevMode) {
-          try { await _repo.devAutoVerify(); } catch (_) { /* Dev-only auto-verify, non-critical */ }
+          try {
+            await _repo.devAutoVerify();
+          } catch (e) {
+            debugPrint('[auth] dev auto-verify failed: $e');
+            /* Dev-only auto-verify, non-critical */
+          }
         }
         state = AuthState(
           userId: response.user!.id,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/enums/noble_mode.dart';
 import '../../data/models/filter_state.dart';
@@ -46,7 +47,8 @@ class FeedRepository {
           toFetch = toFetch.intersection(nearbyIds);
           if (toFetch.isEmpty) return [];
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[feed] geo filter failed: $e');
         // If geo query fails (no location data etc.), continue without geo filter
       }
     }

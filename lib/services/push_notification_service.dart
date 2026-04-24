@@ -56,7 +56,9 @@ class PushNotificationService {
             try {
               final data = jsonDecode(response.payload!) as Map<String, dynamic>;
               onNotificationTapped?.call(data);
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[push] payload parse failed: $e');
+            }
           }
         },
       );

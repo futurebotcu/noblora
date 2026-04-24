@@ -1203,4 +1203,174 @@ ve gerçek kullanıcı cevapları kayboluyor (canlı R3 etkisi).
 - Push: `dalga-3-r3-substantive-filter` → origin
 - PR #9: "Dalga 3: R3 substantive filter — prompts use _strong only"
 
+---
+
+## Sabah final — 2026-04-24 06:00 (Dalga 3 KAPANIŞ)
+
+### Bugün kapanan
+- **R3 FULLY CLOSED** (sabah 05:30-06:00, Dalga 3, PR #9 → `7cac6ae`)
+
+### Süre + maliyet
+- Toplam: ~30 dakika (keşif 15 dk + kod/test 10 dk + commit/PR/merge 5 dk)
+- Sabah ısınma dalgası — küçük, hedefli, "düşük risk + yüksek değer"
+
+### Kümülatif R-kod durumu (5 gün, 9 squash commit)
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- **R3 ✅ FULLY CLOSED (Dalga 3 — bugün sabah)**
+- R4 KISMEN (38 `catch (_)` kalan, hedef dalga)
+- R5 ✅ FULLY CLOSED (Dalga 3 eski oturum — adlandırma karışıklığı:
+  R5 RLS dalgası "Dalga 3" diye ad almıştı, R3 bu sabah kapandı; iki
+  ayrı iş, aynı isim. Sonraki commit zincirinde R3/R5 ayrımı net.)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- R7 META (kanıt disiplini, her oturumda uygulanıyor)
+- R8 KISMEN (1/8 setting CLOSED: incognito, 7 OPEN)
+
+### Main commit zinciri (9 squash commit — doğrulanmış)
+```
+7cac6ae — Dalga 3: R3 substantive filter (PR #9)     ← bugün sabah
+577e38a — docs: CI baseline policy (PR #8)
+efa37d8 — Dalga 6: Feed incognito enforce (PR #7)
+6c36bf6 — Dalga 3b: R5b cosmetic cleanup (PR #6)
+42aaf75 — Dalga 3: RLS hardening R5 (PR #5)
+8aa837f — Dalga 2c: ProfileDraft R2 (PR #4)
+b044e2e — Dalga 2b: Profile.toJson R1 (PR #3)
+02bf129 — Dalga 2: Profile.copyWith (PR #2)
+0065791 — Dalga 1: .env + catch logs
+```
+
+### Metrikler
+- **Test:** 283 pass / 2 fail (Dalga 3 +26 pass, hâlâ baseline 2 R4
+  fail — CLAUDE.md §4 baseline policy)
+- **Advisor:** 1 `rls_policy_always_true` WARN (intentional
+  `video_update_own`) + `function_search_path_mutable` 59
+- **Production migrations:** 2 apply (Dalga 3 sabah eski + Dalga 6 öğle,
+  bugün migration yok — UI-only fix)
+
+### Dalga 3 detay
+- Değişiklik: 4 dosya, +317/-14 satır (commit `a63e3db` → squash `7cac6ae`)
+- Yeni guardrail: `profile_prompt_filter_guardrail_test.dart`
+  (26 subtest, 4 grup)
+- Türkçe karakter kapsaması test edildi (İstanbul, hayır, hiç içmem, ş)
+
+### Bugünkü öğrenmeler (R3)
+- **"Filtrenin filtresine dikkat et"** — `_strong` zaten ön filtreyken
+  `_substantive` ikinci katmandı. Çift filtreleme + niyet-kullanım
+  mismatch (yorumda "story alanları" diyordu ama prompts'ta da
+  uygulanıyordu).
+- **Magic number tarihçesi:** açıklamasız `minChars=10, minWords=3`
+  eşiği `4206eb1` (2026-04-14) tek commit'te kuruldu, başka spam
+  testi yoktu.
+- **R8 pattern'ine benzer:** "altyapı var, doğru entegrasyon eksik".
+  `_strong` doğru gate, `_substantive` yanlış katmanda eklenmiş.
+- **Yol A test extract'i (`@visibleForTesting`)** doğru tercihti —
+  guardrail olmadan filter sessiz veri kaybına geri dönebilirdi
+  (canlı R3 etkisi gibi).
+
+### Yarın/sonraki için seçenekler (karar taze kafayla)
+- A) **Dalga 4** — R4 `catch (_)` hijyeni (38 örnek, 1-1.5 saat,
+     orta risk; baseline 257/2 → 283/0 hedefi yaklaşır)
+- B) **Dalga 6b** — R8 hide-distance altyapı + enforce (1-1.5 saat)
+- C) **Dalga 5** — direct Supabase çıkarma (3-5 saat, alt dalgalara böl)
+- D) **R6 Video WebRTC** (ayrı sprint, 1-2 hafta)
+
+### Sabah 06:00 — kahvaltı
+Bugün tek zaferdi (R3), yeterli. Kahvaltı + ara, sonra isteğe bağlı
+devam. Bu kayıt commit edilmedi — sonraki dalga commit'iyle birlikte
+gider (R8'in "Gece final" örüntüsü, sıfır overhead).
+
+---
+
+## 2026-04-24 14:00 — Dalga 4: R4 `catch (_)` Hijyeni (KISMEN)
+
+### Hedef
+38 `catch (_)` örneğinden 21'ini düzelt (A-all + B-half). R4 KISMEN
+kapanış, kalan 17 sonraki dalga.
+
+### Envanter (38 toplam → 4 kategori)
+- **A/P0** (4): UI yalan toast / DB fail sessiz. match_detail:131/182,
+  individual_chat:375/426
+- **A/P1** (7): data/security/UX yanlış davranış. feed_repo:49 (R4'ün
+  kendisi!), feed_provider:135 (blocked users görünür!), swipe_repo:81,
+  status:85, chat:316/345, notifications_screen:97
+- **B/P2** (20): fallback doğru, sadece log eksik
+- **B/P3** (7): zaten yorumlu / dispose cleanup
+
+### Yapılan (21 fix)
+
+**A/P0 (4)** — toast konumu + error surface:
+- `match_detail_screen.dart:131` block/hide — catch'te error toast
+- `match_detail_screen.dart:182` report — toast try içine taşındı
+  (LIE DÜZELTME), catch'te error toast
+- `individual_chat_screen.dart:375` block/hide — aynı pattern
+- `individual_chat_screen.dart:426` report — aynı (LIE DÜZELTME)
+
+**A/P1 (7)** — log + gerektiğinde rethrow/error:
+- `feed_repository.dart:49` [feed] geo fail log (R4 kök örneği!)
+- `feed_provider.dart:135` [feed] blocked/hidden fetch **rethrow**
+  (güvenlik: blocked users gösterme riski, dış try yakalayıp error
+  state'e dönüşüyor, UI kullanıcıya hata gösterir)
+- `swipe_repository.dart:81` [swipe] swiped IDs **rethrow** (UX:
+  tekrar swipe gösterme riski)
+- `status_screen.dart:85` [status] 6-paralel fetch log (UI error
+  surface atlandı — _error field yok, scope creep)
+- `individual_chat_screen.dart:316` [chat] expiry log
+- `individual_chat_screen.dart:345` [chat] older messages log
+- `notifications_screen.dart:97` [notif] mark-read log
+
+**B/P2 (8)** — mekanik log:
+- `status_screen.dart:95` [status] AI tier
+- `mini_intro_screen.dart:59` [intro] AI openers
+- `create_room_screen.dart:80` [room] AI validation
+- `push_notification_service.dart:59` [push] payload parse
+- `matches_screen.dart:38` [matches] message_preview
+- `settings_screen.dart:46` [settings] load
+- `interaction_gate_provider.dart:68` [gate] row fetch
+- `notification_provider.dart:84` [notif] fetchUnread
+
+**B/P3 (2)** — mekanik log:
+- `auth_provider.dart:164` [auth] init cleanup
+- `auth_provider.dart:207` [auth] dev auto-verify
+
+### Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (127.8s)
+- `flutter test`: **283 pass / 2 fail** (baseline korundu, regresyon sıfır)
+- `grep "catch (_)" lib/`: 38 → **17** (21 fix, 17 kalan)
+- Banned patterns test: `catch (_)` hâlâ fail (17 kalan > 0) ama sayı
+  yarıya düştü. `Supabase.instance.client` 121 (Dalga 5 dokunulmadı)
+
+### Foundation import eklenen dosyalar (4)
+- `lib/data/repositories/feed_repository.dart`
+- `lib/data/repositories/swipe_repository.dart`
+- `lib/providers/feed_provider.dart`
+- `lib/providers/notification_provider.dart`
+
+### Kalan 17 catch (sonraki dalga — Dalga 4b)
+**12 P2** (mekanik log):
+- onboarding_flow_screen.dart:656, entry_gate_screen.dart:52,
+  end_connection_screen.dart:72, matches_screen.dart:1029/1043,
+  nob_compose_screen.dart:389/407/417, video_call_screen.dart:153,
+  notifications_screen.dart:66, swipe_repository.dart:66,
+  posts_provider.dart:666
+
+**5 P3** (zaten yorumlu / dispose):
+- gemini_service.dart:35, individual_chat_screen.dart:463,
+  comment_provider.dart:64, photos_media_section.dart:151,
+  posts_provider.dart:105
+
+### Süre
+~50 dakika (envanter 20 + fix 20 + test/doğrulama 10)
+
+### Karar yolu
+- **A/P0 toast-taşıma**: 182 ve 426 satırlarında toast `try` DIŞINDA,
+  DB fail etse bile "Report submitted" yalanı gösteriyordu. Toast try
+  içine taşındı + catch'te error toast. 131 ve 375'te toast zaten try
+  içindeydi (silent fail, lie değil), ama yine de catch'e error toast
+  eklendi (görünürlük şartı).
+- **rethrow tercihi**: feed_provider + swipe_repo sessiz fallback
+  kabul edilemez (güvenlik/UX). Dış try error state'e dönüşüyor.
+- **status:85 UI surface eklenmedi**: `_error` field yok, eklemek
+  scope creep. Log yeterli — davranış mevcut durumda (zero counts)
+  kalıyor, logda görünür.
 

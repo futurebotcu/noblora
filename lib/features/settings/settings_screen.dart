@@ -43,7 +43,10 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
           .eq('id', uid)
           .maybeSingle();
       if (row != null) state = row;
-    } catch (_) { state = _defaults(); }
+    } catch (e) {
+      debugPrint('[settings] load failed: $e');
+      state = _defaults();
+    }
   }
 
   Map<String, dynamic> _defaults() => {
