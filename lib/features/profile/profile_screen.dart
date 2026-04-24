@@ -215,15 +215,12 @@ class _CuratedProfile {
   String? get socialEnergy => _strong(raw?.socialEnergy);
 
   // ── prompts (substantive answers only) ────────────────────────────────
-  List<PromptAnswer> get strongPrompts {
-    final prompts = raw?.prompts ?? const <PromptAnswer>[];
-    return prompts
-        .where((p) =>
-            p.hasAnswer &&
-            _substantive(p.answer, minChars: 10, minWords: 3) != null &&
-            _strong(p.question) != null)
-        .toList();
-  }
+  // R3 fix (2026-04-24): prompt answers use `_strong` only — short legitimate
+  // answers like "İstanbul" / "kahve" / "evet" carry information and must
+  // render. `_substantive` thresholds belong on long-form story fields
+  // (longBio, dateBio, currentFocus), not on Q&A prompts.
+  List<PromptAnswer> get strongPrompts =>
+      (raw?.prompts ?? const <PromptAnswer>[]).where(isPromptVisible).toList();
 
   // ── personas (substantive bios only) ──────────────────────────────────
   String? get dateBio =>
@@ -295,6 +292,19 @@ class _CuratedProfile {
   bool get hasPrompts => strongPrompts.isNotEmpty;
   bool get hasPersonas =>
       dateBio != null || bffBio != null || socialBio != null;
+}
+
+/// Whether a prompt Q&A pair is substantial enough to render in
+/// `_PromptStoriesSection`. Uses `_strong` for both fields — no length or
+/// word-count threshold. Short legitimate answers ("İstanbul", "kahve",
+/// "evet") carry information; spam ("asdf", "aaaa", "1234") is already
+/// blocked by `_strong`. Top-level so guardrail tests can import it.
+@visibleForTesting
+bool isPromptVisible(PromptAnswer p) {
+  if (!p.hasAnswer) return false;
+  if (_CuratedProfile._strong(p.question) == null) return false;
+  if (_CuratedProfile._strong(p.answer) == null) return false;
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

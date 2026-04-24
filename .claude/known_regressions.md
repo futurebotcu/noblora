@@ -85,18 +85,48 @@ görünmüyordu. UI tamamen sessizdi.
 
 **Kök neden:** `profile_screen.dart` içinde `_substantive()` helper
 "anlamlı prompt" filtresi yapıyordu ama kriter çok sıkıydı — gerçek
-kullanıcı cevaplarını da eliyordu.
+kullanıcı cevaplarını da eliyordu. `strongPrompts` getter `minChars=10,
+minWords=3` eşiği uyguluyordu; "İstanbul" (8/1), "kahve" (5/1), "evet"
+(4/1) gibi meşru kısa cevaplar `_PromptStoriesSection`'da kayboluyordu.
 
 **Tespit tarihi:** 1 kez (canlıda, kullanıcı raporladı).
 
 **Tekrar sayısı:** 1 (canlı etki)
 
+**Status:** FULLY CLOSED (2026-04-24) — Dalga 3 (R3).
+
+**Kanıt (2026-04-24):**
+- Kod: `lib/features/profile/profile_screen.dart`
+  - `strongPrompts` getter (line 218-224) → `_substantive` çağrısı
+    kaldırıldı, `isPromptVisible` top-level helper kullanır
+  - Yeni top-level `@visibleForTesting bool isPromptVisible(PromptAnswer)`
+    eklendi (`_CuratedProfile` altı). `_strong` ön filtresi (boş /
+    blocklist / repetition / no-letter / `<2` char) korundu — spam yine
+    eleniyor, bilgi taşıyan kısa cevap geçer.
+- Diğer 6 `_substantive` çağrısı (longBio, currentFocus, dateBio, bffBio,
+  socialBio, aboutMe) korundu — bunlar gerçek "story" alanları.
+- Yeni guardrail: `test/guardrails/profile_prompt_filter_guardrail_test.dart`
+  - 26 subtest, 4 grup: meşru kısa cevap görünür / spam gizlenir / soru
+    validation / eski `_substantive` davranışı kırıldı
+  - Türkçe karakter dahil ("İstanbul", "hayır", "hiç içmem", "ş")
+  - Sonuç: **26/26 pass**
+- Full suite: **283 pass / 2 fail** (önceki baseline 257/2 → +26/0,
+  regresyon sıfır; kalan 2 fail R4 banned_patterns, R3 ile ilgisiz)
+- Analyze: `flutter analyze --fatal-infos` → `No issues found!`
+- Karar yolu: Yol A (helper extract). Yol B (sadece kod + manual smoke)
+  reddedildi — sessiz veri kaybı riski + filtre git history'de bir kez
+  yanlış eşik (magic number 14/10/8) ile yazılmıştı, otomatik koruma
+  gerekli. Yol C (`_CuratedProfile` public) reddedildi — scope creep.
+
 **Dokunma protokolü:**
-- `profile_screen.dart:94-106` civarındaki `_substantive` benzeri helperlar'a
-  dokunurken: önce mevcut kullanıcı verisini mock'la, filtre sonrası
-  korunduğunu doğrula
+- `profile_screen.dart:91-102` `_substantive` helper'ı hâlâ var, 6
+  çağrısı korunuyor. Yeni story-tipi alan eklerken bu helper kullanılır.
+- Prompts (Q&A) için `isPromptVisible` kullanılır, `_substantive` DEĞİL.
+  Filter tekrar değiştirilirse `profile_prompt_filter_guardrail_test`
+  yakalar (26 subtest, kısa cevap senaryolarını koruyor).
 - "Boş göstermemek" için eklenen filtreler, gerçek veriyi de eliyor mu
-  kontrolü zorunlu
+  kontrolü zorunlu. `_strong` (boş + blocklist + tekrar + harfsiz)
+  yeterli minimum gate; üstüne ek eşik eklenmeden önce keşif zorunlu.
 
 ---
 
