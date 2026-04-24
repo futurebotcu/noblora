@@ -82,7 +82,11 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
 
       _loaded = true;
       if (mounted) setState(() {});
-    } catch (_) { _loaded = true; }
+    } catch (e, st) {
+      debugPrint('[status] parallel fetch failed: $e\n$st');
+      _loaded = true;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _loadAi(Profile p) async {
@@ -92,7 +96,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
       _ai = await GeminiService.getTierExplanation(
         tier: p.nobTier.name, profileCompleteness: p.profileCompletenessScore,
         communityScore: p.communityScore, depthScore: p.depthScore, followThrough: p.followThroughScore);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[status] AI tier explanation failed: $e');
       _ai = '[AI unavailable] Keep engaging — your profile grows naturally.';
     }
     if (mounted) setState(() => _aiLoading = false);

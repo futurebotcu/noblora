@@ -65,7 +65,8 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
       photoCount: photoCount,
       verifiedPhoto: verified,
     );
-  } catch (_) {
+  } catch (e) {
+    debugPrint('[gate] row fetch failed: $e');
     return const InteractionGate();
   }
 });

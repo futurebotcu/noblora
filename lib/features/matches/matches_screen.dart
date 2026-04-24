@@ -35,7 +35,10 @@ final _messagePreviewProvider = FutureProvider.autoDispose<bool>((ref) async {
     final row = await Supabase.instance.client.from('profiles')
         .select('message_preview').eq('id', uid).maybeSingle();
     return row?['message_preview'] as bool? ?? true;
-  } catch (_) { return true; }
+  } catch (e) {
+    debugPrint('[matches] message_preview fetch failed: $e');
+    return true;
+  }
 });
 
 // ---------------------------------------------------------------------------

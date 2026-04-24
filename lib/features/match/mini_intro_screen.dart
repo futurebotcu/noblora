@@ -56,7 +56,8 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
         otherBio: '',
       );
       setState(() => _openers = openers);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[intro] AI openers failed: $e');
       // Fallback openers
       setState(() => _openers = [
             'Hey $_otherName, nice to connect!',

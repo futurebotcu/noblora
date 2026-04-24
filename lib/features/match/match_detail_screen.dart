@@ -128,7 +128,12 @@ class MatchDetailScreen extends ConsumerWidget {
       if (context.mounted) {
         ToastService.show(context, message: '${match.otherUserName ?? 'User'} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('[action] block/hide failed: $e\n$st');
+      if (context.mounted) {
+        ToastService.show(context, message: '${column == 'blocked_users' ? 'Block' : 'Hide'} failed, try again', type: ToastType.error);
+      }
+    }
   }
 
   static void _showReportSheet(BuildContext context, WidgetRef ref, NobleMatch match) {
@@ -179,9 +184,14 @@ class MatchDetailScreen extends ConsumerWidget {
                       'context': 'match_detail',
                       'context_id': match.id,
                     });
-                  } catch (_) {}
-                  if (context.mounted) {
-                    ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                    if (context.mounted) {
+                      ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                    }
+                  } catch (e, st) {
+                    debugPrint('[action] report failed: $e\n$st');
+                    if (context.mounted) {
+                      ToastService.show(context, message: 'Report failed, try again', type: ToastType.error);
+                    }
                   }
                 },
               )),

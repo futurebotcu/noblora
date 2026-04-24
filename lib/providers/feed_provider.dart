@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/enums/noble_mode.dart';
@@ -132,7 +133,10 @@ class FeedNotifier extends StateNotifier<FeedState> {
           blockedIds = {for (final id in (row['blocked_users'] as List<dynamic>? ?? [])) id as String};
           hiddenIds = {for (final id in (row['hidden_users'] as List<dynamic>? ?? [])) id as String};
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[feed] blocked/hidden users fetch failed: $e');
+        rethrow;
+      }
 
       final feedRepo = _ref.read(feedRepositoryProvider);
       final cards = await feedRepo.fetchFeedProfiles(

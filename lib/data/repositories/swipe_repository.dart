@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 import '../models/match.dart';
@@ -78,8 +79,9 @@ class SwipeRepository {
           .eq('swiper_id', userId)
           .eq('mode', mode);
       return {for (final row in data) row['swiped_id'] as String};
-    } catch (_) {
-      return {};
+    } catch (e) {
+      debugPrint('[swipe] swiped IDs fetch failed: $e');
+      rethrow;
     }
   }
 }

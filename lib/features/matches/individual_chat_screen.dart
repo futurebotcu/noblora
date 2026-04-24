@@ -313,7 +313,10 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       final expired = status == 'expired' || status == 'closed' ||
           (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true);
       if (expired && mounted) setState(() => _isExpired = true);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[chat] expiry check failed: $e');
+      // assume not expired — server will reject truly expired sends
+    }
   }
 
   Future<void> _loadOlderMessages() async {
@@ -342,7 +345,8 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
         _olderMessages.insertAll(0, older);
         _loadingOlder = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[chat] older messages load failed: $e');
       setState(() => _loadingOlder = false);
     }
   }
@@ -372,7 +376,12 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       if (context.mounted) {
         ToastService.show(context, message: '${_item.name} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('[action] block/hide failed: $e\n$st');
+      if (context.mounted) {
+        ToastService.show(context, message: '${column == 'blocked_users' ? 'Block' : 'Hide'} failed, try again', type: ToastType.error);
+      }
+    }
   }
 
   void _showReportSheet(BuildContext context, WidgetRef ref) {
@@ -423,9 +432,14 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                       'context': 'chat',
                       'context_id': widget.matchId,
                     });
-                  } catch (_) {}
-                  if (context.mounted) {
-                    ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                    if (context.mounted) {
+                      ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
+                    }
+                  } catch (e, st) {
+                    debugPrint('[action] report failed: $e\n$st');
+                    if (context.mounted) {
+                      ToastService.show(context, message: 'Report failed, try again', type: ToastType.error);
+                    }
                   }
                 },
               )),

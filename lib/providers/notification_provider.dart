@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
@@ -81,7 +82,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final initial = _filterForBuild(await _repo.fetchUnread(userId));
       _seenIds = initial.map((n) => n.id).toSet();
       state = state.copyWith(notifications: initial, isLoading: false);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[notif] fetchUnread failed: $e');
       state = state.copyWith(isLoading: false);
     }
 
