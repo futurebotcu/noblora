@@ -1030,4 +1030,177 @@ mcp__supabase__apply_migration(
 - Commit 3: docs (session_notes + known_regressions R8)
 - Push + pre-fill PR URL (DNS sorunu nedeniyle bekleniyor)
 
+---
+
+## Gece final — 2026-04-23 (Dalga 6 KAPANIŞ)
+
+### Bugün kapanan
+- **R5b FULLY CLOSED** (sabah 11:30, Dalga 3b, PR #6)
+- **R8 incognito enforce CLOSED** (akşamüstü ~16:00, Dalga 6, PR #7)
+- **CI Baseline policy** dokümante edildi (PR #8, CLAUDE.md §4 alt-bölümü)
+
+### Kümülatif R-kod durumu (4 gün, 8 squash commit)
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- R3 AÇIK (`_substantive` filter prompts, ~30 dk)
+- R4 KISMEN (48 → 38 `catch (_)`, Dalga 4)
+- R5 ✅ FULLY CLOSED (Dalga 3)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- **R8 KISMEN** (1/8 setting CLOSED: `incognito_mode`; 7 OPEN)
+
+### Main commit zinciri (8 squash commit — doğrulanmış)
+```
+577e38a — docs: CI baseline policy (PR #8)           ← şimdi
+efa37d8 — Dalga 6: Feed incognito enforce (PR #7)   ← şimdi
+6c36bf6 — Dalga 3b: R5b cosmetic cleanup (PR #6)
+42aaf75 — Dalga 3: RLS hardening R5 (PR #5)
+8aa837f — Dalga 2c: ProfileDraft R2 (PR #4)
+b044e2e — Dalga 2b: Profile.toJson R1 (PR #3)
+02bf129 — Dalga 2: Profile.copyWith (PR #2)
+0065791 — Dalga 1: .env + catch logs
+```
+
+### Metrikler
+- **Test:** 257 pass / 2 fail (baseline, R4 + Dalga 5 sonrası yeşil hedef)
+- **Advisor:**
+  - `rls_policy_always_true`: 1 WARN (intentional `video_update_own`)
+  - `function_search_path_mutable`: 60+ → 59 (Dalga 6 RPC `SET search_path` bonus)
+- **Production migrations:** 2 apply (Dalga 3 + Dalga 6), 0 kesinti
+- **CI baseline policy:** CLAUDE.md §4'te kayıtlı
+
+### Bugünkü önemli öğrenmeler
+- **Pre-smoke disiplini 3 günlük R5 varsayımını kırdı** — advisor'daki 9
+  WARN'dan kaç tanesi "gerçek bypass" sanıyorduk. Pre-smoke kanıtladı: 2
+  aktif (gating), 1 intentional, 6 dead. Test olmadan yanlış fix yapılacaktı.
+- **CI `conclusion=failure` 4 gündür görmezden geliniyordu** — baseline
+  policy artık CLAUDE.md'de. "Kırmızı CI = her zaman regresyon" varsayımı
+  yanlıştı; pre-existing envanter için kasıtlı.
+- **`is_discoverable` RPC zaten yazılıydı, feed çağırmıyordu** — R8
+  örüntüsü temeli: "altyapı var, entegrasyon eksik". Gelecek setting
+  fix'lerinde önce "backend RPC var mı" diye bak.
+
+### Bugünkü iş yükü (~5 saat Noblora)
+- Sabah 07:35–09:30: Dalga 2c + Dalga 3 (R2 + R5)
+- Öğle ara (12 saat başka projeler)
+- Akşamüstü 10:45–11:30: Dalga 3b (R5b)
+- Akşam 15:00–~17:00: Dalga 6 + docs (R8 partial + CI baseline)
+
+### Yarın için seçenekler (karar taze kafayla)
+- A) **Dalga 3 (R3)** — ~30 dk, `_substantive` filter prompts (en kolay)
+- B) **Dalga 4 (R4)** — ~1.5 saat, `catch (_)` hijyeni 38 örnek (orta risk)
+- C) **Dalga 6b** — ~1–1.5 saat, hide-distance altyapı + enforce
+- D) **Dalga 5** — 3–5 saat, direct Supabase çıkarma (alt dalgalara böl)
+
+### Yarın ilk 15 dakika
+1. CLAUDE.md oku (özellikle yeni §4 CI Baseline alt-bölümü)
+2. known_regressions.md oku (R3, R4, R6, R8)
+3. session_notes.md son kayıt oku (bu rapor)
+4. Dalga seçimi (A/B/C/D)
+5. Seçilen dalga için oturum açılış ritüeli (yeni kayıt + branch)
+
+---
+
+## 2026-04-24 05:30 — Dalga 3: R3 Substantive Filter Prompts
+
+### Hedef (önce keşif)
+`profile_screen.dart` içindeki `_substantive()` helper "anlamlı içerik"
+filtresi yapıyor (line 91-102). Default `minChars=14, minWords=3` ama
+prompt çağrısında `minChars=10, minWords=3` (line 223). Kriter "OR"
+mantığında — biri geçerse içerik gösterilir. Filter çok sıkı olabilir
+ve gerçek kullanıcı cevapları kayboluyor (canlı R3 etkisi).
+
+### Başarı ölçütü (keşif sonrası karar)
+- Ya minChars/minWords düşür (örn 4/2)
+- Ya filter'ı tamamen kaldır (kullanıcı zaten yazdı, paternalizm)
+- `_strong()` ön filtresi yine kalır (boş, blocklist, repetition)
+- Karar keşif sonrası — spam riski vs UX kayıp dengesi
+- Regresyon sıfır (test 257/2 baseline korunmalı)
+
+### Risk
+- Düşük — UI display layer, tek dosya, davranış değişikliği yalnızca
+  render seviyesinde (DB'ye dokunmuyor)
+- Spam riski: minChars tamamen kaldırırsak tek harf prompt'lar
+  gelebilir → `_strong` zaten 2 char altını eliyor, alt güvenlik var
+- 7 farklı çağrı yeri var (longBio, currentFocus, prompts × 1, dateBio,
+  bffBio, socialBio); R3 sadece prompt için ama scope'u sormak şart
+
+### Branch
+- `dalga-3-r3-substantive-filter` (main'den)
+- Bekleyen: dün geceki "Gece final" kaydı (1 dosya değişikliği)
+  bu branch'e taşındı, Dalga 3 commit'iyle birlikte gidecek
+
+### Scope limit (3 değişiklik üst sınırı)
+1. `_substantive` parametre değişikliği VEYA çağrı yerinde override
+2. Test (mevcut prompt verilerinin filter sonrası korunması)
+3. Doc güncelleme (known_regressions R3 + session_notes)
+4'üncüye geçersem DUR + onay iste.
+
+### Karar (keşif sonrası, kullanıcı onayı)
+- **Plan (1):** `_substantive` çağrısını `_strong`'a düşür. Plan (2)
+  (`minChars:4, minWords:1`) reddedildi — `_strong` zaten <2 char
+  filtreliyor, çakışma.
+- **Test yolu A:** `@visibleForTesting bool isPromptVisible(PromptAnswer)`
+  top-level helper. Yol B (manual smoke) reddedildi — sessiz veri
+  kaybı + git history'de magic number filter geçmişi var. Yol C
+  (`_CuratedProfile` public) reddedildi — scope creep.
+
+### Yapılan değişiklikler
+1. **`lib/features/profile/profile_screen.dart`**
+   - `strongPrompts` getter (line 218-224) tek satıra düşürüldü:
+     `(raw?.prompts ?? const <PromptAnswer>[]).where(isPromptVisible).toList()`
+   - Yeni top-level `@visibleForTesting bool isPromptVisible(PromptAnswer)`
+     `_CuratedProfile` altına eklendi. `_CuratedProfile._strong` (private
+     static) aynı library'den çağrılıyor — public alias gereksiz.
+   - Diğer 6 `_substantive` çağrısı dokunulmadı (longBio, currentFocus,
+     dateBio, bffBio, socialBio, aboutMe — story alanları).
+   - Import düzeni: ilk denememde `flutter/foundation.dart` explicit
+     import eklemiştim; `unnecessary_import` info verdi (material zaten
+     foundation export ediyor) → kaldırıldı.
+
+2. **`test/guardrails/profile_prompt_filter_guardrail_test.dart`** (YENİ)
+   - 26 subtest, 4 grup:
+     - Grup 1 (8 test): meşru kısa cevap görünür — İstanbul, kahve,
+       evet, hayır, "hiç içmem", "spor + okuma", "kahve seviyorum",
+       "sabahları erken kalkmayı seviyorum"
+     - Grup 2 (11 test): spam/blocklist gizlenir — asdf/test/na/todo,
+       aaaa, 1234, "...", "a", "ş", "   ", ""
+     - Grup 3 (4 test): soru tarafı validation — boş soru, spam soru,
+       tek char soru, geçerli çift
+     - Grup 4 (3 test): eski `_substantive` davranışı kırıldı
+       regresyonu — "İstanbul" / "kahve" / "hiç içmem" artık görünür
+
+3. **Doc güncellemeleri** (`known_regressions.md` R3 → CLOSED + kanıt;
+   bu kayıt).
+
+### Kanıt (kod sağlığı)
+- `flutter test test/guardrails/profile_prompt_filter_guardrail_test.dart`
+  → **26 pass, 0 fail** (`All tests passed!`)
+- `flutter analyze --fatal-infos` → `No issues found!`
+- `flutter test` (full suite) → **283 pass / 2 fail**
+  - Önceki baseline 257/2 → 283/2 (+26/0, R3 testleri)
+  - Kalan 2 fail R4 banned_patterns guardrail (CLAUDE.md §4 baseline,
+    R3 ile ilgisiz)
+
+### R-kod durumu sonrası
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- **R3 ✅ FULLY CLOSED (Dalga 3 — bu oturum)**
+- R4 KISMEN (38 `catch (_)` kalan)
+- R5 ✅ FULLY CLOSED (Dalga 3 — eski oturum)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- R7 META (kanıt disiplini)
+- R8 KISMEN (1/8 setting CLOSED)
+
+### Kalan adımlar (commit + push + PR — kullanıcı onayı bekleniyor)
+- Commit: 4 dosya
+  - `lib/features/profile/profile_screen.dart`
+  - `test/guardrails/profile_prompt_filter_guardrail_test.dart` (yeni)
+  - `.claude/known_regressions.md`
+  - `.claude/session_notes.md` (bu kayıt + dünkü gece final, dün
+    branch'e taşınmıştı)
+- Push: `dalga-3-r3-substantive-filter` → origin
+- PR #9: "Dalga 3: R3 substantive filter — prompts use _strong only"
+
 
