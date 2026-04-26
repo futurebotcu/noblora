@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../providers/admin_provider.dart';
+import '../../providers/posts_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Admin data models
@@ -54,19 +55,12 @@ final _adminStatsProvider = FutureProvider<_AdminStats>((ref) async {
       postsToday: 8,
     );
   }
-  final db = Supabase.instance.client;
-  final results = await Future.wait([
-    db.from('profiles').select('id'),
-    db.from('photo_verifications').select('id').eq('status', 'pending'),
-    db.from('matches').select('id').inFilter('status', ['pending_video', 'video_scheduled', 'chatting']),
-    db.from('posts').select('id').gte('created_at',
-        DateTime.now().subtract(const Duration(days: 1)).toIso8601String()),
-  ]);
+  final stats = await ref.read(adminRepositoryProvider).fetchStats();
   return _AdminStats(
-    totalUsers: (results[0] as List).length,
-    pendingVerifications: (results[1] as List).length,
-    activeMatches: (results[2] as List).length,
-    postsToday: (results[3] as List).length,
+    totalUsers: stats.totalUsers,
+    pendingVerifications: stats.pendingVerifications,
+    activeMatches: stats.activeMatches,
+    postsToday: stats.postsToday,
   );
 });
 
@@ -90,29 +84,11 @@ final _pendingVerificationsProvider =
       ),
     ];
   }
-  final db = Supabase.instance.client;
-  final rows = await db
-      .from('photo_verifications')
-      .select('user_id, status, photo_url, created_at')
-      .inFilter('status', ['pending', 'manual_review'])
-      .order('created_at')
-      .limit(50);
-
-  if (rows.isEmpty) return [];
-
-  final userIds = rows.map((r) => r['user_id'] as String).toList();
-  final profiles = await db
-      .from('profiles')
-      .select('id, display_name')
-      .inFilter('id', userIds);
-  final profileMap = {
-    for (final p in profiles) p['id'] as String: p['display_name'] as String? ?? 'Unknown'
-  };
-
+  final rows = await ref.read(adminRepositoryProvider).fetchPendingVerifications();
   return rows
       .map((r) => _VerificationItem(
             userId: r['user_id'] as String,
-            displayName: profileMap[r['user_id']] ?? 'Unknown',
+            displayName: r['display_name'] as String,
             type: 'photo',
             status: r['status'] as String,
             photoUrl: r['photo_url'] as String?,
@@ -357,14 +333,7 @@ class _VerificationsTab extends ConsumerWidget {
 
   Future<void> _approve(
       BuildContext context, WidgetRef ref, _VerificationItem item) async {
-    if (!isMockMode) {
-      await Supabase.instance.client
-          .from('photo_verifications')
-          .update({'status': 'approved'}).eq('user_id', item.userId);
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'photo_verified': true}).eq('id', item.userId);
-    }
+    await ref.read(adminRepositoryProvider).approvePhotoVerification(item.userId);
     ref.invalidate(_pendingVerificationsProvider);
     ref.invalidate(_adminStatsProvider);
     if (context.mounted) {
@@ -379,11 +348,7 @@ class _VerificationsTab extends ConsumerWidget {
 
   Future<void> _reject(
       BuildContext context, WidgetRef ref, _VerificationItem item) async {
-    if (!isMockMode) {
-      await Supabase.instance.client
-          .from('photo_verifications')
-          .update({'status': 'rejected'}).eq('user_id', item.userId);
-    }
+    await ref.read(adminRepositoryProvider).rejectPhotoVerification(item.userId);
     ref.invalidate(_pendingVerificationsProvider);
     ref.invalidate(_adminStatsProvider);
     if (context.mounted) {
@@ -543,7 +508,7 @@ class _PostsModerationTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
-      future: _loadRecentPosts(),
+      future: _loadRecentPosts(ref),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -566,12 +531,7 @@ class _PostsModerationTab extends ConsumerWidget {
               content: p['content'] as String,
               authorName: p['author'] as String? ?? 'Unknown',
               onDelete: () async {
-                if (!isMockMode) {
-                  await Supabase.instance.client
-                      .from('posts')
-                      .delete()
-                      .eq('id', p['id'] as String);
-                }
+                await ref.read(postRepositoryProvider).deletePost(p['id'] as String);
                 // ignore: use_build_context_synchronously
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -586,36 +546,8 @@ class _PostsModerationTab extends ConsumerWidget {
     );
   }
 
-  Future<List<Map<String, dynamic>>> _loadRecentPosts() async {
-    if (isMockMode) {
-      return [
-        {'id': 'mock-p1', 'content': 'Hello Noblara!', 'author': 'Ali'},
-        {'id': 'mock-p2', 'content': 'Great community here.', 'author': 'Zeynep'},
-      ];
-    }
-    final rows = await Supabase.instance.client
-        .from('posts')
-        .select('id, content, user_id, created_at')
-        .order('created_at', ascending: false)
-        .limit(30);
-    if (rows.isEmpty) return [];
-
-    final userIds = rows.map((r) => r['user_id'] as String).toSet().toList();
-    final profiles = await Supabase.instance.client
-        .from('profiles')
-        .select('id, display_name')
-        .inFilter('id', userIds);
-    final nameMap = {
-      for (final p in profiles) p['id'] as String: p['display_name'] as String? ?? 'Unknown'
-    };
-
-    return rows
-        .map((r) => {
-              'id': r['id'],
-              'content': r['content'],
-              'author': nameMap[r['user_id']] ?? 'Unknown',
-            })
-        .toList();
+  Future<List<Map<String, dynamic>>> _loadRecentPosts(WidgetRef ref) async {
+    return ref.read(adminRepositoryProvider).fetchRecentPosts();
   }
 }
 
