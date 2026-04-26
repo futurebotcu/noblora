@@ -1761,3 +1761,136 @@ Bucket 4 — other tables (8 site):
 ### Süre
 ~70 dakika (envanter 20 + repo+method 15 + 22 site refactor 25 + analyze/test 5 + docs/commit 5)
 
+---
+
+## 2026-04-XX — Dalga 5c1: Realtime + Auth Refactor (R9 KISMEN ilerleme)
+
+### Bağlam
+Dalga 5b sonrası 73 dış ihlal kaldı. 5c1 hedefi Auth (~6) + Realtime/Channel (~9).
+Push static service (push_notification_service.dart, 2 site) Provider DI pattern'e
+sığmıyor — 5d'ye taşındı (kapsam temizliği). Net 5c1 = **13 site**.
+
+### Hedef
+- 13 site refactor (4 auth + 9 realtime/stream)
+- 1 yeni repository (RealtimeRepository) + 1 yeni provider
+- 8 yeni method (2 auth: resetPasswordForEmail, refreshSession + 6 realtime/stream)
+- 73 → 60 (-13); test 284/1 baseline korunur
+
+### Branch
+`dalga-5c1-realtime-auth` (main `160fabb`'dan)
+
+### Scope limit
+1. ADIM 1: envanter + tasarım (kod yok)
+2. ADIM 2: 13 fix + 1 yeni repo + 8 yeni method
+3. ADIM 3: test + commit + PR
+4'üncü iş çıkarsa DUR + onay iste.
+
+### ADIM 1 — Envanter
+- Auth: 6 site (end_conn 1, settings 2, auth_provider 1, push 2)
+  - Push 2 site → 5d (static service Provider DI dışı)
+  - Net 5c1 auth: **4 site**
+- Realtime: 9 site (5 channel build + 3 dispose + 1 stream)
+
+Karar matrisi:
+- AuthRepository.resetPasswordForEmail(email) — 1 yeni method
+- AuthRepository.refreshSession() — 1 yeni method
+- AuthRepository mevcut getCurrentUserId/Email — 1 site (end_conn) için kullanılır
+- Realtime için domain-specific subscribe method'lar (6) + ortak unsubscribe (1)
+
+### ADIM 2 — Fix (13 site + 1 yeni repo + 8 yeni method)
+
+**Yeni dosya (2):**
+- `lib/data/repositories/realtime_repository.dart` — sadece `unsubscribe(RealtimeChannel?)` central dispose
+- `lib/providers/realtime_provider.dart` — provider wrapper
+
+**AuthRepository ek (2 method):**
+- `resetPasswordForEmail(String email)` — wraps `_supabase.auth.resetPasswordForEmail`
+- `refreshSession()` — wraps `_supabase.auth.refreshSession()`
+
+**Domain repository ek (6 method):**
+- `MatchRepository.subscribeToMatches(uid, void Function(Map))` → RealtimeChannel?
+  - Dual-filter (user1_id + user2_id) içeride 2x onPostgresChanges chain
+- `PostRepository.subscribeToFeedEvents(void Function(Map))` → RealtimeChannel?
+  - Generic feed_events INSERT subscription (caller dispatches on event_type)
+- `CommentRepository.subscribeToCommentEvents(postId, void Function(Map))` → RealtimeChannel?
+  - Filter (post_id + comment_new) içeride encapsulated
+- `MessagesRepository.subscribeToTyping(convId, currentUid, void Function(Map))` → RealtimeChannel?
+  - Broadcast event 'typing' + currentUser self-filter içeride
+- `EventRepository.subscribeToEventMessages(eventId, void Function(Map))` → RealtimeChannel?
+  - PostgresChanges INSERT on event_messages, eventId filter içeride
+- `VideoSessionRepository.streamCallDecisions(sessionId)` → Stream<List<Map<String, dynamic>>>
+  - `.from('call_decisions').stream(primaryKey).eq()` — caller .listen() yapar
+
+**Pattern:**
+- Tüm subscribe method'lar `RealtimeChannel?` döner (mock mode'da null)
+- Caller `_channel = ref.read(repoProvider).subscribeToX(...)` pattern
+- Dispose: `ref.read(realtimeRepositoryProvider).unsubscribe(_channel)` (3 yerde)
+  veya `_channel?.unsubscribe()` (channel referansının kendi method'u, 2 yerde)
+
+**Refactor sites (13):**
+
+Auth (4):
+- `auth_provider.dart:133` → `_repo.refreshSession()` (mevcut Notifier'ın `_repo` field'ı)
+- `settings_screen.dart:428-429` → `_changePassword` async refactor:
+  `final email = await repo.getCurrentUserEmail() ?? ''; await repo.resetPasswordForEmail(email);`
+  Caller `_changePassword(context, ref)` (signature değişti, line 186 update edildi)
+- `end_connection_screen.dart:88` → `final senderId = await ref.read(authRepositoryProvider).getCurrentUserId();`
+  Map içi `'sender_id': senderId,` (örnek bir önceki davranışta `currentUser?.id` ile aynı)
+  - **Not:** Aynı bloktaki `from('messages').insert(...)` (line 86) hâlâ direct CRUD — Bucket B kapsamında bekliyor (5b'de hariç tutulmuştu, yeni MessagesRepo method gerek)
+
+Realtime (9):
+- `match_provider.dart:74-98` (1 site, multi-line) → `subscribeToMatches`
+- `posts_provider.dart:127` → `subscribeToFeedEvents`
+- `posts_provider.dart:105` → `realtimeRepo.unsubscribe`
+- `comment_provider.dart:79` → `subscribeToCommentEvents`
+- `comment_provider.dart:64` → `realtimeRepo.unsubscribe`
+- `individual_chat_screen.dart:130` → `subscribeToTyping`
+- `event_chat_screen.dart:39` → `subscribeToEventMessages`
+- `event_chat_screen.dart:69` → `realtimeRepo.unsubscribe`
+- `post_call_decision_screen.dart:78` → `streamCallDecisions().listen(...)`
+
+**İmports:**
+- 4 dosyaya `realtime_provider.dart` eklendi (3 unused çıkıp kaldırıldı sonradan — match_provider, individual_chat: bu iki dosya `_channel?.unsubscribe()` kullanıyor, removeChannel değil → realtime_provider gerek yok)
+- 1 dosyada `auth_provider.dart` eklendi (end_connection)
+- 1 dosyada `supabase_flutter` kaldırıldı (post_call_decision: stream method'a taşındıktan sonra import gerekmedi)
+
+### ADIM 3 — Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (100.8s)
+  - İlk run 3 unused_import (post_call_decision supabase_flutter, match_provider+individual_chat realtime_provider) — kaldırıldı
+- `flutter test`: **284 pass / 1 fail** (regresyon SIFIR)
+- `grep -rn "Supabase.instance.client" lib/ | grep -v repos | grep -v wrapper`:
+  73 → **60** (-13 net)
+- `git diff --stat`: 16 lib dosyası, +209/-104 satır (+ 2 yeni dosya)
+
+### Davranış kontrolü (R7)
+- AuthRepository.refreshSession/resetPasswordForEmail birebir aynı Supabase API
+- Subscribe method'lar `onPostgresChanges` chain'ini içeride birebir kuruyor — filter, schema, table, callback parametre'leri korundu
+- typing self-filter (sender_id == currentUserId) içeri taşındı, davranış birebir
+- comment filter (post_id + comment_new) içeri taşındı, davranış birebir
+- Mock mode `RealtimeChannel?` null döner, caller null check otomatik no-op
+- Dispose timing aynı: caller'ın StatefulWidget.dispose / Notifier.dispose içinde
+- Auth state, RLS, çağrı path'leri etkilenmez
+
+### Hariç tutulan (5d kapsamı)
+- `push_notification_service.dart:115, 133` — Static service, Provider DI pattern dışı.
+  Setter injection veya parameter passing gerek; arch karar. 5d'de "Services" dalgasıyla.
+- `auth_provider.dart:125, 126` — `Supabase.instance.client.rpc('update_last_active')` ve
+  `rpc('calculate_maturity_score')` — RPC, 5d kapsamı.
+
+### R-kod durumu sonrası
+- R1-R5b ✅ FULLY CLOSED
+- R4 ✅ FULLY CLOSED
+- R6 AÇIK (Video WebRTC)
+- R8 KISMEN (1/8 setting)
+- **R9 KISMEN ilerleme:** 121 → 97 (5a) → 73 (5b) → **60** (5c1); -61 toplam, ~60 kalan
+
+### Sonraki dalgalar
+- **Dalga 5c2** (~13 site): Profile reads (Bucket 2/3) — Profile model genişletme (R1 protokolü)
+  veya dedicated read method'lar (~9 yeni method)
+- **Dalga 5d** (~30+): Admin (8) + Push static service (4) + Device service (4) + Storage (9) +
+  Edge Functions (5) + RPC (5)
+
+### Süre
+~50 dakika (envanter 10 + 8 method+1 repo 15 + 13 site refactor 15 + analyze/test/cleanup 5 + docs/commit 5)
+
+

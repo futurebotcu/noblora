@@ -183,7 +183,7 @@ class SettingsScreen extends ConsumerWidget {
           _Card(children: [
             _Row(Icons.email_outlined, 'Email', value: auth.email ?? 'Not set'),
             _Row(Icons.lock_outlined, 'Change Password',
-                onTap: () => _changePassword(context)),
+                onTap: () => _changePassword(context, ref)),
           ]),
 
           // ── 4. PRIVACY & VISIBILITY ─────────────────────────────
@@ -423,12 +423,14 @@ class SettingsScreen extends ConsumerWidget {
     };
   }
 
-  void _changePassword(BuildContext context) {
+  Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
     if (isMockMode) return;
-    Supabase.instance.client.auth.resetPasswordForEmail(
-      Supabase.instance.client.auth.currentUser?.email ?? '',
-    );
-    ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
+    final repo = ref.read(authRepositoryProvider);
+    final email = await repo.getCurrentUserEmail() ?? '';
+    await repo.resetPasswordForEmail(email);
+    if (context.mounted) {
+      ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
+    }
   }
 
   void _showContent(BuildContext context, String title, String body) {

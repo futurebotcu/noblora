@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/realtime_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 
@@ -36,19 +37,15 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
 
   void _subscribeRealtime() {
     if (isMockMode) return;
-    _channel = Supabase.instance.client.channel('event-chat-${widget.eventId}');
-    _channel!.onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'event_messages',
-      filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'event_id', value: widget.eventId),
-      callback: (payload) {
+    _channel = ref.read(eventRepositoryProvider).subscribeToEventMessages(
+      widget.eventId,
+      (_) {
         if (!mounted) return;
         // Only refresh messages, not the entire event+participants
         ref.read(eventDetailProvider(widget.eventId).notifier).refreshMessages();
         _scrollToBottom();
       },
-    ).subscribe();
+    );
   }
 
   void _scrollToBottom() {
@@ -65,9 +62,7 @@ class _EventChatScreenState extends ConsumerState<EventChatScreen> {
 
   @override
   void dispose() {
-    if (_channel != null && !isMockMode) {
-      Supabase.instance.client.removeChannel(_channel!);
-    }
+    ref.read(realtimeRepositoryProvider).unsubscribe(_channel);
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();

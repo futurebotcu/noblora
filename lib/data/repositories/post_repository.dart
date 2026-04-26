@@ -199,6 +199,24 @@ class PostRepository {
     }
   }
 
+  /// Subscribe to all INSERTs on `feed_events` (post_new / comment_new /
+  /// reaction_change / echo_change / second_thought). Caller dispatches on
+  /// `event_type`. Returns null in mock mode.
+  RealtimeChannel? subscribeToFeedEvents(
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    if (isMockMode) return null;
+    return _supabase!
+        .channel('public:feed_events')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'feed_events',
+          callback: (payload) => onChange(payload.newRecord),
+        )
+        .subscribe();
+  }
+
   Future<List<Post>> fetchLastNobs(String userId, {int limit = 3}) async {
     if (isMockMode) return [];
     final rows = await _supabase!

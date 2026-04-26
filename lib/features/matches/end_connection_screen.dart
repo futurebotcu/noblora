@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/toast_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../services/gemini_service.dart';
 
@@ -83,9 +84,10 @@ Respond with JSON only:
         // Send the farewell as a system message
         final match = ref.read(matchProvider).matches.where((m) => m.id == widget.matchId).firstOrNull;
         if (match?.conversationId != null) {
+          final senderId = await ref.read(authRepositoryProvider).getCurrentUserId();
           await Supabase.instance.client.from('messages').insert({
             'conversation_id': match!.conversationId,
-            'sender_id': Supabase.instance.client.auth.currentUser?.id,
+            'sender_id': senderId,
             'content': message,
             'is_system': true,
             'mode': match.mode,

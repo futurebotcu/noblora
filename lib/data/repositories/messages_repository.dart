@@ -9,6 +9,28 @@ class MessagesRepository {
 
   MessagesRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
+  /// Subscribe to broadcast `typing` events on the conversation channel and
+  /// invoke [onOtherTyping] only for messages from someone other than
+  /// [currentUserId] (filters out the local echo). Returns null in mock mode.
+  RealtimeChannel? subscribeToTyping(
+    String conversationId,
+    String currentUserId,
+    void Function(Map<String, dynamic>) onOtherTyping,
+  ) {
+    if (isMockMode) return null;
+    return _supabase!
+        .channel('typing:$conversationId')
+      ..onBroadcast(
+        event: 'typing',
+        callback: (payload) {
+          final senderId = payload['user_id'] as String?;
+          if (senderId == null || senderId == currentUserId) return;
+          onOtherTyping(payload);
+        },
+      )
+      ..subscribe();
+  }
+
   // ---------------------------------------------------------------------------
   // Guard: reject sends to expired/closed matches
   // ---------------------------------------------------------------------------

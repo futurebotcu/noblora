@@ -8,6 +8,7 @@ import '../data/models/post_comment.dart';
 import '../data/repositories/comment_repository.dart';
 import 'auth_provider.dart';
 import 'posts_provider.dart';
+import 'realtime_provider.dart';
 import 'supabase_client_provider.dart';
 
 final commentRepositoryProvider = Provider<CommentRepository>((ref) {
@@ -61,7 +62,7 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
     final ch = _channel;
     if (ch != null) {
       try {
-        Supabase.instance.client.removeChannel(ch);
+        _ref.read(realtimeRepositoryProvider).unsubscribe(ch);
       } catch (e) {
         debugPrint('[comment] dispose channel: $e');
       }
@@ -72,24 +73,12 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
   void _subscribeRealtime() {
     if (isMockMode) return;
     try {
-      // Subscribe to feed_events for any comment_new event tied to this post.
-      // post_comments has open SELECT RLS so we could also stream that table
-      // directly, but going through feed_events keeps everything consistent
-      // with the wider realtime fan-out.
-      _channel = Supabase.instance.client
-          .channel('detail:comments:$postId')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'feed_events',
-            callback: (payload) {
-              final row = payload.newRecord;
-              if (row['post_id'] != postId) return;
-              if (row['event_type'] != 'comment_new') return;
-              load();
-            },
-          )
-          .subscribe();
+      // feed_events fan-out keeps comment refresh consistent with the wider
+      // realtime stream; filter (post_id + comment_new) is encapsulated in
+      // CommentRepository.subscribeToCommentEvents.
+      _channel = _ref
+          .read(commentRepositoryProvider)
+          .subscribeToCommentEvents(postId, (_) => load());
     } catch (e) {
       debugPrint('[comments:realtime] subscribe failed: $e');
     }

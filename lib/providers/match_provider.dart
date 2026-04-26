@@ -71,31 +71,9 @@ class MatchNotifier extends StateNotifier<MatchListState> {
     if (isMockMode) return;
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return;
-    _realtimeChannel = Supabase.instance.client
-        .channel('matches_$userId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'matches',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user1_id',
-            value: userId,
-          ),
-          callback: (_) => load(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'matches',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user2_id',
-            value: userId,
-          ),
-          callback: (_) => load(),
-        )
-        .subscribe();
+    _realtimeChannel = _ref
+        .read(matchRepositoryProvider)
+        .subscribeToMatches(userId, (_) => load());
   }
 
   @override

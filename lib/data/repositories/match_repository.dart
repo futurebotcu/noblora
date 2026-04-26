@@ -76,6 +76,43 @@ class MatchRepository {
     );
   }
 
+  /// Subscribe to realtime UPDATE/INSERT/DELETE events on the `matches`
+  /// table for [userId] (filtered server-side via two `onPostgresChanges`
+  /// listeners — one for user1_id, one for user2_id). Returns the channel
+  /// so the caller can unsubscribe via `RealtimeRepository.unsubscribe`.
+  /// Returns null in mock mode (no realtime backend).
+  RealtimeChannel? subscribeToMatches(
+    String userId,
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    if (isMockMode) return null;
+    return _supabase!
+        .channel('matches_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'matches',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user1_id',
+            value: userId,
+          ),
+          callback: (payload) => onChange(payload.newRecord),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'matches',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user2_id',
+            value: userId,
+          ),
+          callback: (payload) => onChange(payload.newRecord),
+        )
+        .subscribe();
+  }
+
   List<NobleMatch> _mockMatches(String userId) {
     return [];
   }
