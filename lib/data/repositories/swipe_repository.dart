@@ -64,7 +64,8 @@ class SwipeRepository {
     if (result == null) return null;
     try {
       return NobleMatch.fromJson(result as Map<String, dynamic>);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[swipe] match parse failed: $e');
       return null;
     }
   }

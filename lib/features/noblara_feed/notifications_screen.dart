@@ -63,7 +63,8 @@ final noblaraUnreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
         .rpc('fetch_noblara_unread_count');
     if (res is num) return res.toInt();
     return 0;
-  } catch (_) {
+  } catch (e) {
+    debugPrint('[notif] noblara unread count fetch failed: $e');
     return 0;
   }
 });

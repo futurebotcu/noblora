@@ -61,7 +61,9 @@ class CommentsNotifier extends StateNotifier<CommentsState> {
     if (ch != null) {
       try {
         Supabase.instance.client.removeChannel(ch);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[comment] dispose channel: $e');
+      }
     }
     super.dispose();
   }

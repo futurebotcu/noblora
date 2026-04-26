@@ -148,7 +148,11 @@ class PhotosMediaSection extends ConsumerWidget {
         final segments = Uri.parse(oldUrl).pathSegments;
         final storagePath = segments.length >= 2 ? segments.sublist(segments.length - 2).join('/') : null;
         if (storagePath != null) {
-          try { await Supabase.instance.client.storage.from('profile-photos').remove([storagePath]); } catch (_) {}
+          try {
+            await Supabase.instance.client.storage.from('profile-photos').remove([storagePath]);
+          } catch (e) {
+            debugPrint('[photos] orphan cleanup: $e');
+          }
         }
       }
     } catch (e) {

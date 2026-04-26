@@ -653,7 +653,8 @@ class _LocationPageState extends State<_LocationPage> {
         result['lat'] as double?,
         result['lng'] as double?,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[onboard] GPS location failed: $e');
       setState(() => _error = 'Location access failed. Try searching manually.');
     }
     setState(() => _gpsLoading = false);

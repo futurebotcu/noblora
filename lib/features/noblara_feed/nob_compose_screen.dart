@@ -386,7 +386,9 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       await prefs.setString(_kAutoSaveCaption, _captionCtrl.text);
       await prefs.setString(_kAutoSaveType, _nobType);
       await prefs.setBool(_kAutoSaveAnon, _isAnonymous);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[compose] auto-save failed: $e');
+    }
   }
 
   Future<void> _restoreAutoSave() async {
@@ -404,7 +406,9 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
           _isAnonymous = anon;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[compose] auto-restore failed: $e');
+    }
   }
 
   Future<void> _clearAutoSave() async {
@@ -414,7 +418,9 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       await prefs.remove(_kAutoSaveCaption);
       await prefs.remove(_kAutoSaveType);
       await prefs.remove(_kAutoSaveAnon);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[compose] auto-clear failed: $e');
+    }
   }
 
   static bool _isSpammy(String text) {
