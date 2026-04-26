@@ -1893,4 +1893,108 @@ Realtime (9):
 ### Süre
 ~50 dakika (envanter 10 + 8 method+1 repo 15 + 13 site refactor 15 + analyze/test/cleanup 5 + docs/commit 5)
 
+---
+
+## 2026-04-XX — Dalga 5d1: Admin Repository (R9 KISMEN ilerleme)
+
+### Bağlam
+Dalga 5c1 sonrası 60 dış ihlal kaldı. Admin (8 site, hepsi `admin_screen.dart`)
+karışık 5d basket'inden ilk dalga olarak izole edildi. Diğer 5d'ler (Push,
+Device, Storage, Edge Functions, RPC) ayrı dalgalar.
+
+### Hedef
+- 8 admin_screen Supabase çağrısı → AdminRepository (yeni)
+- 5 yeni method + 1 reuse (PostRepository.deletePost mevcut)
+- 60 → 52 (-8); test 284/1 baseline korunur
+
+### Branch
+`dalga-5d1-admin-repo` (main `4884cdc`'dan)
+
+### Scope limit
+1. ADIM 1: envanter (kod yok)
+2. ADIM 2: 8 fix + 1 yeni repo + 5 yeni method
+3. ADIM 3: test + commit + PR
+
+### ADIM 1 — Envanter
+8 site, 6 logical operation:
+- 2 local var (`final db = ...`) — 4-paralel stats fetch + verification queue join
+- 2 update (approve: photo_verifications + profiles in sequence)
+- 1 update (reject: photo_verifications)
+- 1 delete (post moderation, reuse PostRepository.deletePost mevcut)
+- 2 select (recent posts + author profile join)
+
+### ADIM 2 — Fix
+
+**Yeni dosya (2):**
+- `lib/data/repositories/admin_repository.dart` — 5 method
+- `lib/providers/admin_provider.dart`
+
+**Method imzaları:**
+- `fetchStats() → Future<({int totalUsers, int pendingVerifications, int activeMatches, int postsToday})>`
+  - 4 paralel COUNT-only select (profiles + photo_verifications eq 'pending' + matches inFilter + posts gte 'created_at - 1 day')
+  - Mock mode: zero record (caller `_adminStatsProvider` zaten kendi `_AdminStats` mock'unu provider seviyesinde tutuyor — repository defansive)
+- `fetchPendingVerifications() → Future<List<Map<String, dynamic>>>`
+  - photo_verifications inFilter 'pending'/'manual_review' + profiles join
+  - Mock: empty list (caller provider seviyesinde 2 mock _VerificationItem tutuyor)
+  - Raw Map dön: caller `_VerificationItem` mapping'ini koruyor (DTO'yu repository'ye taşımak admin_screen private bağımlılığı)
+- `approvePhotoVerification(uid) → Future<void>`
+  - 2 sıralı UPDATE: photo_verifications status=approved + profiles photo_verified=true
+  - Original davranış korundu: ilk fail olursa ikinci çalışmaz
+- `rejectPhotoVerification(uid) → Future<void>` — tek update
+- `fetchRecentPosts({limit=30}) → Future<List<Map<String, dynamic>>>`
+  - posts select + profiles join, merged Map shape (`id`, `content`, `author`)
+  - Mock: 2 mock post (orijinal `_loadRecentPosts` mock items birebir)
+
+**Reuse (1):** `PostRepository.deletePost(postId)` — mock guard mevcut, admin RLS
+server-side aynı kontrolü yapıyor.
+
+**Refactored 8 sites:**
+- Site #1 (line 57, stats provider) → `fetchStats()` + record→DTO map
+- Site #2 (line 93, verification provider) → `fetchPendingVerifications()` + Map→DTO map
+- Sites #3+#4 (line 361/364, _approve) → `approvePhotoVerification(uid)` tek call
+- Site #5 (line 383, _reject) → `rejectPhotoVerification(uid)`
+- Site #6 (line 570, post delete inline) → `postRepositoryProvider.deletePost(id)`
+- Sites #7+#8 (line 596/604, _loadRecentPosts) → `fetchRecentPosts()`
+  - `_loadRecentPosts` signature `_loadRecentPosts(WidgetRef ref)` (caller line 511 ref geçti)
+
+**Imports:**
+- admin_screen: `supabase_flutter` kaldırıldı; `admin_provider.dart` + `posts_provider.dart` eklendi
+- Diff: 1 dosya değişti, +15/-83 satır (büyük inline kod blokları repository'ye taşındı)
+
+### ADIM 3 — Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (2.8s)
+- `flutter test`: **284 pass / 1 fail** (regresyon SIFIR)
+- `grep "Supabase.instance.client" lib/ | grep -v repos | grep -v wrapper`:
+  60 → **52** (-8 net)
+- admin_screen.dart artık 0 Supabase.instance.client çağrısı
+
+### Davranış kontrolü (R7)
+- SQL filter birebir: eq, inFilter, gte, order, limit hepsi korundu
+- approvePhotoVerification 2 UPDATE sıralı (ilk fail → ikinci skip)
+- Mock mode caller seviyesinde DTO list'leri (provider'da `if (isMockMode) return [_VerificationItem...];`)
+  korundu; repository defansive boş döner
+- RLS: `is_admin = true` server-side kontrol, repository'ye taşımak değiştirmez
+- _PostModerationCard onDelete callback aynı API (PostRepository.deletePost mevcut method)
+- Join logic (verification + profile name, posts + author name) repository içinde aynı
+
+### R-kod durumu sonrası
+- R1-R5b ✅ FULLY CLOSED
+- R4 ✅ FULLY CLOSED
+- R6 AÇIK
+- R8 KISMEN (1/8)
+- **R9 KISMEN ilerleme:** 121 → 97 → 73 → 60 → **52** (5d1); -69 toplam, ~52 kalan
+
+### Sonraki dalgalar
+- **Dalga 5c2** (~13): Profile reads — Profile model genişletme (R1 protokolü)
+- **Dalga 5d2** (~9): Storage (galleries + profile-photos upload/url/remove) — yeni StorageRepository
+- **Dalga 5d3** (~4): Push static service — setter injection veya parameter passing
+- **Dalga 5d4** (~4): DeviceService — yeni DeviceRepository
+- **Dalga 5d5** (~5): Edge Functions invoke — yeni FunctionService veya domain repo extension
+- **Dalga 5d6** (~5): RPC çağrıları (auth_provider rpc, mood_map rpc, vs.)
+- **Dalga 5d7** (~12): Diğer kalanlar (status_screen complex, posts_provider local var, etc.)
+
+### Süre
+~30 dakika (envanter 5 + repo+method 10 + 8 site refactor 10 + analyze/test 3 + docs/commit 5)
+
+
 

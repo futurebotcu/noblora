@@ -404,9 +404,10 @@ DIŞINDA 121 ihlal oluştu.
 - **Dalga 5a (Provider DI):** CLOSED — 26 satır taşındı, wrapper kuruldu, test mocking altyapısı bonus
 - **Dalga 5b (Direct CRUD):** CLOSED — 22 site refactored, 7 method + 1 yeni repo (UserReportRepository)
 - **Dalga 5c1 (Realtime + Auth):** CLOSED — 13 site, 8 method + 1 yeni repo (RealtimeRepository)
+- **Dalga 5d1 (Admin):** CLOSED — 8 site, 5 method + 1 yeni repo (AdminRepository) + 1 reuse
 - **Dalga 5c2 (Profile reads ~13):** OPEN — Profile model genişletme + dedicated method'lar
-- **Dalga 5d (Admin + Push + Device + Storage + Edge Funcs + RPC ~30+):** OPEN
-- Toplam ihlal: 121 → 97 (5a) → 73 (5b) → **60** (5c1) — toplam -61
+- **Dalga 5d2-5d7 (Storage/Push/Device/Edge/RPC/Diğer ~44):** OPEN
+- Toplam ihlal: 121 → 97 (5a) → 73 (5b) → 60 (5c1) → **52** (5d1) — toplam -69
 
 **Kanıt (Dalga 5b, 2026-04-XX):**
 - Yeni dosya: `lib/data/repositories/user_report_repository.dart` (abuse central) +
