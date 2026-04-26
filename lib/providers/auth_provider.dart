@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, isDevMode;
 import '../data/repositories/auth_repository.dart';
 import '../services/push_notification_service.dart';
+import 'profile_provider.dart';
 import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -95,10 +96,11 @@ String _friendlyError(Object e) {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
+  final Ref _ref;
   StreamSubscription<dynamic>? _authSub;
   Timer? _refreshTimer;
 
-  AuthNotifier(this._repo) : super(const AuthState()) {
+  AuthNotifier(this._repo, this._ref) : super(const AuthState()) {
     initialize();
   }
 
@@ -122,8 +124,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       // Update last active + trigger maturity score recalculation
       if (!isMockMode && id != null) {
-        Supabase.instance.client.rpc('update_last_active', params: {'p_user_id': id}).ignore();
-        Supabase.instance.client.rpc('calculate_maturity_score', params: {'p_user_id': id}).ignore();
+        _repo.touchLastActive(id).ignore();
+        _ref.read(profileRepositoryProvider).recalculateMaturityScore(id).ignore();
       }
       // Periodic session refresh — keeps JWT fresh, prevents stale tokens
       if (!isMockMode && id != null) {
@@ -268,5 +270,5 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repo = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repo);
+  return AuthNotifier(repo, ref);
 });

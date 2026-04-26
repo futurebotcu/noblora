@@ -2082,6 +2082,111 @@ Dalga 5d1 sonrası 52 dış ihlal. 5d basket'inden Storage izole edildi:
 ### Süre
 ~25 dakika (envanter 5 + repo+method 5 + 9 site refactor 10 + analyze/test/cleanup 3 + docs/commit 2)
 
+---
+
+## 2026-04-XX — Dalga 5d4: RPC Refactor (R9 KISMEN ilerleme)
+
+### Bağlam
+Dalga 5d2 sonrası 43 dış ihlal. RPC envanteri (`Supabase.instance.client.rpc`)
+single-line grep 5 yakaladı; multi-line RPC'ler (3 mood_map + 1 feed_provider
++ 2 notifications) eklenince **gerçek toplam 8 RPC**. Hepsi tek dalgada (5d4).
+
+### Hedef
+- 8 RPC çağrısı → 3 mevcut repo extension + 2 yeni repo (5 method)
+- 43 → 35 (-8); test 284/1 baseline korunur
+
+### Branch
+`dalga-5d4-rpc-refactor` (main `77a5bdb`'dan)
+
+### ADIM 1 — Envanter
+8 RPC, 4 dosya:
+- auth_provider × 2 (update_last_active, calculate_maturity_score) — fire-forget
+- feed_provider × 1 (decrement_rewinds) — awaited
+- mood_map_screen × 3 (fetch_country_insight_data, fetch_country_moods, fetch_country_mood_detail)
+- notifications_screen × 2 (fetch_noblara_unread_count, mark_noblara_notifications_read)
+
+### ADIM 2 — Fix
+
+**Mevcut repo'lara ek (3 method):**
+- `AuthRepository.touchLastActive(uid)` → fire-forget RPC update_last_active
+- `ProfileRepository.recalculateMaturityScore(uid)` → fire-forget RPC calculate_maturity_score
+- `SuperLikeRepository.decrementRewinds(uid)` → awaited RPC decrement_rewinds
+
+**Yeni dosya #1: `MoodMapRepository` (3 method):**
+- `fetchCountryInsightData(countryCode)` → Map<String, dynamic>
+- `fetchCountryMoods()` → List<Map<String, dynamic>>
+- `fetchCountryMoodDetail(countryCode)` → Map<String, dynamic>
+- Caller `CountryInsightData.fromJson(...)` / `CountryMood.fromJson(...)` /
+  `CountryMoodDetail.fromJson(...)` parsing korur (DTO bağımlılığı önlendi)
+- + `lib/providers/mood_map_provider.dart`
+
+**Yeni dosya #2: `NoblaraNotificationRepository` (2 method):**
+- `fetchUnreadCount()` → int (`if (res is num) return res.toInt();` parse içeride)
+- `markAllRead()` → void
+- + `lib/providers/noblara_notification_provider.dart`
+- 5d7 ileride notifications_screen:49 (`noblara_notifications` direct .from()) bu repo'ya taşınabilir
+
+**Caller refactor (8 site):**
+
+Auth (2):
+- auth_provider:125 → `_repo.touchLastActive(id).ignore()`
+- auth_provider:126 → `_ref.read(profileRepositoryProvider).recalculateMaturityScore(id).ignore()`
+- **AuthNotifier ek:** `final Ref _ref;` field eklendi (constructor `(this._repo, this._ref)`).
+  Provider `AuthNotifier(repo, ref)` güncellendi. Tek call site (provider definition).
+
+Feed (1):
+- feed_provider:214 → `await repo.decrementRewinds(userId);` (mevcut SuperLikeRepository inline pattern korundu)
+
+Mood map (3):
+- mood_map:175 → `ref.read(moodMapRepositoryProvider).fetchCountryInsightData(...)` + `CountryInsightData.fromJson(res)`
+- mood_map:233 → `ref.read(moodMapRepositoryProvider).fetchCountryMoods()` + `.map(CountryMood.fromJson).toList()`
+- mood_map:1140 → `ref.read(moodMapRepositoryProvider).fetchCountryMoodDetail(...)` + `CountryMoodDetail.fromJson(res)`
+
+Notifications (2):
+- notifications:62 → `await ref.read(noblaraNotificationRepositoryProvider).fetchUnreadCount()`
+- notifications:92 → `await ref.read(noblaraNotificationRepositoryProvider).markAllRead()`
+
+### ADIM 3 — Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (4.0s)
+  - İlk run: `_ref` undefined (auth_provider:127) — AuthNotifier `_ref` field eklenince çözüldü
+- `flutter test`: **284 pass / 1 fail** (regresyon SIFIR)
+- `grep "Supabase.instance.client" lib/ | grep -v repos | grep -v wrapper`:
+  43 → **35** (-8 net)
+
+### Davranış kontrolü (R7)
+- RPC adları + params birebir korundu (`update_last_active`, `calculate_maturity_score`, `decrement_rewinds`, `fetch_country_insight_data`, `fetch_country_moods`, `fetch_country_mood_detail`, `fetch_noblara_unread_count`, `mark_noblara_notifications_read`)
+- `.ignore()` fire-forget pattern caller'da preserve (sites #1, #2)
+- `await` pattern caller'da preserve (sites #3-#8)
+- Return parsing: mood_map raw Map/List, notifications int parse repo içinde
+- DTO mapping (`CountryInsightData.fromJson` vs.) caller'da kaldı (admin pattern)
+- SECURITY DEFINER RPC'ler server-side aynı (caller user değişmez, RPC mantığı aynı)
+- isMockMode guard her yeni method'da preserve
+
+### İmport temizliği
+- mood_map_screen, notifications_screen, feed_provider, auth_provider'da
+  `supabase_flutter` import kaldı:
+  - mood_map_screen: line 187 functions.invoke (5d3 ileride)
+  - notifications_screen: line 49 direct .from() (5d7 ileride)
+  - feed_provider: SuperLikeRepository inline pattern (5d sonrası provider olur)
+  - auth_provider: hâlâ Supabase types (`AuthState`) kullanıyor
+
+### R-kod durumu sonrası
+- R1-R5b ✅ FULLY CLOSED, R4 ✅
+- R6 AÇIK
+- R8 KISMEN
+- **R9 KISMEN ilerleme:** 121 → 97 → 73 → 60 → 52 → 43 → **35** (5d4); -86 toplam, ~35 kalan
+
+### Sonraki dalgalar
+- **Dalga 5c2** (~13): Profile reads — Profile model genişletme (R1 protokolü)
+- **Dalga 5d3** (~5): Edge Functions invoke (gemini, city_search, nob_compose, mood_map, country-insight)
+- **Dalga 5d5** (~4): Push static service — setter injection
+- **Dalga 5d6** (~4): DeviceService — yeni DeviceRepository
+- **Dalga 5d7** (~9): noblara_notifications direct CRUD + status_screen complex + posts_provider local var + diğer
+
+### Süre
+~30 dakika (envanter 5 + 4 dosya+8 method 10 + 8 site refactor 10 + analyze/fix/test 3 + docs/commit 2)
+
+
 
 
 
