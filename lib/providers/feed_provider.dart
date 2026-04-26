@@ -211,8 +211,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
     if (userId != null && !isMockMode) {
       final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
       await repo.deleteSwipe(swiperId: userId, targetId: card.id);
-      await Supabase.instance.client
-          .rpc('decrement_rewinds', params: {'uid': userId});
+      await repo.decrementRewinds(userId);
     }
     state = state.copyWith(
       cards: [card, ...state.cards],

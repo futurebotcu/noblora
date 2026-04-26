@@ -72,4 +72,12 @@ class AuthRepository {
     if (isMockMode) return;
     await _supabase!.auth.refreshSession();
   }
+
+  /// Bump the user's `last_active_at` server-side. Caller fires-and-forgets
+  /// (no return value, no error surfacing — drift in last-active timestamp
+  /// is acceptable; failure tolerated).
+  Future<void> touchLastActive(String userId) async {
+    if (isMockMode) return;
+    await _supabase!.rpc('update_last_active', params: {'p_user_id': userId});
+  }
 }

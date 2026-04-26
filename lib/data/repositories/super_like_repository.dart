@@ -133,6 +133,13 @@ class SuperLikeRepository {
     await _supabase!.rpc('increment_profile_views', params: {'uid': profileUserId});
   }
 
+  /// Spend one of the user's remaining rewinds (paired with a `deleteSwipe`
+  /// in the same flow). Server-side RPC clamps at zero.
+  Future<void> decrementRewinds(String userId) async {
+    if (isMockMode) return;
+    await _supabase!.rpc('decrement_rewinds', params: {'uid': userId});
+  }
+
   List<WhoLikedItem> _mockItems(String seed) => [
         WhoLikedItem(
           userId: 'mock-$seed-1',

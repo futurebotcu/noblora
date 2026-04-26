@@ -130,6 +130,15 @@ class ProfileRepository {
         .eq('id', userId);
   }
 
+  /// Trigger a server-side maturity score recalculation for [userId]. Caller
+  /// fires-and-forgets (no return; failures tolerated, score recomputed
+  /// next session if this attempt is dropped).
+  Future<void> recalculateMaturityScore(String userId) async {
+    if (isMockMode) return;
+    await _supabase!
+        .rpc('calculate_maturity_score', params: {'p_user_id': userId});
+  }
+
   /// Updates mode-specific bio and avatar — both column names are confirmed
   /// to exist in the real schema (date_bio, bff_bio, social_bio, etc.).
   Future<void> updatePersona({

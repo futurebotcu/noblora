@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../providers/noblara_notification_provider.dart';
 
 // ---------------------------------------------------------------------------
 // NoblaraNotification model + provider
@@ -59,10 +60,9 @@ final noblaraNotificationsProvider =
 final noblaraUnreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
   if (isMockMode) return 0;
   try {
-    final res = await Supabase.instance.client
-        .rpc('fetch_noblara_unread_count');
-    if (res is num) return res.toInt();
-    return 0;
+    return await ref
+        .read(noblaraNotificationRepositoryProvider)
+        .fetchUnreadCount();
   } catch (e) {
     debugPrint('[notif] noblara unread count fetch failed: $e');
     return 0;
@@ -89,8 +89,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     Future.microtask(() async {
       if (isMockMode) return;
       try {
-        await Supabase.instance.client
-            .rpc('mark_noblara_notifications_read');
+        await ref.read(noblaraNotificationRepositoryProvider).markAllRead();
         if (mounted) {
           ref.invalidate(noblaraUnreadCountProvider);
           ref.invalidate(noblaraNotificationsProvider);

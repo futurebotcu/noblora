@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../providers/mood_map_provider.dart';
 import 'widgets/world_map_view.dart';
 
 // ---------------------------------------------------------------------------
@@ -172,11 +173,10 @@ final countryInsightDataProvider = FutureProvider.autoDispose
       dataQuality: 'moderate',
     );
   }
-  final res = await Supabase.instance.client.rpc(
-    'fetch_country_insight_data',
-    params: {'p_country': countryCode},
-  );
-  return CountryInsightData.fromJson(Map<String, dynamic>.from(res as Map));
+  final res = await ref
+      .read(moodMapRepositoryProvider)
+      .fetchCountryInsightData(countryCode);
+  return CountryInsightData.fromJson(res);
 });
 
 final countryAISummaryProvider = FutureProvider.autoDispose
@@ -230,13 +230,8 @@ final countryMoodsProvider =
       ),
     ];
   }
-  final res = await Supabase.instance.client.rpc('fetch_country_moods');
-  if (res is List) {
-    return res
-        .map((r) => CountryMood.fromJson(Map<String, dynamic>.from(r)))
-        .toList();
-  }
-  return const [];
+  final rows = await ref.read(moodMapRepositoryProvider).fetchCountryMoods();
+  return rows.map(CountryMood.fromJson).toList();
 });
 
 // ---------------------------------------------------------------------------
@@ -1137,11 +1132,10 @@ final countryDetailProvider = FutureProvider.autoDispose
       samples: const [],
     );
   }
-  final res = await Supabase.instance.client.rpc(
-    'fetch_country_mood_detail',
-    params: {'p_country': countryCode},
-  );
-  return CountryMoodDetail.fromJson(Map<String, dynamic>.from(res as Map));
+  final res = await ref
+      .read(moodMapRepositoryProvider)
+      .fetchCountryMoodDetail(countryCode);
+  return CountryMoodDetail.fromJson(res);
 });
 
 // ---------------------------------------------------------------------------
