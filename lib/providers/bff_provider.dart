@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/bff_suggestion.dart';
 import '../data/models/bff_plan.dart';
@@ -7,6 +6,7 @@ import '../data/models/filter_state.dart';
 import '../data/repositories/bff_suggestion_repository.dart';
 import 'auth_provider.dart';
 import 'filter_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ─── State ─────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ class BffState {
 final bffRepositoryProvider = Provider<BffSuggestionRepository>((ref) {
   if (isMockMode) return BffSuggestionRepository();
   return BffSuggestionRepository(
-    supabase: Supabase.instance.client,
+    supabase: ref.watch(supabaseClientProvider),
   );
 });
 

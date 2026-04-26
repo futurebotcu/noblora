@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/app_notification.dart';
 import '../data/repositories/notification_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   if (isMockMode) return NotificationRepository();
-  return NotificationRepository(supabase: Supabase.instance.client);
+  return NotificationRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------

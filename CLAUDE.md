@@ -63,7 +63,7 @@ CI'da otomatik zorlar.
 | `catch (_)` | Sessiz fail — geçmişte distance filter'ı soldurdu (R4) | `catch (e, st)` + log + UI surface |
 | `// ignore: unused_*` | Ya dead code ya yarım iş | Ya tamamla ya sil |
 | `// TODO` / `// FIXME` / `// HACK` / `// XXX` | Koda çöp bırakma | `.claude/todos.md`'ye yaz |
-| `Supabase.instance.client` (screen/widget içinde) | Veri erişimi mimariyi kırıyor | Yalnızca `lib/data/repositories/` altında |
+| `Supabase.instance.client` (screen/widget içinde) | Veri erişimi mimariyi kırıyor | Yalnızca `lib/data/repositories/` altında **veya** wrapper `lib/providers/supabase_client_provider.dart` (tek noktadan erişim, Dalga 5a) |
 | 500+ satır yeni dosya | Split zor, regresyon riski yüksek | Önce split planı sun, sonra yaz |
 
 **CI Baseline (guardrail envanter politikası):**

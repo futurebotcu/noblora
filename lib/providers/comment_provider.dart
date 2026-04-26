@@ -8,10 +8,11 @@ import '../data/models/post_comment.dart';
 import '../data/repositories/comment_repository.dart';
 import 'auth_provider.dart';
 import 'posts_provider.dart';
+import 'supabase_client_provider.dart';
 
 final commentRepositoryProvider = Provider<CommentRepository>((ref) {
   if (isMockMode) return CommentRepository();
-  return CommentRepository(supabase: Supabase.instance.client);
+  return CommentRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 class CommentsState {

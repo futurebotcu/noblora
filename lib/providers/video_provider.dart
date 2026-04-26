@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/video_session.dart';
 import '../data/repositories/video_session_repository.dart';
+import 'supabase_client_provider.dart';
 
 final videoSessionRepositoryProvider = Provider<VideoSessionRepository>((ref) {
   if (isMockMode) return VideoSessionRepository();
-  return VideoSessionRepository(supabase: Supabase.instance.client);
+  return VideoSessionRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------

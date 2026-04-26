@@ -13,7 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// - `// ignore: unused_*` — dead code / yarım iş
 /// - `// TODO` / `// FIXME` / `// HACK` / `// XXX` — koda çöp
 /// - `Supabase.instance.client` (screen/widget içinde) — yalnızca
-///   `lib/data/repositories/` altında olabilir
+///   `lib/data/repositories/` altında VEYA tek noktadan client wrapper
+///   olan `lib/providers/supabase_client_provider.dart` içinde olabilir.
+///   Wrapper, repository pattern'in giriş noktası — tüm client erişimi
+///   buradan provider injection ile geçer (Dalga 5a, 2026-04-27).
 void main() {
   final libDir = Directory('lib');
 
@@ -67,7 +70,12 @@ void main() {
         final pattern = RegExp(r'Supabase\.instance\.client');
         final scoped = dartFiles.where((f) {
           final p = f.path.replaceAll(r'\', '/');
-          return !p.contains('/data/repositories/');
+          if (p.contains('/data/repositories/')) return false;
+          // Wrapper provider — tek noktadan client erişimi (Dalga 5a).
+          if (p.endsWith('lib/providers/supabase_client_provider.dart')) {
+            return false;
+          }
+          return true;
         }).toList();
         final violations = _scan(scoped, pattern);
         expect(

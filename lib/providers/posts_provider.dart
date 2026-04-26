@@ -9,10 +9,11 @@ import '../data/repositories/post_repository.dart';
 import '../data/repositories/comment_repository.dart';
 import '../data/repositories/echo_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) {
   if (isMockMode) return PostRepository();
-  return PostRepository(supabase: Supabase.instance.client);
+  return PostRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------
@@ -284,10 +285,10 @@ class PostsNotifier extends StateNotifier<PostsState> {
 
     final commentRepo = isMockMode
         ? CommentRepository()
-        : CommentRepository(supabase: Supabase.instance.client);
+        : CommentRepository(supabase: _ref.read(supabaseClientProvider));
     final echoRepo = isMockMode
         ? EchoRepository()
-        : EchoRepository(supabase: Supabase.instance.client);
+        : EchoRepository(supabase: _ref.read(supabaseClientProvider));
 
     final allPostIds = posts.map((p) => p.id).toList();
     final commentCounts = await commentRepo.commentCountsBatch(allPostIds);
@@ -371,7 +372,7 @@ class PostsNotifier extends StateNotifier<PostsState> {
     final post = state.posts[idx];
     final repo = isMockMode
         ? EchoRepository()
-        : EchoRepository(supabase: Supabase.instance.client);
+        : EchoRepository(supabase: _ref.read(supabaseClientProvider));
 
     // Optimistic update
     final wasEchoed = post.hasEchoed;

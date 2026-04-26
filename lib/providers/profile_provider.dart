@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/profile.dart';
 import '../data/repositories/profile_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -112,7 +112,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   if (isMockMode) return ProfileRepository();
-  return ProfileRepository(supabase: Supabase.instance.client);
+  return ProfileRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 final profileProvider =

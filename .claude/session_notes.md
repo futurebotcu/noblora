@@ -1487,3 +1487,133 @@ Dalga 3'te `unnecessary_import` hatasından çıkarılan ders korundu.
 ### Süre
 ~25 dakika (envanter 5 + fix 10 + analyze/test 7 + docs/commit 3)
 
+---
+
+## 2026-04-27 sabah — Dalga 5a: Supabase.instance.client Provider DI Refactor
+
+### Bağlam
+Banned pattern guardrail (CLAUDE.md §4): `lib/data/repositories/` DIŞINDA
+`Supabase.instance.client` yasak. Önceki baseline: 121 dış ihlal.
+R4 mantığında alt dalgalara bölündü (5a → 5b → 5c → 5d).
+
+### Hedef (Dalga 5a)
+- En mekanik 26 satır: Provider DI kalıbı (top-level + Notifier inline)
+- Yeni wrapper: `supabase_client_provider.dart` — tek noktadan client
+- Davranış değişikliği YOK, sadece referans yolu değişti
+- Test mocking altyapısı kuruldu (ProviderScope override ile bonus)
+
+### Branch
+`dalga-5a-supabase-direct-batch1` (main `0dfb7c3`'dan)
+
+### Scope limit (3 değişiklik)
+1. ADIM 1: envanter + kategori (kod yok)
+2. ADIM 2: 26 fix + 1 yeni dosya
+3. ADIM 3: test + commit + PR
+4'üncü iş çıkarsa DUR + onay iste.
+
+### ADIM 1 — Envanter + kategori (sabah)
+
+`grep -rn "Supabase.instance.client" lib/ --include="*.dart"` → **122 satır**
+(121 dış + 1 iç `room_repository.dart:131` allowlist'te). Doğrulandı.
+
+Kategori dağılımı (121 dış ihlal):
+| Kat. | Açıklama | Sayı | Dalga |
+|------|----------|------|-------|
+| **A** | Provider DI (top-level + inline) | **26** | **5a (bu)** |
+| B | Direct CRUD profiles/rooms/events | ~38 | 5b |
+| C | Storage upload/url/remove | 9 | 5b/5c |
+| D | Edge Functions invoke | 5 | 5b |
+| E | RPC çağrıları | 6 | 5b |
+| F | Auth (refreshSession, currentUser) | 7 | 5c |
+| G | Realtime/Channel | 9 | 5c |
+| H | Admin screen | 8 | 5c/5d |
+| I | Services (push, device) | 8 | 5c/5d |
+| J | Status local var | 2 | 5b |
+| K | Diğer | ~3 | 5b |
+
+### ADIM 2 — Fix (26 satır, 16 dosya + 1 yeni)
+
+**Yeni dosya:** `lib/providers/supabase_client_provider.dart`
+```dart
+final supabaseClientProvider = Provider<SupabaseClient>(
+  (ref) => Supabase.instance.client,
+);
+```
+
+**11 single-line provider** (top-level provider tek satır, başka Supabase
+kullanımı yok → `supabase_flutter` import'u kaldırıldı, `supabase_client_provider`
+import'u eklendi):
+- bff_provider.dart:45
+- messages_provider.dart:10
+- notification_provider.dart:12
+- real_meeting_provider.dart:11
+- note_provider.dart:11
+- video_provider.dart:11
+- profile_provider.dart:115
+- gating_provider.dart:115
+- mini_intro_provider.dart:11
+- check_in_provider.dart:8
+- verification_provider.dart:28
+
+**5 multi-line provider** (başka Supabase kullanımı var → `supabase_flutter`
+import'u kaldı, `supabase_client_provider` import'u eklendi):
+- feed_provider.dart:20, :29 (top-level), :211 (Notifier `_ref.read(...)`)
+- match_provider.dart:15, :20 (top-level)
+- event_provider.dart:42 (top-level)
+- room_provider.dart:16 (top-level)
+- posts_provider.dart:15 (top-level), :287, :290, :374 (Notifier `_ref.read(...)`)
+- comment_provider.dart:14 (top-level)
+- auth_provider.dart:265 (top-level)
+
+**1 ekran** (`my_nobs_screen.dart:37, :40`): `_myNobsProvider` `FutureProvider`
+gövdesi içinde `ref` parametresi mevcut → `ref.watch(supabaseClientProvider)`.
+Başka Supabase kullanımı yok, import değiştirildi.
+
+**Pattern (Provider/FutureProvider gövdesinde):** `ref.watch(supabaseClientProvider)`
+**Pattern (Notifier method içinde):** `_ref.read(supabaseClientProvider)`
+
+### Wrapper allowlist sorunu (kararı yapılan istisna)
+Wrapper `supabase_client_provider.dart` zorunlu olarak `Supabase.instance.client`
+çağırıyor (line 6 yorum + line 8 kod). Guardrail bunu yakalardı.
+Çözüm: `test/guardrails/no_banned_patterns_test.dart` filter'ına allowlist
+eklendi:
+```dart
+if (p.endsWith('lib/providers/supabase_client_provider.dart')) return false;
+```
+Gerekçe: wrapper, repository pattern'in giriş noktası — kuralın amacı tam
+burada (tek noktadan erişim). CLAUDE.md §4 tablosu da güncellendi
+("**veya** wrapper `lib/providers/supabase_client_provider.dart` (tek noktadan
+erişim, Dalga 5a)").
+
+### ADIM 3 — Kanıt
+
+- `flutter analyze --fatal-infos`: **No issues found!** (4.1s)
+  - `unnecessary_import` riski 11 single-line dosyada vardı, hepsi `supabase_flutter` import'u kaldırıldı → temiz
+- `flutter test`: **284 pass / 1 fail**
+  - Önceki baseline 284/1 → 284/1 (regresyon SIFIR)
+  - Tek kalan fail: `Supabase.instance.client only under...` — 97 ihlal kaldı (Dalga 5b/5c/5d)
+- `grep -rn "Supabase.instance.client" lib/ | grep -v "lib/data/repositories/"`:
+  121 → **97** (net **-24**, 26 satır taşındı + 2 satır wrapper'da yaşıyor)
+- `git diff --stat`: 16 lib dosyası + 1 test + 1 CLAUDE.md = 18 dosya, +44/-41 (yeni dosya hariç +12 satır)
+
+### Davranış kontrolü (R7)
+- Provider lazy semantics korundu (Provider zaten lazy, wrapper de Provider) ✓
+- `Supabase.initialize` (main.dart) DOKUNULMADI ✓
+- Auth, RLS, real-time, storage tüm flow'lar etkilenmez (sadece referans yolu değişti) ✓
+- Mock mode flag (`isMockMode`) korundu (her provider'da if kontrolü aynı) ✓
+- Test ortamında ProviderScope override ile mock client geçilebilir (Dalga 5b/5c için altyapı bonus) ✓
+
+### R-kod durumu sonrası
+- R1 ✅ FULLY CLOSED, R2 ✅, R3 ✅, R4 ✅, R5 ✅, R5b ✅
+- R6 AÇIK (Video WebRTC)
+- R8 KISMEN (1/8 setting)
+- **R9 (yeni) KISMEN AÇIK** — Direct Supabase pattern: 121 → 97 (24 fix, 97 kalan)
+
+### Sonraki dalgalar
+- **Dalga 5b**: Direct CRUD (~38 satır profile/rooms/events update/select). Repository genişletme gerekiyor (generic `setColumn` method?). 1.5-2 saat.
+- **Dalga 5c**: Realtime + Auth + Storage (~25 satır). Repository pattern'e dökme zor, dedicated wrapper'lar lazım.
+- **Dalga 5d**: Admin + Services (~16 satır). AdminRepository, PushTokenRepository, DeviceRepository yarat.
+
+### Süre
+~50 dakika (envanter 15 + fix 25 + analyze/test 5 + docs/commit 5)
+
