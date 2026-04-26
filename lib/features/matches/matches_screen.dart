@@ -1039,7 +1039,7 @@ class _RequestsTabState extends ConsumerState<_RequestsTab> {
 
   Future<void> _declineReachOut(String id) async {
     try {
-      await Supabase.instance.client.from('reach_outs').update({'status': 'ignored'}).eq('id', id);
+      await ref.read(bffRepositoryProvider).markReachOutIgnored(id);
       if (mounted) {
         ToastService.show(context, message: 'Request declined', type: ToastType.system);
         _load();

@@ -1617,3 +1617,147 @@ erişim, Dalga 5a)").
 ### Süre
 ~50 dakika (envanter 15 + fix 25 + analyze/test 5 + docs/commit 5)
 
+---
+
+## 2026-04-XX — Dalga 5b: Direct CRUD Refactor (R9 KISMEN ilerleme)
+
+### Bağlam
+Dalga 5a sonrası 97 dış ihlal kaldı. Kategori B (Direct CRUD) hedeflendi:
+~38 satır direct `.from('table').update/insert()` çağrısı. Plan envanteri
+sonrası **22 sites** scope'a alındı; Bucket 2/3 (~13 profile read'leri)
+Profile model getter eksikliği nedeniyle 5c'ye taşındı (R1 model değişikliği
+protokolü scope dışı).
+
+### Hedef (Dalga 5b)
+- 22 mekanik CRUD çağrısını ilgili repository'lere taşı
+- 1 yeni repository (UserReportRepository) + 7 yeni method
+- 97 → 75 (-22 ihlal); test 284/1 baseline korunur
+
+### Branch
+`dalga-5b-direct-crud` (main `0269cef`'dan)
+
+### Scope limit (3 değişiklik)
+1. ADIM 1: envanter + kategori (kod yok)
+2. ADIM 2: 22 fix + 1 yeni repo + 7 yeni method
+3. ADIM 3: test + commit + PR
+4'üncü iş çıkarsa DUR + onay iste.
+
+### ADIM 1 — Envanter (sabah)
+Direct CRUD `.from('table')` filter sonrası ~38-41 satır. ProfileRepository
+genişletme analizinde keşif: `updateProfile(uid, Map)` mevcut → 12 update
+çağrısı için yeni method GEREKMİYOR.
+
+Kategorize:
+- Bucket 1 (profiles UPDATE, 10 site): mevcut `updateProfile` ile direkt
+- Block/Hide pair'leri (4 site): yeni `addToBlockList` + `addToHideList`
+- Bucket 4 (other tables, 8 site): yeni method'lar
+
+Bucket 2/3 (profile reads, ~13) **5c'ye taşındı** — Profile model getter
+eksikliği (themeMode/activeModes/blockedUsers etc. yok). Çözüm yolları:
+A) ProfileModel field genişlet (R1 protokolü scope dışı), B) generic
+`fetchProfileRow(uid) → Map` method (kuralın "generic setColumn YASAK"
+ruhuyla çelişir), C) her use case için dedicated method (~9 yeni method
+patlaması). Üçü de 5b kapsam fazlası, 5c'ye temel yaklaşım kararıyla
+beraber.
+
+### ADIM 2 — Fix (22 sites + 7 method + 1 repo)
+
+**Yeni dosya (1):**
+- `lib/data/repositories/user_report_repository.dart` — `submitReport(...)`
+  abuse reporting central path. user_reports tablosuna insert.
+- `lib/providers/user_report_provider.dart` — provider wrapper
+
+**ProfileRepository ek (2 method):**
+- `addToBlockList(uid, otherId)` — read 'blocked_users' + append + write
+- `addToHideList(uid, otherId)` — same with 'hidden_users'
+- Read-then-write semantics korundu (davranış değişmez); future tightening
+  için yorum eklendi (atomic `array_append` SQL helper)
+
+**Diğer repository ekleri (5 method):**
+- `GatingRepository.updateEntryMessage(uid, code)`
+- `MatchRepository.fetchStatusAndExpiry(matchId)` — record dönen lightweight
+- `BffSuggestionRepository.markReachOutIgnored(reachOutId)`
+- `EventRepository.updateEvent(eventId, Map)`
+- `RoomRepository.updateRoom(roomId, Map)`
+
+**Refactor sites (22):**
+
+Bucket 1 — profiles UPDATE (10 site):
+- settings_screen.dart × 5 (74, 164, 514, 537, 573) — `updateProfile(uid, map)`
+- appearance_provider.dart:100 — Notifier `_persist`
+- active_modes_provider.dart:99 — `toggle`
+- onboarding_flow_screen.dart:130 — initial profile save (35-key map)
+- edit_profile_provider.dart:70 — `save()` with `state.draft.toUpdateMap()`
+- status_provider.dart:74 — `activateBoost`
+
+Block/Hide pairs (4 site, 2 logical = 1 read + 1 write each):
+- match_detail_screen.dart:124 + :127 → tek `addToBlockList`/`addToHideList`
+- individual_chat_screen.dart:372 + :375 → aynı
+
+Bucket 4 — other tables (8 site):
+- entry_gate_screen.dart:41 → `gating_status` update via `updateEntryMessage`
+- matches_screen.dart:1042 → `reach_outs` update via `markReachOutIgnored`
+- match_detail_screen.dart:180 → `user_reports` insert via `submitReport`
+- individual_chat_screen.dart:428 → aynı
+- individual_chat_screen.dart:305 → `matches` select via `fetchStatusAndExpiry`
+- individual_chat_screen.dart:460 → aynı (chat send guard)
+- edit_event_screen.dart:90 → `events` update via `updateEvent`
+- edit_room_screen.dart:72 → `rooms` update via `updateRoom`
+
+**Imports eklenen 8 dosya:**
+- settings_screen, appearance_provider, active_modes_provider, status_provider:
+  `profile_provider.dart`
+- match_detail_screen: `profile_provider.dart` + `user_report_provider.dart`
+- individual_chat_screen: `user_report_provider.dart` (profile + match zaten vardı)
+- entry_gate_screen: `gating_provider.dart`
+- edit_event_screen: `event_provider.dart`
+- edit_room_screen: `room_provider.dart`
+
+**Imports kaldırılan 4 dosya** (`supabase_flutter` artık kullanılmıyor):
+- match_detail_screen.dart (3 site → 0, tüm Supabase çağrıları gitti)
+- entry_gate_screen.dart (1 site → 0)
+- edit_event_screen.dart (1 site → 0)
+- edit_room_screen.dart (1 site → 0)
+
+### ADIM 3 — Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (2.3s)
+  - İlk run'da 1 unused_import (match_detail), kaldırıldı
+- `flutter test`: **284 pass / 1 fail** (regresyon SIFIR)
+- `grep -rn "Supabase.instance.client" lib/ | grep -v repositories | grep -v wrapper`:
+  97 → **73** (-24 net; 22 site + 2 yeni repo eklerinde kullanım var ama
+  repository içinde, allowlist'te)
+- `git diff --stat`: 18 dosya değişti, 181 ekle/81 sil (+yeni 2 dosya)
+
+### Davranış kontrolü (R7)
+- `updateProfile(uid, Map)` mevcut method, davranış birebir aynı (eq id, update map, return Profile)
+- `addToBlockList`/`addToHideList`: read-then-write korundu (atomic değil)
+- `fetchStatusAndExpiry`: maybeSingle ile null-safe; orijinal davranış
+  (status, chatExpiresAt) ikilisini eşit semantikle dönüyor — `if (match == null) return`
+  edge-case'i tek-null ikilisinde aynı sonuç verir (expired → false)
+- `submitReport`: insert key'leri birebir korundu (`reporter_id`, `reported_user_id`,
+  `reason`, `context`, `context_id`); `context_id` her iki call site'ta `String?`
+  olduğu için null geçirilebilir (preserve exact)
+- `markReachOutIgnored`: `update({status: ignored})` korundu
+- `updateEntryMessage`, `updateEvent`, `updateRoom`: birebir update map
+- RLS bypass riski: yok — repository içinde aynı `eq('id', x)` filter'lar
+
+### R-kod durumu sonrası
+- R1-R5b ✅ FULLY CLOSED
+- R4 ✅ FULLY CLOSED
+- R6 AÇIK (Video WebRTC)
+- R8 KISMEN (1/8 setting)
+- **R9 KISMEN ilerleme** — Direct Supabase: 121 → 97 (5a) → **73** (5b); 22 ek fix; 5c/5d kalan ~73
+
+### Sonraki dalgalar (revize)
+- **Dalga 5c**: Profile reads (~13, Bucket 2/3) + Realtime/Channel (~9) + Auth (~7)
+  - Profile reads için karar: Profile model genişlet (R1 protokolü) + dedicated
+    repository method'lar
+  - 2-3 saat
+- **Dalga 5d**: Admin (8) + Services (push 4 + device 4) + Storage (9) + Edge Functions (5)
+  - AdminRepository, PushTokenRepository, DeviceRepository yarat
+  - StorageRepository (galleries + profile-photos)
+  - 2-3 saat
+
+### Süre
+~70 dakika (envanter 20 + repo+method 15 + 22 site refactor 25 + analyze/test 5 + docs/commit 5)
+

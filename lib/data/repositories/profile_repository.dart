@@ -90,6 +90,46 @@ class ProfileRepository {
     return Profile.fromJson(data);
   }
 
+  /// Append `otherId` to the caller's `blocked_users` list (no-op if already present).
+  /// Read-then-write — preserves existing list semantics; future tightening could
+  /// move this to an atomic `array_append` SQL helper.
+  Future<void> addToBlockList(String userId, String otherId) async {
+    if (isMockMode) return;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('blocked_users')
+        .eq('id', userId)
+        .single();
+    final list = List<String>.from((row['blocked_users'] as List<dynamic>?) ?? []);
+    if (list.contains(otherId)) return;
+    list.add(otherId);
+    await client
+        .from('profiles')
+        .update({'blocked_users': list})
+        .eq('id', userId);
+  }
+
+  /// Append `otherId` to the caller's `hidden_users` list (no-op if already present).
+  Future<void> addToHideList(String userId, String otherId) async {
+    if (isMockMode) return;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('hidden_users')
+        .eq('id', userId)
+        .single();
+    final list = List<String>.from((row['hidden_users'] as List<dynamic>?) ?? []);
+    if (list.contains(otherId)) return;
+    list.add(otherId);
+    await client
+        .from('profiles')
+        .update({'hidden_users': list})
+        .eq('id', userId);
+  }
+
   /// Updates mode-specific bio and avatar — both column names are confirmed
   /// to exist in the real schema (date_bio, bff_bio, social_bio, etc.).
   Future<void> updatePersona({

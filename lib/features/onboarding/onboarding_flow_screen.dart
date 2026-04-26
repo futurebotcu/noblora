@@ -127,7 +127,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
       var saved = false;
       for (var attempt = 0; attempt < 2 && !saved; attempt++) {
         try {
-          await Supabase.instance.client.from('profiles').update({
+          await ref.read(profileRepositoryProvider).updateProfile(uid, {
           'full_name': _nameCtrl.text.trim(),
           'display_name': _nameCtrl.text.trim(),
           'age': _age,
@@ -161,7 +161,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
           'note_permission': 'everyone',
           'message_preview': true,
           'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
-        }).eq('id', uid);
+        });
           saved = true;
         } catch (e) {
           debugPrint('Onboarding DB update error (attempt ${attempt + 1}): $e');

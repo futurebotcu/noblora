@@ -400,12 +400,42 @@ DIŞINDA 121 ihlal oluştu.
 
 **Tekrar sayısı:** 1 (toplu envanter)
 
-**Status:** KISMEN AÇIK (2026-04-27)
+**Status:** KISMEN AÇIK (2026-04-XX)
 - **Dalga 5a (Provider DI):** CLOSED — 26 satır taşındı, wrapper kuruldu, test mocking altyapısı bonus
-- **Dalga 5b (Direct CRUD profiles/rooms/events ~38):** OPEN
-- **Dalga 5c (Realtime + Auth + Storage ~25):** OPEN
-- **Dalga 5d (Admin + Services ~16):** OPEN
-- Toplam ihlal: 121 → **97** (Dalga 5a sonrası, -24)
+- **Dalga 5b (Direct CRUD):** CLOSED — 22 site refactored, 7 method + 1 yeni repo (UserReportRepository)
+- **Dalga 5c (Profile reads + Realtime + Auth ~30+):** OPEN
+- **Dalga 5d (Admin + Services + Storage + Edge Funcs ~25+):** OPEN
+- Toplam ihlal: 121 → 97 (5a) → **73** (5b) — toplam -48
+
+**Kanıt (Dalga 5b, 2026-04-XX):**
+- Yeni dosya: `lib/data/repositories/user_report_repository.dart` (abuse central) +
+  `lib/providers/user_report_provider.dart`
+- 7 yeni method:
+  - `ProfileRepository.addToBlockList(uid, otherId)` — blocked_users append
+  - `ProfileRepository.addToHideList(uid, otherId)` — hidden_users append
+  - `GatingRepository.updateEntryMessage(uid, code)`
+  - `MatchRepository.fetchStatusAndExpiry(matchId)` — record dönen lightweight
+  - `BffSuggestionRepository.markReachOutIgnored(reachOutId)`
+  - `EventRepository.updateEvent(eventId, Map)`
+  - `RoomRepository.updateRoom(roomId, Map)`
+- Mevcut `ProfileRepository.updateProfile(uid, Map)` 12 update site için yeniden
+  kullanıldı — yeni method gerekmedi (Map-based update profile-specific, generic değil)
+- 22 site refactored: 10 profile updates + 4 block/hide pair'leri (2 logical) +
+  8 other tables
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 284/1 (baseline)
+- 97 → 73 (-24 net)
+
+**Bucket 2/3 (Profile reads, ~13) 5c'ye taşındı:**
+Profile model getter eksikliği nedeniyle `fetchProfile` + getter pattern çalışmıyor
+(themeMode, activeModes, blockedUsers, locationLat, leaveEventChatAuto vs. yok).
+Çözüm yolları (5c'de karar):
+- A) Profile model field genişlet (R1 protokolü, model değişikliği şart)
+- B) Dedicated read method'lar: `fetchAppearance`, `fetchActiveModes`,
+  `fetchBlockedHidden`, `fetchInteractionGate`, `fetchLocation`, `fetchEventChatAuto`,
+  `fetchAuthorEnrichment` vs.
+- C) Generic `fetchProfileRow(uid) → Map` (kuralın "generic setColumn YASAK"
+  ruhuyla çelişir, son çare)
 
 **Kanıt (Dalga 5a, 2026-04-27):**
 - Yeni dosya: `lib/providers/supabase_client_provider.dart` — tek noktadan

@@ -18,6 +18,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/messages_provider.dart';
+import '../../providers/user_report_provider.dart';
 import '../../services/gemini_service.dart';
 import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
@@ -302,14 +303,11 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   Future<void> _checkMatchExpiry() async {
     if (widget.matchId == null || isMockMode) return;
     try {
-      final match = await Supabase.instance.client
-          .from('matches')
-          .select('status, chat_expires_at')
-          .eq('id', widget.matchId!)
-          .maybeSingle();
-      if (match == null) return;
-      final status = match['status'] as String?;
-      final expiresAt = match['chat_expires_at'] as String?;
+      final result = await ref
+          .read(matchRepositoryProvider)
+          .fetchStatusAndExpiry(widget.matchId!);
+      final status = result.status;
+      final expiresAt = result.chatExpiresAt;
       final expired = status == 'expired' || status == 'closed' ||
           (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true);
       if (expired && mounted) setState(() => _isExpired = true);
@@ -369,10 +367,12 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     final uid = ref.read(authProvider).userId;
     if (uid == null || isMockMode) return;
     try {
-      final row = await Supabase.instance.client.from('profiles').select(column).eq('id', uid).single();
-      final list = List<String>.from((row[column] as List<dynamic>?) ?? []);
-      if (!list.contains(_item.id)) list.add(_item.id);
-      await Supabase.instance.client.from('profiles').update({column: list}).eq('id', uid);
+      final repo = ref.read(profileRepositoryProvider);
+      if (column == 'blocked_users') {
+        await repo.addToBlockList(uid, _item.id);
+      } else {
+        await repo.addToHideList(uid, _item.id);
+      }
       if (context.mounted) {
         ToastService.show(context, message: '${_item.name} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
       }
@@ -425,13 +425,13 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   final uid = ref.read(authProvider).userId;
                   if (uid == null || isMockMode) return;
                   try {
-                    await Supabase.instance.client.from('user_reports').insert({
-                      'reporter_id': uid,
-                      'reported_user_id': _item.id,
-                      'reason': reason,
-                      'context': 'chat',
-                      'context_id': widget.matchId,
-                    });
+                    await ref.read(userReportRepositoryProvider).submitReport(
+                      reporterId: uid,
+                      reportedUserId: _item.id,
+                      reason: reason,
+                      context: 'chat',
+                      contextId: widget.matchId,
+                    );
                     if (context.mounted) {
                       ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
                     }
@@ -457,22 +457,18 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     // Guard: check match status before sending
     if (widget.matchId != null && !isMockMode) {
       try {
-        final match = await Supabase.instance.client
-            .from('matches')
-            .select('status, chat_expires_at')
-            .eq('id', widget.matchId!)
-            .maybeSingle();
-        if (match != null) {
-          final status = match['status'] as String?;
-          if (status == 'expired' || status == 'closed') {
-            if (mounted) ToastService.show(context, message: 'This conversation has ended', type: ToastType.error);
-            return;
-          }
-          final expiresAt = match['chat_expires_at'] as String?;
-          if (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true) {
-            if (mounted) ToastService.show(context, message: 'Chat time has expired', type: ToastType.error);
-            return;
-          }
+        final result = await ref
+            .read(matchRepositoryProvider)
+            .fetchStatusAndExpiry(widget.matchId!);
+        final status = result.status;
+        if (status == 'expired' || status == 'closed') {
+          if (mounted) ToastService.show(context, message: 'This conversation has ended', type: ToastType.error);
+          return;
+        }
+        final expiresAt = result.chatExpiresAt;
+        if (expiresAt != null && DateTime.tryParse(expiresAt)?.isBefore(DateTime.now().toUtc()) == true) {
+          if (mounted) ToastService.show(context, message: 'Chat time has expired', type: ToastType.error);
+          return;
         }
       } catch (e) {
         debugPrint('[chat] expiry pre-check failed: $e');

@@ -57,6 +57,25 @@ class MatchRepository {
         .eq('id', matchId);
   }
 
+  /// Lightweight expiry check used by the chat screen — reads only the two
+  /// columns the caller needs, avoiding a full match fetch each time the
+  /// chat is opened or a message is sent.
+  Future<({String? status, String? chatExpiresAt})> fetchStatusAndExpiry(
+    String matchId,
+  ) async {
+    if (isMockMode) return (status: null, chatExpiresAt: null);
+    final row = await _supabase!
+        .from('matches')
+        .select('status, chat_expires_at')
+        .eq('id', matchId)
+        .maybeSingle();
+    if (row == null) return (status: null, chatExpiresAt: null);
+    return (
+      status: row['status'] as String?,
+      chatExpiresAt: row['chat_expires_at'] as String?,
+    );
+  }
+
   List<NobleMatch> _mockMatches(String userId) {
     return [];
   }
