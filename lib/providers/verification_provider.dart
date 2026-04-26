@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/photo_verification.dart';
 import '../data/repositories/verification_repository.dart';
 import 'auth_provider.dart';
 import 'profile_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Status enum — single source of truth for what the UI should render
@@ -25,7 +25,7 @@ enum VerificationStatus {
 
 final verificationRepositoryProvider = Provider<VerificationRepository>((ref) {
   if (isMockMode) return VerificationRepository();
-  return VerificationRepository(supabase: Supabase.instance.client);
+  return VerificationRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 class VerificationState {

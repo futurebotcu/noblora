@@ -380,3 +380,72 @@ RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
 - Mevcut setting'i fix ederken: önce keşif (backend RPC var mı, client
   çağırıyor mu), sonra fix
 - "DB yazıldı = ayar uygulandı" varsayımı YASAK — enforce path'i kanıtlanmalı
+
+---
+
+## R9: Direct `Supabase.instance.client` Pattern (Repository Bypass)
+
+**Belirti:** UI/screen/widget/provider katmanlarında doğrudan
+`Supabase.instance.client` çağrıları (`.from('table').select/insert/update/delete()`,
+`.rpc()`, `.auth.*`, `.storage.*`, `.channel()`). Repository pattern'i atlayan
+veri erişimi mimari sınırını kırıyor — test mocking imkânsız, davranış izleme
+zor, refactor riski büyük.
+
+**Kök neden:** İteratif geliştirme sırasında "küçük bir update lazım" diyerek
+ekran/provider içinde direkt çağrı yazılması. Repository'ye method eklemek
+yerine inline çağrı kolaylığı tercih edildi. Sonuçta `lib/` altında `data/repositories/`
+DIŞINDA 121 ihlal oluştu.
+
+**Tespit tarihi:** 2026-04-21 (ilk envanter, Dalga 1 sonrası).
+
+**Tekrar sayısı:** 1 (toplu envanter)
+
+**Status:** KISMEN AÇIK (2026-04-27)
+- **Dalga 5a (Provider DI):** CLOSED — 26 satır taşındı, wrapper kuruldu, test mocking altyapısı bonus
+- **Dalga 5b (Direct CRUD profiles/rooms/events ~38):** OPEN
+- **Dalga 5c (Realtime + Auth + Storage ~25):** OPEN
+- **Dalga 5d (Admin + Services ~16):** OPEN
+- Toplam ihlal: 121 → **97** (Dalga 5a sonrası, -24)
+
+**Kanıt (Dalga 5a, 2026-04-27):**
+- Yeni dosya: `lib/providers/supabase_client_provider.dart` — tek noktadan
+  `SupabaseClient` wrapper Provider
+- 16 dosya değişti (15 provider + 1 ekran), 26 çağrı taşındı
+- Pattern: top-level Provider'da `ref.watch(supabaseClientProvider)`,
+  Notifier method'unda `_ref.read(supabaseClientProvider)`
+- Guardrail allowlist: `test/guardrails/no_banned_patterns_test.dart`
+  wrapper dosyasını izinli kıldı (CLAUDE.md §4 tablosu da güncellendi)
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 284 pass / 1 fail (regresyon SIFIR; tek fail Supabase
+  guardrail, 97 ihlal kaldığı için baseline)
+- `grep -rn "Supabase.instance.client" lib/ | grep -v "lib/data/repositories/"`:
+  121 → 97
+
+**Pattern (Dalga 5a standardı):**
+```dart
+// providers/supabase_client_provider.dart
+final supabaseClientProvider = Provider<SupabaseClient>(
+  (ref) => Supabase.instance.client,
+);
+
+// herhangi bir Provider içinde
+final fooRepositoryProvider = Provider<FooRepository>((ref) {
+  if (isMockMode) return FooRepository();
+  return FooRepository(supabase: ref.watch(supabaseClientProvider));
+});
+
+// Notifier method içinde (`_ref` private member)
+final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
+```
+
+**Dokunma protokolü:**
+- Yeni Provider yazıyorsan repository inject ederken:
+  `ref.watch(supabaseClientProvider)` kullan, `Supabase.instance.client` YASAK.
+- Notifier method içinde repository inline yaratma kötü pattern (Dalga 5b'de
+  bunlar provider'a taşınacak), ama yapman gerekiyorsa `_ref.read(supabaseClientProvider)`.
+- Direct CRUD (`.from('x').update(...)`) görüyorsan: önce ilgili repository'yi
+  kontrol et, generic method (örn. `setColumn`) yoksa repository'ye method ekle.
+  Direct çağrıyı korumak Dalga 5b'yi tekrar açar — yapma.
+- Realtime/Storage/Auth gibi dedicated wrapper olmayan alanlarda Dalga 5c/5d'ye
+  bırak — şimdilik allowlist genişletme.
+- Test mocking için: `ProviderScope(overrides: [supabaseClientProvider.overrideWithValue(mockClient)])`

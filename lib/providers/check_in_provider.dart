@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/repositories/check_in_repository.dart';
+import 'supabase_client_provider.dart';
 
 final checkInRepositoryProvider = Provider<CheckInRepository>((ref) {
   if (isMockMode) return CheckInRepository();
-  return CheckInRepository(supabase: Supabase.instance.client);
+  return CheckInRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 class CheckInState {

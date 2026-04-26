@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, isDevMode;
 import '../data/repositories/auth_repository.dart';
 import '../services/push_notification_service.dart';
+import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -262,7 +263,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   if (isMockMode) return AuthRepository();
-  return AuthRepository(supabase: Supabase.instance.client);
+  return AuthRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

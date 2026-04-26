@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/real_meeting.dart';
 import '../data/repositories/real_meeting_repository.dart';
+import 'supabase_client_provider.dart';
 
 final realMeetingRepositoryProvider = Provider<RealMeetingRepository>((ref) {
   if (isMockMode) return RealMeetingRepository();
-  return RealMeetingRepository(supabase: Supabase.instance.client);
+  return RealMeetingRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 class RealMeetingState {

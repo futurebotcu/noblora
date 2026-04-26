@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/gating_status.dart';
 import '../data/repositories/gating_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -112,7 +112,7 @@ class GatingNotifier extends StateNotifier<GatingState> {
 
 final gatingRepositoryProvider = Provider<GatingRepository>((ref) {
   if (isMockMode) return GatingRepository();
-  return GatingRepository(supabase: Supabase.instance.client);
+  return GatingRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 final gatingProvider =

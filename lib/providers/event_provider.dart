@@ -9,6 +9,7 @@ import '../data/models/filter_state.dart';
 import '../data/repositories/event_repository.dart';
 import 'auth_provider.dart';
 import 'filter_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ─── State ─────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ class EventListState {
 
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   if (isMockMode) return EventRepository();
-  return EventRepository(supabase: Supabase.instance.client);
+  return EventRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ─── Event list notifier ───────────────────────────────────────────

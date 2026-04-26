@@ -14,10 +14,11 @@ import 'filter_provider.dart';
 import 'match_provider.dart';
 import 'mode_provider.dart';
 import 'status_provider.dart';
+import 'supabase_client_provider.dart';
 
 final signalRepositoryProvider = Provider<SignalRepository>((ref) {
   if (isMockMode) return SignalRepository();
-  return SignalRepository(supabase: Supabase.instance.client);
+  return SignalRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------
@@ -26,7 +27,7 @@ final signalRepositoryProvider = Provider<SignalRepository>((ref) {
 
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {
   if (isMockMode) return FeedRepository();
-  return FeedRepository(supabase: Supabase.instance.client);
+  return FeedRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------
@@ -208,7 +209,7 @@ class FeedNotifier extends StateNotifier<FeedState> {
 
     final userId = _ref.read(authProvider).userId;
     if (userId != null && !isMockMode) {
-      final repo = SuperLikeRepository(supabase: Supabase.instance.client);
+      final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
       await repo.deleteSwipe(swiperId: userId, targetId: card.id);
       await Supabase.instance.client
           .rpc('decrement_rewinds', params: {'uid': userId});

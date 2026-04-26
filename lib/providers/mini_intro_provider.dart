@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/mini_intro.dart';
 import '../data/repositories/mini_intro_repository.dart';
+import 'supabase_client_provider.dart';
 
 final miniIntroRepositoryProvider = Provider<MiniIntroRepository>((ref) {
   if (isMockMode) return MiniIntroRepository();
-  return MiniIntroRepository(supabase: Supabase.instance.client);
+  return MiniIntroRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 class MiniIntroState {

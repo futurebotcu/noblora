@@ -8,12 +8,13 @@ import '../data/models/room_message.dart';
 import '../data/models/room_participant.dart';
 import '../data/repositories/room_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ─── Repository provider ──────────────────────────────────────────
 
 final roomRepositoryProvider = Provider<RoomRepository>((ref) {
   if (isMockMode) return RoomRepository();
-  return RoomRepository(supabase: Supabase.instance.client);
+  return RoomRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ─── Room List State ──────────────────────────────────────────────

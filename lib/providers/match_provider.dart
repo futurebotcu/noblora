@@ -5,6 +5,7 @@ import '../data/models/match.dart';
 import '../data/repositories/match_repository.dart';
 import '../data/repositories/swipe_repository.dart';
 import 'auth_provider.dart';
+import 'supabase_client_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Repositories
@@ -12,12 +13,12 @@ import 'auth_provider.dart';
 
 final matchRepositoryProvider = Provider<MatchRepository>((ref) {
   if (isMockMode) return MatchRepository();
-  return MatchRepository(supabase: Supabase.instance.client);
+  return MatchRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 final swipeRepositoryProvider = Provider<SwipeRepository>((ref) {
   if (isMockMode) return SwipeRepository();
-  return SwipeRepository(supabase: Supabase.instance.client);
+  return SwipeRepository(supabase: ref.watch(supabaseClientProvider));
 });
 
 // ---------------------------------------------------------------------------

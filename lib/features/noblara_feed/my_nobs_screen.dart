@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
@@ -10,6 +9,7 @@ import '../../data/repositories/comment_repository.dart';
 import '../../data/repositories/echo_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
+import '../../providers/supabase_client_provider.dart';
 import 'nob_detail_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -34,10 +34,10 @@ final _myNobsProvider = FutureProvider.autoDispose<List<Post>>((ref) async {
   // Enrich with comment + echo counts so the UI shows real numbers
   final commentRepo = isMockMode
       ? CommentRepository()
-      : CommentRepository(supabase: Supabase.instance.client);
+      : CommentRepository(supabase: ref.watch(supabaseClientProvider));
   final echoRepo = isMockMode
       ? EchoRepository()
-      : EchoRepository(supabase: Supabase.instance.client);
+      : EchoRepository(supabase: ref.watch(supabaseClientProvider));
 
   final ids = posts.map((p) => p.id).toList();
   // Parallelize all enrichment queries instead of sequential awaits
