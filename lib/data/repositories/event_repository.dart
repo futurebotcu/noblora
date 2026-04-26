@@ -184,6 +184,32 @@ class EventRepository {
     });
   }
 
+  // ─── Realtime ────────────────────────────────────────────────────
+
+  /// Subscribe to INSERTs on `event_messages` filtered by [eventId] so the
+  /// event chat screen can refresh on each new message. Returns null in
+  /// mock mode.
+  RealtimeChannel? subscribeToEventMessages(
+    String eventId,
+    void Function(Map<String, dynamic>) onMessage,
+  ) {
+    if (isMockMode) return null;
+    return _supabase!
+        .channel('event-chat-$eventId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'event_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'event_id',
+            value: eventId,
+          ),
+          callback: (payload) => onMessage(payload.newRecord),
+        )
+        .subscribe();
+  }
+
   // ─── Mock data ───────────────────────────────────────────────────
 
   List<NobEvent> _mockEvents() {

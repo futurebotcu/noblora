@@ -17,6 +17,31 @@ class CommentRepository {
   /// Result of fetching a post's discussion: replies (threaded) + chains (flat).
   /// Chains and replies are siblings on the post — chains are a separate
   /// "Soul Chain" continuation track, replies are the normal back-and-forth.
+  /// Subscribe to feed_events INSERTs and invoke [onComment] only when the
+  /// event is a `comment_new` for [postId]. Internal filter encapsulates the
+  /// dispatch the comment screen used to do inline; caller just refreshes
+  /// its bundle. Returns null in mock mode.
+  RealtimeChannel? subscribeToCommentEvents(
+    String postId,
+    void Function(Map<String, dynamic>) onComment,
+  ) {
+    if (isMockMode) return null;
+    return _supabase!
+        .channel('detail:comments:$postId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'feed_events',
+          callback: (payload) {
+            final row = payload.newRecord;
+            if (row['post_id'] != postId) return;
+            if (row['event_type'] != 'comment_new') return;
+            onComment(row);
+          },
+        )
+        .subscribe();
+  }
+
   Future<CommentsBundle> fetchComments(String postId) async {
     if (isMockMode) return const CommentsBundle(replies: [], chains: []);
     final db = _supabase!;

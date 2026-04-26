@@ -127,22 +127,18 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     if (isMockMode) return;
     final userId = ref.read(authProvider).userId;
     if (userId == null) return;
-    _typingChannel = Supabase.instance.client
-        .channel('typing:${widget.conversationId}')
-      ..onBroadcast(
-        event: 'typing',
-        callback: (payload) {
-          final senderId = payload['user_id'] as String?;
-          if (senderId == null || senderId == userId) return;
-          if (!mounted) return;
-          setState(() => _otherTyping = true);
-          _typingTimeout?.cancel();
-          _typingTimeout = Timer(const Duration(seconds: 3), () {
-            if (mounted) setState(() => _otherTyping = false);
-          });
-        },
-      )
-      ..subscribe();
+    _typingChannel = ref.read(messagesRepositoryProvider).subscribeToTyping(
+      widget.conversationId,
+      userId,
+      (_) {
+        if (!mounted) return;
+        setState(() => _otherTyping = true);
+        _typingTimeout?.cancel();
+        _typingTimeout = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _otherTyping = false);
+        });
+      },
+    );
   }
 
   void _onTextChanged() {

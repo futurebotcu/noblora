@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -75,10 +74,9 @@ class _PostCallDecisionScreenState
       }
     });
     _decisionSub?.cancel();
-    _decisionSub = Supabase.instance.client
-        .from('call_decisions')
-        .stream(primaryKey: ['id'])
-        .eq('video_session_id', widget.session.id)
+    _decisionSub = ref
+        .read(videoSessionRepositoryProvider)
+        .streamCallDecisions(widget.session.id)
         .listen(
           (rows) async {
             if (rows.length < 2) return; // still waiting

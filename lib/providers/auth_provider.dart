@@ -130,7 +130,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _refreshTimer?.cancel();
         _refreshTimer = Timer.periodic(const Duration(minutes: 30), (_) async {
           try {
-            await Supabase.instance.client.auth.refreshSession();
+            await _repo.refreshSession();
           } catch (e) {
             debugPrint('[auth] Session refresh failed: $e');
           }

@@ -245,4 +245,15 @@ class VideoSessionRepository {
     final r = resultMap['result'] as String? ?? 'waiting';
     return r == 'expired' ? 'closed' : r;
   }
+
+  /// Stream of call_decisions rows for [sessionId] — emits the full set of
+  /// decisions every time one changes. Used by the post-call decision screen
+  /// to know when both participants have decided. Empty stream in mock mode.
+  Stream<List<Map<String, dynamic>>> streamCallDecisions(String sessionId) {
+    if (isMockMode) return const Stream.empty();
+    return _supabase!
+        .from('call_decisions')
+        .stream(primaryKey: ['id'])
+        .eq('video_session_id', sessionId);
+  }
 }

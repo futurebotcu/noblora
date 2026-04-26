@@ -59,4 +59,17 @@ class AuthRepository {
     if (isMockMode) return const Stream.empty();
     return _supabase!.auth.onAuthStateChange;
   }
+
+  /// Triggers Supabase to email a password reset link to [email].
+  Future<void> resetPasswordForEmail(String email) async {
+    if (isMockMode) return;
+    await _supabase!.auth.resetPasswordForEmail(email);
+  }
+
+  /// Refreshes the current session — keeps the JWT alive on long-running
+  /// clients (called from the auth provider on a 30-minute periodic timer).
+  Future<void> refreshSession() async {
+    if (isMockMode) return;
+    await _supabase!.auth.refreshSession();
+  }
 }

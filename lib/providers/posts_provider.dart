@@ -9,6 +9,7 @@ import '../data/repositories/post_repository.dart';
 import '../data/repositories/comment_repository.dart';
 import '../data/repositories/echo_repository.dart';
 import 'auth_provider.dart';
+import 'realtime_provider.dart';
 import 'supabase_client_provider.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) {
@@ -102,7 +103,7 @@ class PostsNotifier extends StateNotifier<PostsState> {
     final ch = _eventsChannel;
     if (ch != null) {
       try {
-        Supabase.instance.client.removeChannel(ch);
+        _ref.read(realtimeRepositoryProvider).unsubscribe(ch);
       } catch (e) {
         debugPrint('[posts] dispose channel: $e');
       }
@@ -123,25 +124,17 @@ class PostsNotifier extends StateNotifier<PostsState> {
   void _subscribeRealtime() {
     if (isMockMode) return;
     try {
-      final client = Supabase.instance.client;
-      _eventsChannel = client
-          .channel('public:feed_events')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'feed_events',
-            callback: (payload) {
-              final row = payload.newRecord;
-              final id = (row['id'] as num?)?.toInt() ?? 0;
-              if (id <= _lastProcessedEventId) return;
-              _lastProcessedEventId = id;
-              final type = row['event_type'] as String?;
-              final postId = row['post_id'] as String?;
-              if (type == null || postId == null) return;
-              _handleEvent(type, postId);
-            },
-          )
-          .subscribe();
+      _eventsChannel = _ref
+          .read(postRepositoryProvider)
+          .subscribeToFeedEvents((row) {
+        final id = (row['id'] as num?)?.toInt() ?? 0;
+        if (id <= _lastProcessedEventId) return;
+        _lastProcessedEventId = id;
+        final type = row['event_type'] as String?;
+        final postId = row['post_id'] as String?;
+        if (type == null || postId == null) return;
+        _handleEvent(type, postId);
+      });
     } catch (e) {
       debugPrint('[realtime] subscribe failed: $e');
     }
