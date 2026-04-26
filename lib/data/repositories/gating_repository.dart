@@ -36,6 +36,17 @@ class GatingRepository {
         .eq('user_id', userId);
   }
 
+  /// Persist the user-supplied entry code so admins can review it during
+  /// gating approval. Called from the entry-gate screen when the user
+  /// submits their code.
+  Future<void> updateEntryMessage(String userId, String code) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('gating_status')
+        .update({'entry_message': code})
+        .eq('user_id', userId);
+  }
+
   /// Live stream — emits whenever the gating_status row is updated for this user.
   /// Uses channel-based Postgres CDC (more reliable on web than .stream()).
   /// Requires gating_status to be in supabase_realtime publication.

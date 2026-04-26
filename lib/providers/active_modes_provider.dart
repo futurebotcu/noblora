@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
 
 /// Modes the user is allowed to toggle in this build.
 /// Date, BFF, and Event (internally stored as 'social' for DB compat).
@@ -96,10 +97,10 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
     if (userId == null) return;
 
     try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'active_modes': current.toList()})
-          .eq('id', userId);
+      await _ref.read(profileRepositoryProvider).updateProfile(
+        userId,
+        {'active_modes': current.toList()},
+      );
     } catch (e) {
       // Rollback on error
       state = state.copyWith(error: e.toString());

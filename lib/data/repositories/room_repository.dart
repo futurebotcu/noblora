@@ -65,6 +65,16 @@ class RoomRepository {
 
   // ─── Create room ────────────────────────────────────────────
 
+  /// Apply a partial update to a room row. Restricted to room-owned
+  /// columns by RLS on the server side.
+  Future<void> updateRoom(String roomId, Map<String, dynamic> updates) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('rooms')
+        .update(updates)
+        .eq('id', roomId);
+  }
+
   Future<Room> createRoom({
     required String hostId,
     required String title,

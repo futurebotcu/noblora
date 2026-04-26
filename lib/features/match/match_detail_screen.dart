@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -10,6 +9,8 @@ import '../../core/utils/mock_mode.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/user_report_provider.dart';
 import '../../providers/video_provider.dart';
 import '../../data/models/inbox_item.dart';
 import '../../core/enums/noble_mode.dart';
@@ -121,10 +122,12 @@ class MatchDetailScreen extends ConsumerWidget {
     final targetId = match.otherUserId;
     if (uid == null || targetId == null || isMockMode) return;
     try {
-      final row = await Supabase.instance.client.from('profiles').select(column).eq('id', uid).single();
-      final list = List<String>.from((row[column] as List<dynamic>?) ?? []);
-      if (!list.contains(targetId)) list.add(targetId);
-      await Supabase.instance.client.from('profiles').update({column: list}).eq('id', uid);
+      final repo = ref.read(profileRepositoryProvider);
+      if (column == 'blocked_users') {
+        await repo.addToBlockList(uid, targetId);
+      } else {
+        await repo.addToHideList(uid, targetId);
+      }
       if (context.mounted) {
         ToastService.show(context, message: '${match.otherUserName ?? 'User'} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
       }
@@ -177,13 +180,13 @@ class MatchDetailScreen extends ConsumerWidget {
                   final uid = ref.read(authProvider).userId;
                   if (uid == null || isMockMode) return;
                   try {
-                    await Supabase.instance.client.from('user_reports').insert({
-                      'reporter_id': uid,
-                      'reported_user_id': match.otherUserId,
-                      'reason': reason,
-                      'context': 'match_detail',
-                      'context_id': match.id,
-                    });
+                    await ref.read(userReportRepositoryProvider).submitReport(
+                      reporterId: uid,
+                      reportedUserId: match.otherUserId,
+                      reason: reason,
+                      context: 'match_detail',
+                      contextId: match.id,
+                    );
                     if (context.mounted) {
                       ToastService.show(context, message: 'Report submitted. We\'ll review it.', type: ToastType.system);
                     }

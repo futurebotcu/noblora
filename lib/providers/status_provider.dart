@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/repositories/super_like_repository.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Models
@@ -71,10 +72,10 @@ class StatusNotifier extends StateNotifier<AsyncValue<StatusData>> {
     if (userId == null) return;
     final until = DateTime.now().add(const Duration(minutes: 30));
     if (!isMockMode) {
-      await Supabase.instance.client
-          .from('profiles')
-          .update({'boost_active_until': until.toIso8601String()})
-          .eq('id', userId);
+      await _ref.read(profileRepositoryProvider).updateProfile(
+        userId,
+        {'boost_active_until': until.toIso8601String()},
+      );
     }
     final current = state.valueOrNull;
     if (current != null) {

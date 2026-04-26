@@ -37,6 +37,16 @@ class EventRepository {
     return row != null ? NobEvent.fromJson(row) : null;
   }
 
+  /// Apply a partial update to an event row. Restricted to event-owned
+  /// columns by RLS on the server side.
+  Future<void> updateEvent(String eventId, Map<String, dynamic> updates) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('events')
+        .update(updates)
+        .eq('id', eventId);
+  }
+
   Future<NobEvent> createEvent({
     required String hostId,
     required String title,

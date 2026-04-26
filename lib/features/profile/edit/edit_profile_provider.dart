@@ -67,10 +67,10 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
     if (uid == null) return false;
     state = state.copyWith(isSaving: true, clearError: true);
     try {
-      await Supabase.instance.client
-          .from('profiles')
-          .update(state.draft.toUpdateMap())
-          .eq('id', uid);
+      await _ref.read(profileRepositoryProvider).updateProfile(
+        uid,
+        state.draft.toUpdateMap(),
+      );
       // Reload the main profile provider and interaction gate to sync
       await _ref.read(profileProvider.notifier).loadProfile();
       _ref.invalidate(interactionGateProvider);

@@ -182,6 +182,16 @@ class BffSuggestionRepository {
     return result as Map<String, dynamic>? ?? {'result': 'error'};
   }
 
+  /// Mark a received reach-out as ignored (declined without acceptance).
+  /// Used by the matches screen's reach-out list when the user declines.
+  Future<void> markReachOutIgnored(String reachOutId) async {
+    if (isMockMode) return;
+    await _supabase!
+        .from('reach_outs')
+        .update({'status': 'ignored'})
+        .eq('id', reachOutId);
+  }
+
   Future<List<Map<String, dynamic>>> fetchReachOutsReceived(String userId) async {
     if (isMockMode) return [];
 

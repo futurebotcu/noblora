@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/room.dart';
+import '../../providers/room_provider.dart';
 import '../../services/gemini_service.dart';
 
 const _accent = AppColors.emerald700;
@@ -69,12 +69,12 @@ class _EditRoomScreenState extends ConsumerState<EditRoomScreen> {
     } catch (e) { debugPrint('[room-edit] AI validation failed: $e'); }
 
     if (!isMockMode) {
-      await Supabase.instance.client.from('rooms').update({
+      await ref.read(roomRepositoryProvider).updateRoom(widget.room.id, {
         'title': title,
         'description': _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
         'topic_tags': _selectedTags.toList(),
         'max_participants': _maxParticipants,
-      }).eq('id', widget.room.id);
+      });
     }
 
     if (mounted) Navigator.pop(context, true);

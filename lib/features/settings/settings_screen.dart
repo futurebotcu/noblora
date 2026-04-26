@@ -8,6 +8,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../core/services/toast_service.dart';
 import 'help_center_screen.dart';
 
@@ -71,7 +72,7 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     try {
-      await Supabase.instance.client.from('profiles').update({column: value}).eq('id', uid);
+      await _ref.read(profileRepositoryProvider).updateProfile(uid, {column: value});
     } catch (e) {
       debugPrint('[settings] save failed for $column: $e');
       state = {...state, column: previous};
@@ -161,10 +162,10 @@ class SettingsScreen extends ConsumerWidget {
                       onPressed: () async {
                         final uid = ref.read(authProvider).userId;
                         if (uid != null && !isMockMode) {
-                          await Supabase.instance.client.from('profiles').update({
+                          await ref.read(profileRepositoryProvider).updateProfile(uid, {
                             'is_paused': false,
                             'verification_status': 'not_started',
-                          }).eq('id', uid);
+                          });
                         }
                         n.setString('verification_status', 'not_started');
                         if (n.getBool('is_paused')) n.toggleBool('is_paused');
@@ -511,7 +512,7 @@ class SettingsScreen extends ConsumerWidget {
           Navigator.pop(context);
           final uid = ref.read(authProvider).userId;
           if (uid != null && !isMockMode) {
-            await Supabase.instance.client.from('profiles').update({'is_paused': true}).eq('id', uid);
+            await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': true});
           }
           ref.read(_settingsProvider.notifier).toggleBool('is_paused');
           if (context.mounted) ToastService.show(context, message: 'Account paused', type: ToastType.system);
@@ -534,7 +535,7 @@ class SettingsScreen extends ConsumerWidget {
           Navigator.pop(context);
           final uid = ref.read(authProvider).userId;
           if (uid != null && !isMockMode) {
-            await Supabase.instance.client.from('profiles').update({'is_paused': false}).eq('id', uid);
+            await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': false});
           }
           ref.read(_settingsProvider.notifier).toggleBool('is_paused');
           if (context.mounted) ToastService.show(context, message: 'Account resumed', type: ToastType.success);
@@ -570,7 +571,7 @@ class SettingsScreen extends ConsumerWidget {
               if (!isMockMode) {
                 final uid = ref.read(authProvider).userId;
                 if (uid != null) {
-                  await Supabase.instance.client.from('profiles').update({'is_paused': true, 'verification_status': 'deletion_requested'}).eq('id', uid);
+                  await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': true, 'verification_status': 'deletion_requested'});
                 }
               }
               if (context.mounted) Navigator.of(context).popUntil((route) => route.isFirst);

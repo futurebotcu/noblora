@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
 
 // ─── State ───────────────────────────────────────────────────────────
 
@@ -97,10 +98,10 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     try {
-      await Supabase.instance.client.from('profiles').update({
+      await _ref.read(profileRepositoryProvider).updateProfile(uid, {
         'theme_mode': _themeModeToString(state.themeMode),
         'accent_color': state.accentId,
-      }).eq('id', uid);
+      });
     } catch (e) { debugPrint('[appearance] Supabase persist failed: $e'); }
   }
 

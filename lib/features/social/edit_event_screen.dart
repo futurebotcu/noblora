@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../data/models/event.dart';
+import '../../providers/event_provider.dart';
 import '../../services/gemini_service.dart';
 
 const _accent = AppColors.emerald700;
@@ -87,13 +87,13 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
     );
 
     if (!isMockMode) {
-      await Supabase.instance.client.from('events').update({
+      await ref.read(eventRepositoryProvider).updateEvent(widget.event.id, {
         'title': title,
         'description': _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
         'location_text': _locationCtrl.text.trim().isEmpty ? null : _locationCtrl.text.trim(),
         'event_date': scheduledAt.toIso8601String(),
         'max_attendees': _maxAttendees,
-      }).eq('id', widget.event.id);
+      });
     }
 
     if (mounted) Navigator.pop(context, true);

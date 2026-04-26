@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/gating_provider.dart';
 
 class EntryGateScreen extends ConsumerStatefulWidget {
   const EntryGateScreen({super.key});
@@ -38,10 +38,7 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
       if (!isMockMode) {
         final userId = ref.read(authProvider).userId;
         if (userId != null) {
-          await Supabase.instance.client
-              .from('gating_status')
-              .update({'entry_message': code})
-              .eq('user_id', userId);
+          await ref.read(gatingRepositoryProvider).updateEntryMessage(userId, code);
         }
       }
       if (!mounted) return;
