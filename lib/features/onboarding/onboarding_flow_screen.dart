@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -12,6 +11,7 @@ import '../../core/utils/mock_mode.dart';
 import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/storage_provider.dart';
 import '../../shared/widgets/drum_date_picker.dart';
 import '../../shared/widgets/avatar_picker.dart';
 import '../../shared/widgets/city_search_screen.dart';
@@ -110,9 +110,11 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
           } else {
             final contentType = _detectImageType(bytes) ?? 'image/jpeg';
             final path = 'avatars/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-            await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes,
-                fileOptions: FileOptions(contentType: contentType));
-            remotePhotoUrl = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
+            remotePhotoUrl = await ref.read(storageRepositoryProvider).uploadProfilePhoto(
+              path: path,
+              bytes: bytes,
+              contentType: contentType,
+            );
           }
         } catch (e) {
           debugPrint('Onboarding photo upload error: $e');

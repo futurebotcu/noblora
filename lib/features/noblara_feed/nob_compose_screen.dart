@@ -12,6 +12,7 @@ import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
+import '../../providers/storage_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Inspiration prompts
@@ -321,12 +322,11 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       final basePath =
           'nob_photos/$userId/${DateTime.now().millisecondsSinceEpoch}';
       final path = '$basePath.$ext';
-      await Supabase.instance.client.storage.from('galleries').uploadBinary(
-          path, _photoBytes!,
-          fileOptions: FileOptions(contentType: mime));
-      final url = Supabase.instance.client.storage
-          .from('galleries')
-          .getPublicUrl(path);
+      final url = await ref.read(storageRepositoryProvider).uploadToGallery(
+        path: path,
+        bytes: _photoBytes!,
+        contentType: mime,
+      );
 
       // For videos, also generate + upload a first-frame JPEG thumbnail
       // sibling at <basePath>.jpg so the feed card has something to render
@@ -358,14 +358,12 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       );
       if (thumbBytes == null || thumbBytes.isEmpty) return;
       final thumbPath = '$basePath.jpg';
-      await Supabase.instance.client.storage.from('galleries').uploadBinary(
-            thumbPath,
-            thumbBytes,
-            fileOptions: const FileOptions(
-              contentType: 'image/jpeg',
-              upsert: true,
-            ),
-          );
+      await ref.read(storageRepositoryProvider).uploadToGallery(
+        path: thumbPath,
+        bytes: thumbBytes,
+        contentType: 'image/jpeg',
+        upsert: true,
+      );
     } catch (e) {
       // Non-fatal — feed card will fall back to a generic video icon overlay.
       debugPrint('[nob-compose] video thumbnail generation failed: $e');
