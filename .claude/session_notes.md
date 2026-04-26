@@ -1374,3 +1374,116 @@ kapanış, kalan 17 sonraki dalga.
   scope creep. Log yeterli — davranış mevcut durumda (zero counts)
   kalıyor, logda görünür.
 
+---
+
+## 2026-04-26 19:19 — Dalga 4b: R4 `catch (_)` Kalan 17 (HEDEF FULL CLOSE)
+
+### Hedef
+Dalga 4'te bırakılan 17 `catch (_)` örneğini düzelt. R4 FULLY CLOSED.
+Mekanik iş, davranış değişmez, sadece log eklenir.
+
+### Başarı ölçütü
+- 17 → 0 `catch (_)` (`grep "catch (_)" lib/` boş)
+- Banned pattern test: 283/2 → 283/1 (sadece `Supabase.instance.client` kalır, Dalga 5)
+- Regresyon sıfır (283 pass korunur)
+- Davranış değişmez (intentional swallow + dispose pattern korunur)
+
+### Branch
+`dalga-4b-r4-catch-kalan` (main `a29963f`'dan)
+
+### Scope limit (3 değişiklik)
+1. ADIM 1: keşif/recap (envanter doğrula, satır numaraları kontrol)
+2. ADIM 2: 17 fix (Dalga 4 pattern'i)
+3. ADIM 3: test + commit + PR
+4'üncü iş çıkarsa DUR + onay iste.
+
+### ADIM 1 — Envanter doğrulama (2026-04-26 19:25)
+
+`grep "catch (_)" lib/ -r` → **17 satır** doğrulandı. Senin listendeki satır
+numaralarından bazıları Dalga 4 edit'lerinden ötürü kaymış (matches_screen
++3, swipe_repository +1, individual_chat +14). Liste güncel:
+
+**12 P2** (mekanik log, intentional swallow):
+| # | Dosya | Satır | Scope | Context |
+|---|-------|-------|-------|---------|
+| 1 | `lib/features/onboarding/onboarding_flow_screen.dart` | 656 | `[onboard]` | save failed |
+| 2 | `lib/features/entry_gate/entry_gate_screen.dart` | 52 | `[gate]` | gate check |
+| 3 | `lib/features/matches/end_connection_screen.dart` | 72 | `[end]` | end conn |
+| 4 | `lib/features/matches/matches_screen.dart` | 1032 | `[matches]` | (kontrol et) |
+| 5 | `lib/features/matches/matches_screen.dart` | 1046 | `[matches]` | (kontrol et) |
+| 6 | `lib/features/noblara_feed/nob_compose_screen.dart` | 389 | `[compose]` | (kontrol et) |
+| 7 | `lib/features/noblara_feed/nob_compose_screen.dart` | 407 | `[compose]` | (kontrol et) |
+| 8 | `lib/features/noblara_feed/nob_compose_screen.dart` | 417 | `[compose]` | (kontrol et) |
+| 9 | `lib/features/match/video_call_screen.dart` | 153 | `[video]` | call cleanup |
+| 10 | `lib/features/noblara_feed/notifications_screen.dart` | 66 | `[notif]` | load |
+| 11 | `lib/data/repositories/swipe_repository.dart` | 67 | `[swipe]` | (kontrol et) |
+| 12 | `lib/providers/posts_provider.dart` | 666 | `[posts]` | (kontrol et) |
+
+**5 P3** (zaten yorumlu/dispose/inline):
+| # | Dosya | Satır | Scope | Context |
+|---|-------|-------|-------|---------|
+| 13 | `lib/services/gemini_service.dart` | 35 | `[gemini]` | non-JSON AI fallback |
+| 14 | `lib/features/matches/individual_chat_screen.dart` | 477 | `[chat]` | "Proceed on error — server will reject" |
+| 15 | `lib/providers/comment_provider.dart` | 64 | `[comment]` | (kontrol et) |
+| 16 | `lib/features/profile/edit/sections/photos_media_section.dart` | 151 | `[photos]` | storage remove cleanup |
+| 17 | `lib/providers/posts_provider.dart` | 105 | `[posts]` | (kontrol et) |
+
+### auth_provider:164/207 status
+**Dalga 4'te yapıldı** (B/P3 grubu, "auth_provider.dart:164 [auth] init cleanup",
+"auth_provider.dart:207 [auth] dev auto-verify"). Şu an `auth_provider.dart`
+içinde `catch (_)` kalmadı (grep doğruladı, sadece `catch (e)` var). Senin
+"5 P3" listenin 5'i doğru — 164/207 zaten dışarıda.
+
+### ADIM 2 — Fix (2026-04-26 19:30)
+
+13 lib dosyasında 17 catch (_) → catch (e) + debugPrint (Dalga 4 pattern):
+
+**12 P2** (mekanik log):
+1. `lib/features/noblara_feed/nob_compose_screen.dart:389` `[compose] auto-save failed`
+2. `lib/features/noblara_feed/nob_compose_screen.dart:407` `[compose] auto-restore failed`
+3. `lib/features/noblara_feed/nob_compose_screen.dart:417` `[compose] auto-clear failed`
+4. `lib/features/matches/matches_screen.dart:1032` `[matches] acceptReachOut failed`
+5. `lib/features/matches/matches_screen.dart:1046` `[matches] declineReachOut failed`
+6. `lib/features/onboarding/onboarding_flow_screen.dart:656` `[onboard] GPS location failed`
+7. `lib/features/entry_gate/entry_gate_screen.dart:52` `[gate] entry code submit failed`
+8. `lib/features/matches/end_connection_screen.dart:72` `[end] AI farewell check failed`
+9. `lib/features/match/video_call_screen.dart:153` `[video] AI topic suggestion failed`
+10. `lib/features/noblara_feed/notifications_screen.dart:66` `[notif] noblara unread count fetch failed`
+11. `lib/data/repositories/swipe_repository.dart:67` `[swipe] match parse failed`
+12. `lib/providers/posts_provider.dart:666` `[posts] nob_tier fetch failed`
+
+**5 P3** (yorumlu/dispose/inline → multi-line + log):
+13. `lib/services/gemini_service.dart:35` `[gemini] non-JSON AI response` (yorumla birlikte)
+14. `lib/features/matches/individual_chat_screen.dart:477` `[chat] expiry pre-check failed` (server reject yorumu korundu)
+15. `lib/providers/comment_provider.dart:64` `[comment] dispose channel`
+16. `lib/features/profile/edit/sections/photos_media_section.dart:151` `[photos] orphan cleanup` (inline → multi-line)
+17. `lib/providers/posts_provider.dart:105` `[posts] dispose channel`
+
+**Foundation import:** 0 yeni import. 13 dosyanın hepsi zaten `flutter/material.dart`
+(material → foundation re-export) ya da `flutter/foundation.dart` import etmişti.
+Dalga 3'te `unnecessary_import` hatasından çıkarılan ders korundu.
+
+### ADIM 3 — Kanıt
+
+- `flutter analyze --fatal-infos`: **No issues found!** (74.8s)
+- `flutter test`: **284 pass / 1 fail**
+  - Önceki baseline 283/2 → 284/1 (+1 pass, -1 fail)
+  - Banned pattern `catch (_)` testi artık geçiyor (sıfır olduğu için)
+  - Tek kalan fail: `no_banned_patterns_test`: `Supabase.instance.client only under lib/data/repositories/` (Dalga 5 hedefi, R4 ile ilgisiz)
+- `grep "catch (_)" lib/ -r`: **0 sonuç**
+- `git diff --stat`: 13 lib dosyası, +92/-17 satır (109/17 toplam, session_notes +63)
+
+### R-kod durumu sonrası
+- R1 ✅ FULLY CLOSED (Dalga 2 + 2b)
+- R2 ✅ FULLY CLOSED (Dalga 2c)
+- R3 ✅ FULLY CLOSED (Dalga 3)
+- **R4 ✅ FULLY CLOSED (Dalga 4 + 4b — bu oturum)**
+- R5 ✅ FULLY CLOSED (Dalga 3 eski oturum)
+- R5b ✅ FULLY CLOSED (Dalga 3b)
+- R6 AÇIK (Video WebRTC, büyük iş)
+- R7 META (kanıt disiplini, bu oturumda uygulandı)
+- R8 KISMEN (1/8 setting CLOSED: incognito)
+
+### Süre
+~25 dakika (envanter 5 + fix 10 + analyze/test 7 + docs/commit 3)
+

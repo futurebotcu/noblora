@@ -474,7 +474,10 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
             return;
           }
         }
-      } catch (_) {} // Proceed on error — server will reject if truly expired
+      } catch (e) {
+        debugPrint('[chat] expiry pre-check failed: $e');
+        // Proceed on error — server will reject if truly expired
+      }
     }
 
     _msgCtrl.clear();

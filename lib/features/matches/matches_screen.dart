@@ -1029,7 +1029,8 @@ class _RequestsTabState extends ConsumerState<_RequestsTab> {
           ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
         }
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[matches] acceptReachOut failed: $e');
       if (mounted) {
         ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
       }
@@ -1043,7 +1044,8 @@ class _RequestsTabState extends ConsumerState<_RequestsTab> {
         ToastService.show(context, message: 'Request declined', type: ToastType.system);
         _load();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[matches] declineReachOut failed: $e');
       if (mounted) {
         ToastService.show(context, message: 'Could not decline', type: ToastType.error);
       }

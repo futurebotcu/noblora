@@ -69,7 +69,8 @@ Respond with JSON only:
         ToastService.show(context, message: reason.isNotEmpty ? reason : 'Please write a more thoughtful message.', type: ToastType.error);
         return;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[end] AI farewell check failed: $e');
       // AI check failed — allow but inform user
       if (mounted) {
         ToastService.show(context, message: 'AI check unavailable — message will be sent without review.', type: ToastType.system);

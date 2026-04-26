@@ -102,7 +102,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
     if (ch != null) {
       try {
         Supabase.instance.client.removeChannel(ch);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[posts] dispose channel: $e');
+      }
     }
     super.dispose();
   }
@@ -663,7 +665,8 @@ final nobTierProvider = FutureProvider.autoDispose<NobTier>((ref) async {
         .eq('id', userId)
         .maybeSingle();
     return NobTier.fromString(row?['nob_tier'] as String?);
-  } catch (_) {
+  } catch (e) {
+    debugPrint('[posts] nob_tier fetch failed: $e');
     return NobTier.observer;
   }
 });

@@ -143,11 +143,38 @@ kullanıcıya hiç sinyal verilmiyordu.
 
 **Tekrar sayısı:** 1
 
+**Status:** FULLY CLOSED (2026-04-26) — Dalga 4 (21 fix) + Dalga 4b (kalan 17).
+
+**Kanıt (2026-04-26 19:30):**
+- `grep "catch (_)" lib/ -r`: **0 sonuç** (38 → 21 → 0)
+- Dalga 4 (2026-04-24, PR #10): 21 fix (4 P0 toast lie + 7 P1 rethrow/log + 8 P2 + 2 P3)
+- Dalga 4b (2026-04-26, bu PR): kalan 17 fix (12 P2 mekanik log + 5 P3 yorumlu/dispose)
+- Banned pattern test `catch_underscore_violations`: fail → **PASS**
+- Full suite: 283/2 → **284/1** (+1 pass / -1 fail; tek kalan fail Supabase.instance.client, R4 ile ilgisiz)
+- `flutter analyze --fatal-infos`: `No issues found!`
+
+**Pattern (Dalga 4 + 4b standardı):**
+```dart
+catch (e) {
+  debugPrint('[<scope>] <context>: $e');
+  // mevcut yorumu/davranışı koru
+}
+```
+Scope etiketi (köşeli parantez) = feature alanı: `[feed]`, `[chat]`, `[matches]`,
+`[compose]`, `[onboard]`, `[gate]`, `[end]`, `[video]`, `[notif]`, `[swipe]`,
+`[posts]`, `[gemini]`, `[comment]`, `[photos]`, `[auth]`, `[status]`, `[room]`,
+`[push]`, `[settings]`, `[intro]`. Yeni feature için yeni etiket eklenebilir.
+
 **Dokunma protokolü:**
-- `catch (_)` kullanılamaz (CLAUDE.md §4 yasak). `catch (e, st)` + log + UI surface
-- `test/guardrails/no_banned_patterns_test.dart` bu kuralı CI'da zorlar
-- Konum, mesafe, filtre hesaplamalarında fail-silent yerine
-  "bilinmiyor" göster
+- `catch (_)` kullanılamaz (CLAUDE.md §4 yasak). `catch (e)` + `debugPrint` + scope etiketi + context.
+- Davranış değişikliği gerektiren P0/P1 (toast lie, security/UX rethrow) için
+  Dalga 4 örneklerini incele: feed_provider:135 / swipe_repo:81 (rethrow),
+  match_detail:182 / individual_chat:426 (toast try içine taşı).
+- Inline `} catch (_) {}` görürsen multi-line'a aç + log ekle. Yorum varsa
+  yorumu KORU (gemini non-JSON, chat server-reject, photos orphan-cleanup).
+- `test/guardrails/no_banned_patterns_test.dart` `catch (_)` kuralını zorlar.
+- `import 'package:flutter/foundation.dart'` zaten material/foundation export
+  edenlerde gereksiz — `unnecessary_import` info verir, ekleme.
 
 ---
 

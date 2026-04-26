@@ -150,7 +150,8 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
         otherName: widget.match.otherUserName ?? 'your match',
       );
       if (mounted) setState(() => _topicSuggestion = topic);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[video] AI topic suggestion failed: $e');
       if (mounted) {
         setState(() => _topicSuggestion = 'What do you enjoy doing on weekends?');
       }

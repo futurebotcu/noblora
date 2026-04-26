@@ -32,7 +32,10 @@ class GeminiService {
       if (jsonMatch != null) {
         try {
           return jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
-        } catch (_) { /* non-JSON AI response, use raw text */ }
+        } catch (e) {
+          debugPrint('[gemini] non-JSON AI response: $e');
+          /* fall through to raw text */
+        }
       }
       return {'text': text};
     } catch (e) {

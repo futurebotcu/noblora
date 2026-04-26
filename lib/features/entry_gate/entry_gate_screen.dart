@@ -49,7 +49,8 @@ class _EntryGateScreenState extends ConsumerState<EntryGateScreen> {
         _feedback = 'Code submitted. We will review it shortly.';
         _codeCtrl.clear();
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[gate] entry code submit failed: $e');
       if (!mounted) return;
       setState(() => _feedback = 'Could not submit. Please try again.');
     } finally {
