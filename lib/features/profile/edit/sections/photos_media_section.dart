@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/toast_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -10,6 +9,7 @@ import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/theme/premium.dart';
 import '../../../../core/utils/mock_mode.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../providers/storage_provider.dart';
 import '../edit_profile_provider.dart';
 import '../widgets/edit_section_shell.dart';
 
@@ -135,8 +135,11 @@ class PhotosMediaSection extends ConsumerWidget {
       final draft = ref.read(editProfileProvider).draft;
       final oldUrl = index < draft.photoUrls.length ? draft.photoUrls[index] : null;
       final path = '$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await Supabase.instance.client.storage.from('profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
-      final url = Supabase.instance.client.storage.from('profile-photos').getPublicUrl(path);
+      final url = await ref.read(storageRepositoryProvider).uploadProfilePhoto(
+        path: path,
+        bytes: bytes,
+        contentType: contentType,
+      );
       ref.read(editProfileProvider.notifier).updateDraft((d) {
         final urls = List<String>.from(d.photoUrls);
         index < urls.length ? urls[index] = url : urls.add(url);
@@ -149,7 +152,7 @@ class PhotosMediaSection extends ConsumerWidget {
         final storagePath = segments.length >= 2 ? segments.sublist(segments.length - 2).join('/') : null;
         if (storagePath != null) {
           try {
-            await Supabase.instance.client.storage.from('profile-photos').remove([storagePath]);
+            await ref.read(storageRepositoryProvider).removeProfilePhoto(storagePath);
           } catch (e) {
             debugPrint('[photos] orphan cleanup: $e');
           }
@@ -268,7 +271,7 @@ class PhotosMediaSection extends ConsumerWidget {
             final path = Uri.parse(removedUrl).pathSegments;
             final storagePath = path.length >= 2 ? path.sublist(path.length - 2).join('/') : null;
             if (storagePath != null) {
-              Supabase.instance.client.storage.from('profile-photos').remove([storagePath]);
+              ref.read(storageRepositoryProvider).removeProfilePhoto(storagePath);
             }
           }
         }, child: const Text('Remove', style: TextStyle(color: AppColors.error))),

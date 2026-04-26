@@ -1996,5 +1996,92 @@ server-side aynı kontrolü yapıyor.
 ### Süre
 ~30 dakika (envanter 5 + repo+method 10 + 8 site refactor 10 + analyze/test 3 + docs/commit 5)
 
+---
+
+## 2026-04-XX — Dalga 5d2: Storage Repository (R9 KISMEN ilerleme)
+
+### Bağlam
+Dalga 5d1 sonrası 52 dış ihlal. 5d basket'inden Storage izole edildi:
+9 site `Supabase.instance.client.storage.*` çağrısı, 2 bucket
+(galleries + profile-photos), 3 dosya.
+
+### Hedef
+- 9 site → 5 logical operation (upload+getPublicUrl pair'leri tek call)
+- 1 yeni repository (StorageRepository) + 3 method
+- 52 → 43 (-9); test 284/1 baseline korunur
+
+### Branch
+`dalga-5d2-storage-repo` (main `7c2dd39`'dan)
+
+### ADIM 1 — Envanter
+9 site, bucket dağılımı: galleries 3 (nob_compose), profile-photos 6
+(onboarding 2 + photos_media 4).
+
+### ADIM 2 — Fix
+
+**Yeni dosya (2):**
+- `lib/data/repositories/storage_repository.dart` — 3 method
+- `lib/providers/storage_provider.dart`
+
+**Method imzaları (3):**
+- `uploadToGallery({path, bytes, contentType, upsert=false}) → Future<String>` (URL)
+  - Sites #1+#2 (nob_compose 324+327) ve #3 (line 361 thumbnail, `upsert: true`)
+- `uploadProfilePhoto({path, bytes, contentType}) → Future<String>` (URL)
+  - Sites #4+#5 (onboarding 113+115) ve #6+#7 (photos_media 138+139)
+- `removeProfilePhoto(String path) → Future<void>`
+  - Site #8 awaited (photos_media 152, replace cleanup)
+  - Site #9 fire-and-forget (photos_media 271, dialog onTap remove)
+
+**Path generation caller'da kalıyor** (domain knowledge):
+- `nob_photos/$userId/${ts}.${ext}` (gallery)
+- `avatars/$uid/${ts}.jpg` (onboarding)
+- `$uid/${ts}.jpg` (photos_media edit)
+
+**Mock mode:**
+- `uploadToGallery` mock'ta `mock://gallery/$path` döner
+- `uploadProfilePhoto` mock'ta `mock://profile-photo/$path` döner
+- `removeProfilePhoto` mock'ta no-op
+- Onceki davranış (onboarding/photos_media): mock'ta direkt Supabase çağrısı → hata
+- Yeni davranış: no-op + URL → defansive iyileştirme (prod davranış birebir)
+
+### ADIM 3 — Kanıt
+- `flutter analyze --fatal-infos`: **No issues found!** (2.5s)
+  - 2 unused_import (onboarding + photos_media supabase_flutter) kaldırıldı
+- `flutter test`: **284 pass / 1 fail** (regresyon SIFIR)
+- `grep "Supabase.instance.client" lib/ | grep -v repos | grep -v wrapper`:
+  52 → **43** (-9 net)
+
+### Davranış kontrolü (R7)
+- Bucket adları birebir (`galleries`, `profile-photos`)
+- FileOptions(contentType + upsert) parametre korundu
+- getPublicUrl çağrısı semantik aynı
+- remove `[path]` single-element list aynı
+- await/no-await caller pattern preserve (site #8 awaited, site #9 fire-forget)
+- Mock mode: prod davranış değişmedi; mock-only nuance (eski hata, yeni no-op + URL) — onaylı
+
+### İmport temizliği
+- 3 dosya değişti
+- 2 dosyada `supabase_flutter` import kaldırıldı (onboarding, photos_media — başka Supabase kullanımı yok)
+- nob_compose'da `supabase_flutter` import kaldı (line 106 profile select + line 131 functions.invoke hâlâ var, 5b/5d ileride)
+
+### R-kod durumu sonrası
+- R1-R5b ✅ FULLY CLOSED
+- R4 ✅ FULLY CLOSED
+- R6 AÇIK
+- R8 KISMEN (1/8)
+- **R9 KISMEN ilerleme:** 121 → 97 → 73 → 60 → 52 → **43** (5d2); -78 toplam, ~43 kalan
+
+### Sonraki dalgalar
+- **Dalga 5c2** (~13): Profile reads — Profile model genişletme (R1 protokolü)
+- **Dalga 5d3** (~5): Edge Functions invoke — yeni FunctionService veya domain repo extension
+- **Dalga 5d4** (~5): RPC çağrıları (auth_provider + mood_map + feed_provider rewind RPC)
+- **Dalga 5d5** (~4): Push static service — setter injection
+- **Dalga 5d6** (~4): DeviceService — yeni DeviceRepository
+- **Dalga 5d7** (~12): Diğer kalanlar (status_screen complex 6, posts_provider local var, end_connection messages insert, vs.)
+
+### Süre
+~25 dakika (envanter 5 + repo+method 5 + 9 site refactor 10 + analyze/test/cleanup 3 + docs/commit 2)
+
+
 
 
