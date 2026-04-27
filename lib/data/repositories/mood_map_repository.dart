@@ -43,4 +43,45 @@ class MoodMapRepository {
     );
     return Map<String, dynamic>.from(res as Map);
   }
+
+  /// AI summary for the country drilldown header. Wraps the
+  /// `nob-country-insight` Edge Function. Returns the raw response map
+  /// (typically `{summary_title, summary_body, ...}`) or `null` if the
+  /// shape is unexpected / mock mode. Caller does the `AISummary.fromJson`
+  /// mapping.
+  Future<Map<String, dynamic>?> fetchCountryAISummary({
+    required String countryCode,
+    required String countryName,
+    required String timeWindow,
+    required int totalPosts,
+    required int uniqueAuthors,
+    required double avgQuality,
+    String? dominantMood,
+    required List<Map<String, dynamic>> moodBreakdown,
+    required List<Map<String, dynamic>> topTopics,
+    required Map<String, dynamic> engagement,
+    required String dataQuality,
+  }) async {
+    if (isMockMode) return null;
+    final res = await _supabase!.functions.invoke(
+      'nob-country-insight',
+      body: {
+        'country_code': countryCode,
+        'country_name': countryName,
+        'time_window': timeWindow,
+        'total_posts': totalPosts,
+        'unique_authors': uniqueAuthors,
+        'avg_quality': avgQuality,
+        'dominant_mood': dominantMood,
+        'mood_breakdown': moodBreakdown,
+        'top_topics': topTopics,
+        'engagement': engagement,
+        'data_quality': dataQuality,
+      },
+    );
+    if (res.data is Map<String, dynamic>) {
+      return res.data as Map<String, dynamic>;
+    }
+    return null;
+  }
 }

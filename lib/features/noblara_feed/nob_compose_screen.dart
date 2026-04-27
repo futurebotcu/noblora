@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
+import '../../providers/ai_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import '../../providers/storage_provider.dart';
@@ -129,11 +130,10 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
         _showAiResult('[AI unavailable] $text', isTurkish: _isTurkish(text));
         return;
       }
-      final resp = await Supabase.instance.client.functions.invoke(
-        'nob-ai-edit',
-        body: {'content': text, 'edit_type': editType},
-      );
-      final edited = resp.data?['edited_content'] as String?;
+      final data = await ref
+          .read(aiRepositoryProvider)
+          .invokeAIEdit(content: text, editType: editType);
+      final edited = data?['edited_content'] as String?;
       if (edited != null && mounted) {
         _showAiResult(edited, isTurkish: _isTurkish(text) || _isTurkish(edited));
       }
