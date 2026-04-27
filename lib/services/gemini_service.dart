@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
+import '../data/repositories/ai_repository.dart';
 
 /// All AI text operations go through Supabase Edge Function `gemini-text`.
 /// No Gemini API key on the client side.
@@ -13,12 +13,7 @@ class GeminiService {
     }
 
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'gemini-text',
-        body: {'prompt': prompt},
-      );
-
-      final data = res.data as Map<String, dynamic>?;
+      final data = await AIRepository.instance().invokeGeminiText(prompt);
       if (data == null) return {'text': ''};
 
       if (data.containsKey('error')) {

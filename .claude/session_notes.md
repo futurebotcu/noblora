@@ -5,6 +5,41 @@ Her oturum açılışında bu dosyaya bir kayıt açılır. İlk 3 adım CLAUDE.
 
 ---
 
+## 2026-04-27 12:00 Bangkok — Dalga 5d3: Edge Functions
+
+### Hedef
+~5 `Supabase.instance.client.functions.invoke` çağrısı (lib/ altı, repositories
+hariç) ilgili repository veya yeni service'e taşınacak. R9 KISMEN ilerleme:
+35 → ~30.
+
+### Kural
+- SADECE `.functions.invoke` çağrıları
+- JSON response handling birebir korunmalı
+- Error handling pattern preserve
+- isMockMode guard her method
+- Davranış değişikliği YASAK
+- Scope 3 madde: (1) envanter, (2) ~5 fix, (3) test/commit/PR
+
+### Risk alanı (R-kodları)
+- **R9**: Direct `Supabase.instance.client` pattern — ana hedef
+- **R7**: Audit uydurma — her iddia için kanıt, "muhtemelen çalışıyor" yasak
+- **R4**: `catch (_)` — yeni eklenmeyecek, mevcut `catch (e)` patterns korunacak
+
+### Branch
+`dalga-5d3-edge-functions` (oluşturuldu)
+
+### Sonuç (12:35 Bangkok)
+- **35 → 30 ihlal** (`flutter test test/guardrails/no_banned_patterns_test.dart`: "Supabase.instance.client (outside lib/data/repositories/): 30 violations")
+- 4 yeni dosya: `ai_repository.dart`, `location_repository.dart`, `ai_provider.dart`, `location_provider.dart`
+- 5 yeni method (AI ×2, Location ×2, MoodMap ×1)
+- 5 site refactored (4 caller dosya: gemini_service, mood_map_screen, city_search_screen ×2, nob_compose_screen)
+- Static GeminiService API korundu: 11 caller etkilenmedi (lazy `AIRepository.instance()` accessor pattern)
+- city_search_screen `StatefulWidget` → `ConsumerStatefulWidget`: parent `onSelected/initialValue` API aynı
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 284 pass / 1 fail (baseline korundu)
+
+---
+
 ## 2026-04-20 — Gözetim Sistemi Kurulumu
 
 ### Bu oturumda dokunulan alanlar

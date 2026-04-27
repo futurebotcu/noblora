@@ -1,21 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../providers/location_provider.dart';
 
-class CitySearchScreen extends StatefulWidget {
+class CitySearchScreen extends ConsumerStatefulWidget {
   final String? initialValue;
   final void Function(String city, String country, double? lat, double? lng) onSelected;
 
   const CitySearchScreen({super.key, this.initialValue, required this.onSelected});
 
   @override
-  State<CitySearchScreen> createState() => _CitySearchScreenState();
+  ConsumerState<CitySearchScreen> createState() => _CitySearchScreenState();
 }
 
-class _CitySearchScreenState extends State<CitySearchScreen> {
+class _CitySearchScreenState extends ConsumerState<CitySearchScreen> {
   final _ctrl = TextEditingController();
   final _focus = FocusNode();
   Timer? _debounce;
@@ -49,12 +50,8 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
   Future<void> _search(String query) async {
     setState(() => _loading = true);
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'places-proxy',
-        body: {'action': 'autocomplete', 'query': query},
-      );
-      final data = res.data as Map<String, dynamic>?;
-      final predictions = (data?['predictions'] as List?) ?? [];
+      final predictions =
+          await ref.read(locationRepositoryProvider).searchPlaces(query);
       setState(() {
         _results = predictions.map((p) => _PlacePrediction(
           placeId: p['place_id'] ?? '',
@@ -71,12 +68,9 @@ class _CitySearchScreenState extends State<CitySearchScreen> {
 
   Future<void> _selectPlace(_PlacePrediction prediction) async {
     try {
-      final res = await Supabase.instance.client.functions.invoke(
-        'places-proxy',
-        body: {'action': 'details', 'placeId': prediction.placeId},
-      );
-      final data = res.data as Map<String, dynamic>?;
-      final result = data?['result'];
+      final result = await ref
+          .read(locationRepositoryProvider)
+          .fetchPlaceDetails(prediction.placeId);
       final loc = result?['geometry']?['location'];
       final lat = loc?['lat'] as double?;
       final lng = loc?['lng'] as double?;

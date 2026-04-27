@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
@@ -184,28 +183,29 @@ final countryAISummaryProvider = FutureProvider.autoDispose
         (ref, args) async {
   if (isMockMode || args.data.isInsufficient) return null;
   try {
-    final res = await Supabase.instance.client.functions.invoke(
-      'nob-country-insight',
-      body: {
-        'country_code': args.code,
-        'country_name': args.name,
-        'time_window': args.data.timeWindow,
-        'total_posts': args.data.totalPosts,
-        'unique_authors': args.data.uniqueAuthors,
-        'avg_quality': args.data.avgQuality,
-        'dominant_mood': args.data.dominantMood,
-        'mood_breakdown': args.data.moodBreakdown
-            .map((m) => {'mood': m.mood, 'count': m.count})
-            .toList(),
-        'top_topics': args.data.topTopics
-            .map((t) => {'topic': t.topic, 'count': t.count})
-            .toList(),
-        'engagement': {'reactions': args.data.totalEngagement, 'echoes': 0, 'comments': 0},
-        'data_quality': args.data.dataQuality,
-      },
-    );
-    if (res.data is Map && res.data['summary_title'] != null) {
-      return AISummary.fromJson(Map<String, dynamic>.from(res.data));
+    final data = await ref.read(moodMapRepositoryProvider).fetchCountryAISummary(
+          countryCode: args.code,
+          countryName: args.name,
+          timeWindow: args.data.timeWindow,
+          totalPosts: args.data.totalPosts,
+          uniqueAuthors: args.data.uniqueAuthors,
+          avgQuality: args.data.avgQuality,
+          dominantMood: args.data.dominantMood,
+          moodBreakdown: args.data.moodBreakdown
+              .map((m) => {'mood': m.mood, 'count': m.count})
+              .toList(),
+          topTopics: args.data.topTopics
+              .map((t) => {'topic': t.topic, 'count': t.count})
+              .toList(),
+          engagement: {
+            'reactions': args.data.totalEngagement,
+            'echoes': 0,
+            'comments': 0,
+          },
+          dataQuality: args.data.dataQuality,
+        );
+    if (data != null && data['summary_title'] != null) {
+      return AISummary.fromJson(data);
     }
     return null;
   } catch (e) {
