@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/repositories/device_repository.dart';
 
 class DeviceService {
   static final _plugin = DeviceInfoPlugin();
@@ -36,12 +36,7 @@ class DeviceService {
   static Future<bool> isDeviceBanned() async {
     try {
       final deviceId = await getDeviceId();
-      final result = await Supabase.instance.client
-          .from('banned_devices')
-          .select('id')
-          .eq('device_id', deviceId)
-          .maybeSingle();
-      return result != null;
+      return await DeviceRepository.instance().isDeviceBanned(deviceId);
     } catch (e) {
       debugPrint('[device] Ban check failed: $e');
       return false;
@@ -51,12 +46,7 @@ class DeviceService {
   static Future<bool> deviceHasAccount() async {
     try {
       final deviceId = await getDeviceId();
-      final result = await Supabase.instance.client
-          .from('profiles')
-          .select('id')
-          .eq('device_id', deviceId)
-          .maybeSingle();
-      return result != null;
+      return await DeviceRepository.instance().profileExistsForDevice(deviceId);
     } catch (e) {
       debugPrint('[device] Account check failed: $e');
       return false;
@@ -66,18 +56,12 @@ class DeviceService {
   static Future<void> registerDevice(String userId) async {
     try {
       final info = await getDeviceInfo();
-      await Supabase.instance.client.from('user_devices').upsert({
-        'user_id': userId,
-        'device_id': info['device_id'],
-        'device_platform': info['platform'],
-        'device_model': info['model'],
-        'last_seen': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id,device_id');
-
-      await Supabase.instance.client.from('profiles').update({
-        'device_id': info['device_id'],
-        'device_platform': info['platform'],
-      }).eq('id', userId);
+      await DeviceRepository.instance().registerDevice(
+        userId: userId,
+        deviceId: info['device_id'] ?? 'unknown',
+        platform: info['platform'] ?? 'other',
+        model: info['model'] ?? 'unknown',
+      );
     } catch (e) { debugPrint('[device] Registration failed: $e'); }
   }
 }

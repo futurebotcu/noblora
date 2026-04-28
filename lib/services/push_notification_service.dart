@@ -3,8 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
+import '../data/repositories/push_token_repository.dart';
 
 /// Top-level handler for background messages (must be top-level function).
 @pragma('vm:entry-point')
@@ -112,15 +112,11 @@ class PushNotificationService {
 
   /// Save/update FCM token in Supabase push_tokens table.
   static Future<void> _saveToken(String token) async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
     try {
-      await Supabase.instance.client.from('push_tokens').upsert({
-        'user_id': userId,
-        'token': token,
-        'platform': 'android',
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id,token');
+      await PushTokenRepository.instance().upsertCurrentUserToken(
+        token: token,
+        platform: 'android',
+      );
       debugPrint('[push] Token saved');
     } catch (e) {
       debugPrint('[push] Token save failed: $e');
@@ -130,13 +126,8 @@ class PushNotificationService {
   /// Remove all tokens for current user (call on logout).
   static Future<void> unregisterTokens() async {
     if (isMockMode) return;
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
     try {
-      await Supabase.instance.client
-          .from('push_tokens')
-          .delete()
-          .eq('user_id', userId);
+      await PushTokenRepository.instance().removeAllCurrentUserTokens();
       debugPrint('[push] Tokens cleared');
     } catch (e) {
       debugPrint('[push] Token cleanup failed: $e');

@@ -400,7 +400,7 @@ DIŞINDA 121 ihlal oluştu.
 
 **Tekrar sayısı:** 1 (toplu envanter)
 
-**Status:** KISMEN AÇIK (2026-04-27)
+**Status:** KISMEN AÇIK (2026-04-28)
 - **Dalga 5a (Provider DI):** CLOSED — 26 satır taşındı, wrapper kuruldu, test mocking altyapısı bonus
 - **Dalga 5b (Direct CRUD):** CLOSED — 22 site refactored, 7 method + 1 yeni repo (UserReportRepository)
 - **Dalga 5c1 (Realtime + Auth):** CLOSED — 13 site, 8 method + 1 yeni repo (RealtimeRepository)
@@ -408,9 +408,10 @@ DIŞINDA 121 ihlal oluştu.
 - **Dalga 5d2 (Storage):** CLOSED — 9 site, 3 method + 1 yeni repo (StorageRepository), 2 bucket
 - **Dalga 5d4 (RPC):** CLOSED — 8 site, 3 mevcut repo ek + 2 yeni repo (MoodMapRepository, NoblaraNotificationRepository), 8 method
 - **Dalga 5d3 (Edge Functions):** CLOSED — 5 site, 5 method + 2 yeni repo (AIRepository, LocationRepository), 1 method MoodMapRepository'e eklendi
+- **Dalga 5d5+5d6 (Push static + Device):** CLOSED — 8 site, 5 method + 2 yeni repo (PushTokenRepository, DeviceRepository), lazy singleton pattern (gemini_service ile aynı)
 - **Dalga 5c2 (Profile reads ~13):** OPEN — Profile model genişletme + dedicated method'lar
-- **Dalga 5d5-5d7 (Push / Device / Diğer ~17):** OPEN
-- Toplam ihlal: 121 → 97 → 73 → 60 → 52 → 43 → 35 → **30** (5d3) — toplam -91
+- **Dalga 5d7 (Diğer ~9):** OPEN — feed/posts/settings/status/main_tab/event/room/active_modes/appearance/interaction_gate Profile reads
+- Toplam ihlal: 121 → 97 → 73 → 60 → 52 → 43 → 35 → 30 → **22** (5d5+5d6) — toplam -99
 
 **Kanıt (Dalga 5b, 2026-04-XX):**
 - Yeni dosya: `lib/data/repositories/user_report_repository.dart` (abuse central) +
