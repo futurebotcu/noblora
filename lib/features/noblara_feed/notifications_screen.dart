@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
@@ -47,14 +46,9 @@ class NoblaraNotification {
 final noblaraNotificationsProvider =
     FutureProvider.autoDispose<List<NoblaraNotification>>((ref) async {
   if (isMockMode) return const [];
-  final rows = await Supabase.instance.client
-      .from('noblara_notifications')
-      .select()
-      .order('created_at', ascending: false)
-      .limit(100);
-  return rows
-      .map((r) => NoblaraNotification.fromJson(Map<String, dynamic>.from(r)))
-      .toList();
+  final rows =
+      await ref.read(noblaraNotificationRepositoryProvider).fetchAll();
+  return rows.map(NoblaraNotification.fromJson).toList();
 });
 
 final noblaraUnreadCountProvider = FutureProvider.autoDispose<int>((ref) async {

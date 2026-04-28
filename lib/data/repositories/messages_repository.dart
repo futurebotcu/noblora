@@ -216,6 +216,26 @@ class MessagesRepository {
     });
   }
 
+  /// "Farewell" / closure message authored by a user but rendered in the
+  /// system-message style. Differs from `sendMessage(isSystem: true)` in that
+  /// `sender_id` is preserved (non-null) — the closer's identity is
+  /// intentional, not a server-generated event. Used by end_connection_screen.
+  Future<void> insertSystemMessageFromUser({
+    required String conversationId,
+    required String senderId,
+    required String content,
+    required String mode,
+  }) async {
+    if (isMockMode) return;
+    await _supabase!.from('messages').insert({
+      'conversation_id': conversationId,
+      'sender_id': senderId,
+      'content': content,
+      'is_system': true,
+      'mode': mode,
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Unread counts
   // ---------------------------------------------------------------------------

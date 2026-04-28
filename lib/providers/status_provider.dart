@@ -1,9 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
+import '../data/repositories/status_repository.dart';
 import '../data/repositories/super_like_repository.dart';
 import 'auth_provider.dart';
 import 'profile_provider.dart';
+import 'supabase_client_provider.dart';
+
+final statusRepositoryProvider = Provider<StatusRepository>((ref) {
+  if (isMockMode) return StatusRepository();
+  return StatusRepository(supabase: ref.watch(supabaseClientProvider));
+});
 
 // ---------------------------------------------------------------------------
 // Models
@@ -158,14 +164,9 @@ class StatusNotifier extends StateNotifier<AsyncValue<StatusData>> {
 
     final userId = _ref.read(authProvider).userId;
     if (userId == null) return const StatusData();
-    final client = Supabase.instance.client;
 
-    // Profile row
-    final profileRow = await client
-        .from('profiles')
-        .select('profile_views, is_noble, super_likes_remaining, rewinds_remaining, boost_active_until')
-        .eq('id', userId)
-        .maybeSingle();
+    final data = await _ref.read(statusRepositoryProvider).fetchStatusData(userId);
+    final profileRow = data.profileRow;
 
     final profileViews = profileRow?['profile_views'] as int? ?? 0;
     final isNoble = profileRow?['is_noble'] as bool? ?? false;
@@ -175,41 +176,16 @@ class StatusNotifier extends StateNotifier<AsyncValue<StatusData>> {
     final boostActiveUntil =
         boostStr != null ? DateTime.tryParse(boostStr) : null;
 
-    // Match count
-    final matchRows = await client
-        .from('matches')
-        .select('id')
-        .or('user1_id.eq.$userId,user2_id.eq.$userId');
-    final matchCount = matchRows.length;
-
-    // Reaction count on my posts
-    final myPosts = await client
-        .from('posts')
-        .select('id')
-        .eq('user_id', userId);
-    final postIds = myPosts.map((r) => r['id'] as String).toList();
-    int reactionCount = 0;
-    int myPostsCount = myPosts.length;
-    int myReactionsReceived = 0;
-    if (postIds.isNotEmpty) {
-      final reactions = await client
-          .from('post_reactions')
-          .select('id')
-          .inFilter('post_id', postIds);
-      reactionCount = reactions.length;
-      myReactionsReceived = reactions.length;
-    }
-
     // Who liked me
-    final repo = SuperLikeRepository(supabase: client);
+    final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
     final likedMe = await repo.fetchWhoLikedMe(userId);
     final iLiked = await repo.fetchILiked(userId);
     final superLikesReceived = await repo.fetchSuperLikesReceived(userId);
 
     return StatusData(
       profileViews: profileViews,
-      matchCount: matchCount,
-      reactionCount: reactionCount,
+      matchCount: data.matchCount,
+      reactionCount: data.reactionCount,
       isNoble: isNoble,
       superLikesRemaining: superLikesRemaining,
       rewindsRemaining: rewindsRemaining,
@@ -217,8 +193,8 @@ class StatusNotifier extends StateNotifier<AsyncValue<StatusData>> {
       likedMe: likedMe,
       iLiked: iLiked,
       superLikesReceived: superLikesReceived,
-      myPostsCount: myPostsCount,
-      myReactionsReceived: myReactionsReceived,
+      myPostsCount: data.myPostsCount,
+      myReactionsReceived: data.reactionCount,
     );
   }
 }

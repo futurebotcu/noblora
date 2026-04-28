@@ -13,6 +13,38 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-04-28 — Dalga 5d7: Karışık Kalanlar (R9 KISMEN, 22 → 13)
+
+- [x] Kod path:
+  - YENİ `lib/data/repositories/status_repository.dart` — `fetchStatusCounts` (6 paralel) + `fetchStatusData` (4 sequential)
+  - `lib/providers/status_provider.dart` — `statusRepositoryProvider` ek (top-of-file pattern), `_fetchData` yeniden yazıldı
+  - `lib/data/repositories/noblara_notification_repository.dart` + `fetchAll({limit})`
+  - `lib/data/repositories/messages_repository.dart` + `insertSystemMessageFromUser(...)` (sender_id non-null + is_system true, R7 davranış koruma)
+  - `lib/data/repositories/post_repository.dart` + `fetchUserReactions(...)` + `fetchAuthorEnrichment(...)`
+  - `lib/data/repositories/room_repository.dart` + `fetchUserLocation(uid)` (record `({lat, lng})`)
+  - `lib/features/status/status_screen.dart:64-75` → `ref.read(statusRepositoryProvider).fetchStatusCounts(uid)`
+  - `lib/providers/status_provider.dart:160` → `_ref.read(statusRepositoryProvider).fetchStatusData(uid)` + `SuperLikeRepository(supabase: _ref.read(supabaseClientProvider))`
+  - `lib/features/settings/settings_screen.dart:638` → `ref.read(profileRepositoryProvider).updateProfile(uid, {column: list})` (REUSE)
+  - `lib/features/noblara_feed/notifications_screen.dart:50` → `ref.read(noblaraNotificationRepositoryProvider).fetchAll()`
+  - `lib/features/matches/end_connection_screen.dart:88` → `ref.read(messagesRepositoryProvider).insertSystemMessageFromUser(...)` (sender_id non-null!)
+  - `lib/providers/posts_provider.dart:299` → `_ref.read(postRepositoryProvider).fetchUserReactions(...)`
+  - `lib/providers/posts_provider.dart:422` → `_ref.read(postRepositoryProvider).fetchAuthorEnrichment(userId)`
+  - `lib/providers/room_provider.dart:64,108` → `repo.fetchUserLocation(uid)` (REUSE)
+- [x] Backend kanıtı: table/column/onConflict/order/limit/eq/inFilter/or birebir korundu
+  - `messages.insert` sender_id non-null + is_system true (R7 önemli ayrım)
+  - 6 paralel + 4 sequential query SQL pattern birebir
+  - notifications limit 100 default + descending order
+- [x] UI kanıtı: smoke atlandı (mekanik refactor); analyze + test yeşil baseline kanıt
+- [x] Regresyon kontrolü:
+  - R4: try/catch + debugPrint patterns korundu (`[rooms]`, `[chat]`, `[status]`, `[enrich:myReactions]`, `[createNob:enrich]`)
+  - R7 KRİTİK: end_connection messages.insert sender_id non-null doğrulandı (yeni method imzası `String senderId`, sendMessage(isSystem) farklı path)
+  - R9: 22 → 13 ihlal (`grep` ile sayım), kalan 13 = 5c2 (Profile reads)
+- [x] Guardrail testi: `flutter test` → 284 pass / 1 fail (baseline; tek fail R9 envanter, 13 violations) ✅
+  - `flutter analyze --fatal-infos`: `No issues found! (3.0s)`
+- Branch: `dalga-5d7-misc-cleanup`
+
+---
+
 ## 2026-04-28 — Dalga 5d5+5d6: Push Static + Device Service (R9 KISMEN, 30 → 22)
 
 - [x] Kod path:

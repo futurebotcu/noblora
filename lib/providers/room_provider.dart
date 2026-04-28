@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
 import '../data/models/room.dart';
 import '../data/models/room_message.dart';
@@ -61,13 +60,9 @@ class RoomListNotifier extends StateNotifier<RoomListState> {
       double? userLat, userLng;
       if (!isMockMode && uid != null) {
         try {
-          final profile = await Supabase.instance.client
-              .from('profiles')
-              .select('location_lat, location_lng')
-              .eq('id', uid)
-              .maybeSingle();
-          userLat = (profile?['location_lat'] as num?)?.toDouble();
-          userLng = (profile?['location_lng'] as num?)?.toDouble();
+          final loc = await repo.fetchUserLocation(uid);
+          userLat = loc.lat;
+          userLng = loc.lng;
         } catch (e) { debugPrint('[rooms] Location fetch failed: $e'); }
       }
 
@@ -105,13 +100,9 @@ class RoomListNotifier extends StateNotifier<RoomListState> {
     double? hostLat, hostLng;
     if (!isMockMode) {
       try {
-        final profile = await Supabase.instance.client
-            .from('profiles')
-            .select('location_lat, location_lng')
-            .eq('id', uid)
-            .maybeSingle();
-        hostLat = (profile?['location_lat'] as num?)?.toDouble();
-        hostLng = (profile?['location_lng'] as num?)?.toDouble();
+        final loc = await repo.fetchUserLocation(uid);
+        hostLat = loc.lat;
+        hostLng = loc.lng;
       } catch (e) { debugPrint('[rooms] Host location fetch failed: $e'); }
     }
 

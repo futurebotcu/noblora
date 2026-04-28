@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -14,6 +13,7 @@ import '../../providers/match_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/status_provider.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../services/gemini_service.dart';
 import '../noblara_feed/nob_compose_screen.dart';
@@ -62,23 +62,14 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
     final uid = ref.read(authProvider).userId;
     if (uid == null) return;
     try {
-      final c = Supabase.instance.client;
-      final results = await Future.wait([
-        c.from('notes').select('id').eq('receiver_id', uid),         // 0: notes received
-        c.from('notes').select('id').eq('sender_id', uid),           // 1: notes sent
-        c.from('signals').select('id').eq('receiver_id', uid),       // 2: signals received
-        c.from('signals').select('id').eq('sender_id', uid),         // 3: signals sent
-        c.from('matches').select('id').or('user1_id.eq.$uid,user2_id.eq.$uid')
-            .neq('status', 'expired').neq('status', 'closed'),      // 4: connections
-        c.from('notifications').select().eq('user_id', uid)
-            .order('created_at', ascending: false).limit(20),        // 5: recent activity
-      ]);
-      _notesReceived = (results[0] as List).length;
-      _notesSent = (results[1] as List).length;
-      _signalsReceived = (results[2] as List).length;
-      _signalsSent = (results[3] as List).length;
-      _connectionCount = (results[4] as List).length;
-      _recentActivity = List<Map<String, dynamic>>.from(results[5] as List);
+      final counts =
+          await ref.read(statusRepositoryProvider).fetchStatusCounts(uid);
+      _notesReceived = counts.notesReceived;
+      _notesSent = counts.notesSent;
+      _signalsReceived = counts.signalsReceived;
+      _signalsSent = counts.signalsSent;
+      _connectionCount = counts.connectionCount;
+      _recentActivity = counts.recentActivity;
 
       _loaded = true;
       if (mounted) setState(() {});

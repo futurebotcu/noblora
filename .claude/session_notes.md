@@ -2444,3 +2444,199 @@ Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Eğer evet:
 - analyze + test + grep kanıt + commit + PR
 
 
+## 2026-04-28 — Dalga 5d7: Karışık Kalanlar
+
+### Hedef
+~9 site (non-profile reads + complex aggregation + writes) ilgili
+repo'lara taşı. R9 KISMEN ilerleme: 22 → ~13.
+
+### Risk alanı (R-kodlu)
+- **R9** (ana hedef) — KISMEN AÇIK, bu dalga -9 ihlal
+- **R7** — davranış değişikliği YASAK; özellikle end_connection messages
+  insert'inde `sender_id` is_system=true iken non-null bırakılmalı
+  (mevcut MessagesRepository.sendMessage `sender_id: isSystem ? null : senderId`
+  davranışı farklı — yeni method gerek)
+- **R4** — try/catch + debugPrint patterns korunacak
+
+### Scope limiti (3 madde)
+1. Envanter + plan (bu mesaj — onay sonrası ADIM 2'ye geç)
+2. ~9 fix + 1 yeni repo (StatusRepository) + 7 yeni method + 1 reuse
+3. analyze + test + commit + PR
+
+3'ü geçersem dur, kullanıcıya sun.
+
+### ADIM 1 — Envanter (yapıldı)
+
+**22 toplam ihlal → 5c2 (~13) + 5d7 (9):**
+
+**5c2 (Profile-table reads, BU DALGADA DEĞİL — Dalga 5c2'ye bırakıldı):**
+| # | Site | Field |
+|---|------|-------|
+| 1 | active_modes_provider:60 | `active_modes` |
+| 2 | appearance_provider:61 | `theme_mode, accent_color` |
+| 3 | interaction_gate_provider:50 | `photo_count, verified_profile_photo, nob_tier` |
+| 4 | matches_screen:35 | `message_preview` |
+| 5 | individual_chat_screen:270 | `ai_writing_help` |
+| 6 | nob_compose_screen:108 | `ai_writing_help` |
+| 7 | feed_provider:128 | `blocked_users, hidden_users` |
+| 8 | event_provider:163 | `leave_event_chat_auto` |
+| 9 | main_tab_navigator:267 | `notification_preferences` |
+| 10 | edit_profile_provider:45 | `select()` full row → ProfileDraft |
+| 11 | settings_screen:34 | settings multi-col (~22 columns) |
+| 12 | posts_provider:656 | `nob_tier` |
+| 13 | posts_provider:673 | `is_admin` |
+
+**5d7 (BU DALGA — 9 site):**
+
+| # | Site | Operation | Tablo | Repo eşleştirme |
+|---|------|-----------|-------|-----------------|
+| 1 | status_screen:65 | 6 parallel select (notes×2, signals×2, matches, notifications) | mixed | StatusRepository.fetchStatusCounts (NEW) |
+| 2 | settings_screen:639 | update `{column: list}` (block/hide list) | profiles | ProfileRepository.updateProfile (REUSE) |
+| 3 | notifications_screen:50 | select() order by created_at limit 100 | noblara_notifications | NoblaraNotificationRepository.fetchAll (NEW method) |
+| 4 | end_connection_screen:88 | insert {conversation_id, sender_id, content, is_system, mode} | messages | MessagesRepository.insertSystemMessageFromUser (NEW method) |
+| 5 | posts_provider:299 | select() eq user_id + inFilter post_id | post_reactions | PostRepository.fetchUserReactions (NEW method) |
+| 6 | posts_provider:422 | select(`display_name, date_avatar_url, nob_tier`) maybeSingle | profiles | PostRepository.fetchAuthorEnrichment (NEW method) |
+| 7 | room_provider:64 | select(`location_lat, location_lng`) maybeSingle | profiles | RoomRepository.fetchUserLocation (NEW method) |
+| 8 | room_provider:108 | aynı (host location) | profiles | RoomRepository.fetchUserLocation (REUSE — same method) |
+| 9 | status_provider:161 | 4 sequential select (profiles, matches, posts, post_reactions) | mixed | StatusRepository.fetchStatusData (NEW) |
+
+### ADIM 2 — Yeni dosyalar + method'lar (planlanan)
+
+**Yeni dosya: `lib/data/repositories/status_repository.dart` + `lib/providers/status_repository_provider.dart`**
+
+```dart
+class StatusRepository {
+  final SupabaseClient? _supabase;
+  StatusRepository({SupabaseClient? supabase}) : _supabase = supabase;
+
+  /// 6 parallel counts for status_screen card grid.
+  /// Returns record with raw lengths + recent activity rows.
+  Future<({
+    int notesReceived, int notesSent,
+    int signalsReceived, int signalsSent,
+    int connectionCount,
+    List<Map<String, dynamic>> recentActivity,
+  })> fetchStatusCounts(String userId) async { ... 6 parallel + parse ... }
+
+  /// 4 sequential aggregation for status_provider StatusData.
+  /// Returns record with profile fields + match/post/reaction counts.
+  Future<({
+    int profileViews, bool isNoble,
+    int superLikesRemaining, int rewindsRemaining,
+    DateTime? boostActiveUntil,
+    int matchCount,
+    int reactionCount, int myPostsCount, int myReactionsReceived,
+  })> fetchStatusData(String userId) async { ... 4 sequential ... }
+}
+```
+
+**NoblaraNotificationRepository** (5d4'te yaratıldı, ext):
+```dart
+Future<List<Map<String, dynamic>>> fetchAll({int limit = 100}) async {
+  if (isMockMode) return const [];
+  final rows = await _supabase!
+    .from('noblara_notifications')
+    .select().order('created_at', ascending: false).limit(limit);
+  return List<Map<String, dynamic>>.from(rows.map((r) => Map<String, dynamic>.from(r)));
+}
+```
+
+**MessagesRepository** (mevcut, ext):
+```dart
+/// System message that PRESERVES sender_id (unlike sendMessage where
+/// is_system=true sets sender_id=null). Used for "farewell" messages
+/// signed by the closer in end_connection_screen.
+Future<void> insertSystemMessageFromUser({
+  required String conversationId,
+  required String senderId,
+  required String content,
+  required String mode,
+}) async {
+  if (isMockMode) return;
+  await _supabase!.from('messages').insert({
+    'conversation_id': conversationId,
+    'sender_id': senderId,
+    'content': content,
+    'is_system': true,
+    'mode': mode,
+  });
+}
+```
+**Tasarım kararı:** Mevcut `sendMessage(isSystem: true)` `sender_id=null` üretiyor — end_connection davranışı için non-null gerekiyor. Yeni method şart (R7 davranış koruma).
+
+**PostRepository** (mevcut, ext):
+```dart
+Future<List<Map<String, dynamic>>> fetchUserReactions({
+  required String userId,
+  required List<String> postIds,
+}) async {
+  if (isMockMode || postIds.isEmpty) return const [];
+  final rows = await _supabase!
+    .from('post_reactions').select()
+    .eq('user_id', userId).inFilter('post_id', postIds);
+  return List<Map<String, dynamic>>.from(rows.map((r) => Map<String, dynamic>.from(r)));
+}
+
+/// Fetch profile fragment for post-author display enrichment.
+Future<Map<String, dynamic>?> fetchAuthorEnrichment(String userId) async {
+  if (isMockMode) return null;
+  return await _supabase!
+    .from('profiles')
+    .select('display_name, date_avatar_url, nob_tier')
+    .eq('id', userId).maybeSingle();
+}
+```
+
+**RoomRepository** (mevcut, ext):
+```dart
+Future<({double? lat, double? lng})> fetchUserLocation(String userId) async {
+  if (isMockMode) return (lat: null, lng: null);
+  final row = await _supabase!
+    .from('profiles').select('location_lat, location_lng')
+    .eq('id', userId).maybeSingle();
+  return (
+    lat: (row?['location_lat'] as num?)?.toDouble(),
+    lng: (row?['location_lng'] as num?)?.toDouble(),
+  );
+}
+```
+
+**ProfileRepository.updateProfile** (mevcut, REUSE — yeni method gerekmez):
+- settings_screen:639 `update({column: list}).eq('id', uid)` → `updateProfile(uid, {column: list})`
+
+### Beklenen değişiklik özeti
+
+| Dosya | Değişiklik | Satır |
+|-------|------------|-------|
+| `lib/data/repositories/status_repository.dart` | YENİ | ~80 |
+| `lib/providers/status_repository_provider.dart` | YENİ | ~10 |
+| `lib/data/repositories/noblara_notification_repository.dart` | + fetchAll | ~10 |
+| `lib/data/repositories/messages_repository.dart` | + insertSystemMessageFromUser | ~15 |
+| `lib/data/repositories/post_repository.dart` | + fetchUserReactions, fetchAuthorEnrichment | ~25 |
+| `lib/data/repositories/room_repository.dart` | + fetchUserLocation | ~12 |
+| `lib/features/status/status_screen.dart` | site 1 refactor | ~12 satır diff |
+| `lib/providers/status_provider.dart` | site 9 refactor | ~25 satır diff |
+| `lib/features/settings/settings_screen.dart` | site 2 refactor | ~5 satır diff |
+| `lib/features/noblara_feed/notifications_screen.dart` | site 3 refactor | ~5 satır diff |
+| `lib/features/matches/end_connection_screen.dart` | site 4 refactor | ~10 satır diff |
+| `lib/providers/posts_provider.dart` | site 5+6 refactor | ~15 satır diff |
+| `lib/providers/room_provider.dart` | site 7+8 refactor | ~10 satır diff |
+
+**Toplam:** 2 yeni dosya + 4 mevcut repo extension + 7 caller refactor.
+**Davranış değişikliği YOK** (R7 önlemi: özellikle messages.insert sender_id non-null).
+
+### Risk notları
+- **R7 ana risk: end_connection messages insert** — `sendMessage(isSystem: true)` çağırırsam `sender_id=null` olur, mevcut davranış `sender_id=senderId`. **Yeni method şart**. Test smoke önerilir.
+- **status_screen 6 paralel + status_provider 4 sequential** — iki farklı method gerekiyor (farklı return shape). StatusRepository tek dosyada toplandı.
+- **post_reactions select() empty postIds** — guard eklenecek (`if (postIds.isEmpty) return []`)
+- **Singleton pattern:** StatusRepository AIRepository pattern (lazy nullable supabase) — mock mode'da ek call gelmesin diye, Riverpod-aware (provider üzerinden); lazy `instance()` gereksiz (caller'lar provider kullanıyor)
+- **CompletenessCheck:** notifications_screen:50 ve diğer caller'lar `Map<String, dynamic>.from(r)` parse pattern korundu
+
+### Onay sorusu
+Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Onaylarsan:
+- 2 yeni dosya (StatusRepository + provider)
+- 4 mevcut repo'ya 7 method ek (NoblaraNotif 1 + Messages 1 + Post 2 + Room 1 + Status 2)
+- 7 caller dosyası refactor
+- analyze + test + grep kanıt + commit + PR
+
+

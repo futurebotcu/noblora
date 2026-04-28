@@ -361,6 +361,36 @@ class PostRepository {
         .delete().eq('post_id', postId).eq('user_id', userId);
   }
 
+  /// Caller-scoped reactions on a list of posts (RLS already restricts
+  /// post_reactions SELECT to own rows). Returns raw rows so the caller maps
+  /// to `PostReaction.fromJson`.
+  Future<List<Map<String, dynamic>>> fetchUserReactions({
+    required String userId,
+    required List<String> postIds,
+  }) async {
+    if (isMockMode) return const [];
+    final rows = await _supabase!
+        .from('post_reactions')
+        .select()
+        .eq('user_id', userId)
+        .inFilter('post_id', postIds);
+    return List<Map<String, dynamic>>.from(
+      (rows as List).map((r) => Map<String, dynamic>.from(r as Map)),
+    );
+  }
+
+  /// Display fragment for a post author — used to back-fill `authorName`,
+  /// `authorAvatarUrl`, `authorTier` on a freshly created post so the feed
+  /// renders the user's identity instead of the "Noblara" fallback.
+  Future<Map<String, dynamic>?> fetchAuthorEnrichment(String userId) async {
+    if (isMockMode) return null;
+    return await _supabase!
+        .from('profiles')
+        .select('display_name, date_avatar_url, nob_tier')
+        .eq('id', userId)
+        .maybeSingle();
+  }
+
   Future<List<Post>> _enrichWithProfiles(List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return [];
     // user_id is null for anonymous posts owned by someone else (server-masked).
