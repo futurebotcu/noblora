@@ -2224,4 +2224,223 @@ Notifications (2):
 
 
 
+## 2026-04-28 — Dalga 5d5+5d6: Push Static + Device Service
+
+### Hedef
+~8 site (push_notification_service 4 + device_service 4) ilgili
+repository'lere taşı. R9 KISMEN ilerleme: 30 → ~22.
+
+5d5 + 5d6 tek dalga olarak birleşik:
+- İkisi de static service katmanı (provider DI dışı)
+- Yeni repository pattern aynı (PushTokenRepository + DeviceRepository)
+- ~30-45 dakika tahmini
+
+### Risk alanı (R-kodlu)
+- **R9** (ana hedef) — KISMEN AÇIK, bu dalga -8 ihlal
+- **R7** kanıt zorunluluğu — davranış değişikliği YASAK, table/column/method
+  imzaları birebir korunacak (push_tokens, user_devices, banned_devices,
+  profiles update keys)
+- **R4** banned_patterns guardrail — `catch (e) {...}` zaten doğru pattern,
+  tekrar gerilememeli
+
+### Scope limiti (3 madde)
+1. Envanter + plan (bu mesaj — onay sonrası ADIM 2'ye geç)
+2. ~8 fix + 2 yeni repo (PushTokenRepository, DeviceRepository) +
+   2 yeni provider dosyası
+3. analyze + test + commit + PR
+
+3'ü geçersem dur, kullanıcıya sun.
+
+### ADIM 1 — Envanter (yapıldı)
+
+**push_notification_service.dart (4 site):**
+
+| Satır | Operation | Body / Params |
+|-------|-----------|---------------|
+| 115 | `auth.currentUser?.id` (auth read) | — |
+| 118-123 | `from('push_tokens').upsert({user_id, token, platform, updated_at}, onConflict: 'user_id,token')` | userId + token + 'android' |
+| 133 | `auth.currentUser?.id` (auth read) | — |
+| 136-139 | `from('push_tokens').delete().eq('user_id', userId)` | userId |
+
+Static API: `PushNotificationService` (statik metodlar). Caller'lar:
+- main.dart:38,40 (`initialize()`, `registerToken()`)
+- main_tab_navigator.dart:67 (`onNotificationTapped` setter)
+- auth_provider.dart:253 (`unregisterTokens()`)
+
+Static API korunacak. Sadece içeride Supabase çağrıları repo'ya gidecek.
+
+**device_service.dart (4 site):**
+
+| Satır | Operation | Body / Params |
+|-------|-----------|---------------|
+| 39-43 | `from('banned_devices').select('id').eq('device_id', X).maybeSingle()` | deviceId |
+| 54-58 | `from('profiles').select('id').eq('device_id', X).maybeSingle()` | deviceId (account exists check) |
+| 69-75 | `from('user_devices').upsert({user_id, device_id, device_platform, device_model, last_seen}, onConflict: 'user_id,device_id')` | 4 alan + last_seen |
+| 77-80 | `from('profiles').update({device_id, device_platform}).eq('id', userId)` | 2 alan |
+
+Static API: `DeviceService` (statik metodlar). Caller'lar:
+- sign_in_screen.dart:38 (`isDeviceBanned()`), :54 (`registerDevice()`)
+- sign_up_screen.dart:49 (`isDeviceBanned()`), :56 (`deviceHasAccount()`), :76 (`registerDevice()`)
+
+Static API korunacak. `getDeviceInfo()` device_info_plus pluginini kullanır
+(non-Supabase) — service içinde kalır.
+
+### ADIM 2 — Repository tasarımı (planlanan)
+
+**Yeni dosya #1: `lib/data/repositories/push_token_repository.dart`**
+
+Pattern: AIRepository lazy singleton (gemini_service ile aynı).
+
+```dart
+class PushTokenRepository {
+  final SupabaseClient? _supabase;
+  PushTokenRepository({SupabaseClient? supabase}) : _supabase = supabase;
+
+  static PushTokenRepository? _singleton;
+  static PushTokenRepository instance() {
+    if (isMockMode) return _singleton ??= PushTokenRepository();
+    return _singleton ??= PushTokenRepository(supabase: Supabase.instance.client);
+  }
+
+  /// Returns null if no signed-in user (caller no-ops).
+  String? _currentUserId() => _supabase?.auth.currentUser?.id;
+
+  Future<void> upsertCurrentUserToken({
+    required String token,
+    required String platform,
+  }) async {
+    if (isMockMode) return;
+    final userId = _currentUserId();
+    if (userId == null) return;
+    await _supabase!.from('push_tokens').upsert({
+      'user_id': userId,
+      'token': token,
+      'platform': platform,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, onConflict: 'user_id,token');
+  }
+
+  Future<void> removeAllCurrentUserTokens() async {
+    if (isMockMode) return;
+    final userId = _currentUserId();
+    if (userId == null) return;
+    await _supabase!.from('push_tokens').delete().eq('user_id', userId);
+  }
+}
+```
+
+**Tasarım kararı:** `auth.currentUser?.id` repo içinde (R9 patches için
+`Supabase.instance.client.auth.currentUser` da yasak, repo allowed).
+2 method — `upsertCurrentUserToken` ve `removeAllCurrentUserTokens`.
+Caller'a userId param geçmiyoruz çünkü mevcut static API'da yok ve
+davranış değişmesin.
+
+**Yeni dosya #2: `lib/data/repositories/device_repository.dart`**
+
+```dart
+class DeviceRepository {
+  final SupabaseClient? _supabase;
+  DeviceRepository({SupabaseClient? supabase}) : _supabase = supabase;
+
+  static DeviceRepository? _singleton;
+  static DeviceRepository instance() {
+    if (isMockMode) return _singleton ??= DeviceRepository();
+    return _singleton ??= DeviceRepository(supabase: Supabase.instance.client);
+  }
+
+  Future<bool> isDeviceBanned(String deviceId) async {
+    if (isMockMode) return false;
+    final res = await _supabase!.from('banned_devices')
+        .select('id').eq('device_id', deviceId).maybeSingle();
+    return res != null;
+  }
+
+  Future<bool> profileExistsForDevice(String deviceId) async {
+    if (isMockMode) return false;
+    final res = await _supabase!.from('profiles')
+        .select('id').eq('device_id', deviceId).maybeSingle();
+    return res != null;
+  }
+
+  /// Atomic register: upserts user_devices row + updates profiles
+  /// (device_id, device_platform). Caller's existing try/catch wraps both.
+  Future<void> registerDevice({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    required String model,
+  }) async {
+    if (isMockMode) return;
+    await _supabase!.from('user_devices').upsert({
+      'user_id': userId,
+      'device_id': deviceId,
+      'device_platform': platform,
+      'device_model': model,
+      'last_seen': DateTime.now().toIso8601String(),
+    }, onConflict: 'user_id,device_id');
+
+    await _supabase!.from('profiles').update({
+      'device_id': deviceId,
+      'device_platform': platform,
+    }).eq('id', userId);
+  }
+}
+```
+
+**Tasarım kararı:** `registerDevice` 2 ardışık SB op'unu tek metoda
+sarıyor (mevcut try/catch davranışı korunsun). Split etmedik — caller
+tek try/catch ile her ikisini sarmalıyor, split istense iki ayrı
+try/catch gerekirdi (R4 davranış değişimi).
+
+**Provider dosyaları (2 ek):**
+
+```dart
+// lib/providers/push_token_provider.dart
+final pushTokenRepositoryProvider = Provider<PushTokenRepository>((ref) {
+  if (isMockMode) return PushTokenRepository();
+  return PushTokenRepository(supabase: ref.watch(supabaseClientProvider));
+});
+
+// lib/providers/device_provider.dart
+final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
+  if (isMockMode) return DeviceRepository();
+  return DeviceRepository(supabase: ref.watch(supabaseClientProvider));
+});
+```
+
+Static service'ler `*.instance()` lazy accessor kullanacak (Riverpod-aware
+caller yok). Provider dosyaları future-proofing — test mocking ve ileride
+caller migrate olursa hazır.
+
+### Beklenen değişiklik özeti
+
+| Dosya | Değişiklik | Satır |
+|-------|------------|-------|
+| `lib/data/repositories/push_token_repository.dart` | YENİ | ~40 |
+| `lib/data/repositories/device_repository.dart` | YENİ | ~55 |
+| `lib/providers/push_token_provider.dart` | YENİ | ~10 |
+| `lib/providers/device_provider.dart` | YENİ | ~10 |
+| `lib/services/push_notification_service.dart` | 4 site refactor + import temizliği | ~10 satır diff |
+| `lib/core/services/device_service.dart` | 4 site refactor + import temizliği | ~15 satır diff |
+
+**Toplam:** 4 yeni dosya + 2 modifiye dosya. Davranış değişikliği YOK.
+
+### Risk notları
+- **Token race:** `upsert` zaten `onConflict` ile idempotent, race-safe
+- **Device collision:** `user_devices` `(user_id, device_id)` composite key
+  upsert — aynı user'ın iki cihaz girmesi normal, conflict zaten çözülür
+- **Auth read repo içinde:** Repo `_supabase!.auth.currentUser?.id`
+  kullanıyor — guardrail allowlist `lib/data/repositories/` zaten kapsıyor
+- **Singleton state:** Test ortamında `_singleton` alanı kalıcı olabilir;
+  `isMockMode` kontrolü ile mock instance dönüyor, sorun beklenmez
+  (AIRepository aynı pattern'le 5d3'ten beri sorunsuz)
+- **R7 (uydurma iddia) önlemi:** Commit öncesi `grep` ile push_notification +
+  device_service Supabase çağrılarının silindiği kanıtlanacak
+
+### Onay sorusu
+Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Eğer evet:
+- 4 dosya yarat (2 repo + 2 provider)
+- 2 service refactor
+- analyze + test + grep kanıt + commit + PR
+
 
