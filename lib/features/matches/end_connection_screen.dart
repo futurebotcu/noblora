@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -8,6 +7,7 @@ import '../../core/utils/mock_mode.dart';
 import '../../core/services/toast_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
+import '../../providers/messages_provider.dart';
 import '../../services/gemini_service.dart';
 
 class EndConnectionScreen extends ConsumerStatefulWidget {
@@ -85,13 +85,14 @@ Respond with JSON only:
         final match = ref.read(matchProvider).matches.where((m) => m.id == widget.matchId).firstOrNull;
         if (match?.conversationId != null) {
           final senderId = await ref.read(authRepositoryProvider).getCurrentUserId();
-          await Supabase.instance.client.from('messages').insert({
-            'conversation_id': match!.conversationId,
-            'sender_id': senderId,
-            'content': message,
-            'is_system': true,
-            'mode': match.mode,
-          });
+          await ref
+              .read(messagesRepositoryProvider)
+              .insertSystemMessageFromUser(
+                conversationId: match!.conversationId!,
+                senderId: senderId!,
+                content: message,
+                mode: match.mode,
+              );
         }
 
         // Close the match

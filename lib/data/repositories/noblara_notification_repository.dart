@@ -1,10 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 
-/// RPC wrappers for the noblara_notifications table — distinct from the
-/// regular `NotificationRepository` (different table, different RPCs).
-/// A future wave (5d7) can move the screen's direct `noblara_notifications`
-/// table read here too.
+/// RPC + table wrappers for the noblara_notifications table — distinct from
+/// the regular `NotificationRepository` (different table, different RPCs).
 class NoblaraNotificationRepository {
   final SupabaseClient? _supabase;
 
@@ -25,5 +23,20 @@ class NoblaraNotificationRepository {
   Future<void> markAllRead() async {
     if (isMockMode) return;
     await _supabase!.rpc('mark_noblara_notifications_read');
+  }
+
+  /// Fetch the most recent noblara notifications for the current session user.
+  /// RLS scopes rows to `auth.uid()`. Returns raw rows; caller maps to
+  /// `NoblaraNotification.fromJson`.
+  Future<List<Map<String, dynamic>>> fetchAll({int limit = 100}) async {
+    if (isMockMode) return const [];
+    final rows = await _supabase!
+        .from('noblara_notifications')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(
+      (rows as List).map((r) => Map<String, dynamic>.from(r as Map)),
+    );
   }
 }

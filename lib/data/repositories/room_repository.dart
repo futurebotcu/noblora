@@ -75,6 +75,23 @@ class RoomRepository {
         .eq('id', roomId);
   }
 
+  /// Lat/lng for proximity-sorted room queries. Pulled from `profiles` —
+  /// rooms borrow their host's location at create time and the viewer's
+  /// location for the feed sort. Returns nulls in mock mode or when columns
+  /// are not set on the row.
+  Future<({double? lat, double? lng})> fetchUserLocation(String userId) async {
+    if (isMockMode) return (lat: null, lng: null);
+    final row = await _supabase!
+        .from('profiles')
+        .select('location_lat, location_lng')
+        .eq('id', userId)
+        .maybeSingle();
+    return (
+      lat: (row?['location_lat'] as num?)?.toDouble(),
+      lng: (row?['location_lng'] as num?)?.toDouble(),
+    );
+  }
+
   Future<Room> createRoom({
     required String hostId,
     required String title,

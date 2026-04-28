@@ -409,9 +409,9 @@ DIŞINDA 121 ihlal oluştu.
 - **Dalga 5d4 (RPC):** CLOSED — 8 site, 3 mevcut repo ek + 2 yeni repo (MoodMapRepository, NoblaraNotificationRepository), 8 method
 - **Dalga 5d3 (Edge Functions):** CLOSED — 5 site, 5 method + 2 yeni repo (AIRepository, LocationRepository), 1 method MoodMapRepository'e eklendi
 - **Dalga 5d5+5d6 (Push static + Device):** CLOSED — 8 site, 5 method + 2 yeni repo (PushTokenRepository, DeviceRepository), lazy singleton pattern (gemini_service ile aynı)
-- **Dalga 5c2 (Profile reads ~13):** OPEN — Profile model genişletme + dedicated method'lar
-- **Dalga 5d7 (Diğer ~9):** OPEN — feed/posts/settings/status/main_tab/event/room/active_modes/appearance/interaction_gate Profile reads
-- Toplam ihlal: 121 → 97 → 73 → 60 → 52 → 43 → 35 → 30 → **22** (5d5+5d6) — toplam -99
+- **Dalga 5d7 (Karışık kalanlar):** CLOSED — 9 site, 7 method + 1 reuse (ProfileRepository.updateProfile) + 1 yeni repo (StatusRepository), R7 ana risk: end_connection messages.insert sender_id non-null koru
+- **Dalga 5c2 (Profile reads ~13):** OPEN — Profile model genişletme + dedicated method'lar (active_modes, appearance, interaction_gate, message_preview, ai_writing_help×2, blocked/hidden, leave_event_chat_auto, notification_preferences, profile_draft, settings multi-col, nob_tier, is_admin)
+- Toplam ihlal: 121 → 97 → 73 → 60 → 52 → 43 → 35 → 30 → 22 → **13** (5d7) — toplam -108
 
 **Kanıt (Dalga 5b, 2026-04-XX):**
 - Yeni dosya: `lib/data/repositories/user_report_repository.dart` (abuse central) +

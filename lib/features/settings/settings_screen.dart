@@ -636,8 +636,9 @@ class _BlockedListSheetState extends State<_BlockedListSheet> {
     if (uid == null || isMockMode) return;
     final updated = List<dynamic>.from(_items)..remove(userId);
     try {
-      await Supabase.instance.client.from('profiles')
-          .update({widget.column: updated}).eq('id', uid);
+      await widget.ref
+          .read(profileRepositoryProvider)
+          .updateProfile(uid, {widget.column: updated});
       setState(() => _items = updated);
       if (mounted) {
         ToastService.show(context,

@@ -296,14 +296,11 @@ class PostsNotifier extends StateNotifier<PostsState> {
     final myReactionsByPost = <String, PostReaction>{};
     if (uid != null && !isMockMode) {
       try {
-        final rows = await Supabase.instance.client
-            .from('post_reactions')
-            .select()
-            .eq('user_id', uid)
-            .inFilter('post_id', allPostIds);
+        final rows = await _ref
+            .read(postRepositoryProvider)
+            .fetchUserReactions(userId: uid, postIds: allPostIds);
         for (final r in rows) {
-          final reaction =
-              PostReaction.fromJson(Map<String, dynamic>.from(r));
+          final reaction = PostReaction.fromJson(r);
           myReactionsByPost[reaction.postId] = reaction;
         }
       } catch (e) {
@@ -419,11 +416,9 @@ class PostsNotifier extends StateNotifier<PostsState> {
       Post enriched = post;
       if (!isMockMode) {
         try {
-          final profile = await Supabase.instance.client
-              .from('profiles')
-              .select('display_name, date_avatar_url, nob_tier')
-              .eq('id', userId)
-              .maybeSingle();
+          final profile = await _ref
+              .read(postRepositoryProvider)
+              .fetchAuthorEnrichment(userId);
           if (profile != null) {
             enriched = post.copyWith(
               authorName: profile['display_name'] as String?,
