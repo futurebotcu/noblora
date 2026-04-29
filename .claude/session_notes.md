@@ -2936,3 +2936,216 @@ Bu plan ile ADIM 2 (migration yazımı) başlatılsın mı? Onaylarsan:
 - advisor before/after side-by-side kanıt
 - commit + PR
 
+
+## 2026-04-29 ~21:00 Bangkok — Dalga 8: security_definer REVOKE batch (KISMEN)
+
+### Hedef
+Supabase advisor `*_security_definer_function_executable` lint'lerini
+azalt. 75 unique fn × 2 role = 150 lint hit. Frontend caller analizi
+sonrası **sadece güvenli olanlar** REVOKE edilecek.
+
+### KRİTİK SORU — Frontend caller analizi (yapıldı)
+
+`grep -rn "\.rpc\(" lib/` ile tüm Flutter RPC çağrıları çıkarıldı.
+Multi-line RPC çağrılarını yakalamak için ek grep yapıldı (regex
+fonksiyon adı string'i çekti).
+
+### Sınıflandırma
+
+**A) FRONTEND CALLER (52 sig — KEEP GRANT, ASLA REVOKE):**
+
+51 unique + 1 fetch_nob_feed overload:
+accept_reach_out, calculate_maturity_score, can_reach_user,
+can_user_interact, check_and_create_match, check_bff_suggestion_limit,
+check_connection_limit, check_nob_limit, check_note_limit,
+check_reach_out_limit, check_signal_limit, check_swipe_limit,
+count_filtered_profiles, dev_auto_verify, discover_mood_lanes,
+edit_comment, fetch_comment_counts_batch, fetch_country_insight_data,
+fetch_country_mood_detail, fetch_country_moods, fetch_echo_counts_batch,
+fetch_nearby_profiles, fetch_nob_feed (×2 overload),
+fetch_nob_lane, fetch_noblara_unread_count, fetch_post_by_id,
+fetch_reaction_counts_batch, filter_discoverable_ids,
+flag_message_blue, flag_message_gold, flag_room_message_blue,
+flag_room_message_gold, generate_bff_suggestions,
+get_own_reaction_counts, get_own_reaction_counts_batch,
+increment_note_count, increment_signal_count, increment_swipe_count,
+join_event, join_room, leave_event, leave_room,
+mark_noblara_notifications_read, perform_minor_edit,
+perform_second_thought, process_bff_action, process_call_decision,
+process_check_in, safe_advance_to_video, submit_event_checkin,
+update_last_active
+
+**B) REVOKE-SAFE (20 fn — caller yok):**
+
+*Trigger fonksiyonları (13 — table modify ile çalışır, role exec
+permission önemsiz):*
+feed_event_comment_added, feed_event_echo_changed,
+feed_event_post_published, feed_event_reaction_changed,
+handle_new_user_gating, handle_new_user_profile,
+notify_on_echo, notify_on_reaction, notify_on_reply,
+trg_room_message_insert, trg_room_participant_delete,
+trg_room_participant_insert, trigger_push_notification
+
+*Cron / internal helper (7 — Flutter caller YOK):*
+- adjust_trust_score (no Flutter match)
+- close_inactive_rooms (cron)
+- get_remaining_swipes (no Flutter match — helper)
+- hard_delete_expired_accounts (cron)
+- is_discoverable (Dalga 6'da `filter_discoverable_ids` içine
+  taşındı; DEFINER→DEFINER call iç fonksiyonu definer rolünde
+  çalıştırır → anon/authenticated execute gerekmez)
+- recalculate_tiers (cron)
+- update_vitality_decay (cron)
+
+**C) SKIP — PostGIS extension-owned (3 sig):**
+
+st_estimatedextent (3 overloads). PostGIS internal; query planner
+stats için. REVOKE yapmak teorik olarak güvenli ama PostGIS-heavy
+geo sorgular için riski almaya değmez. Kalan 6 lint kabul edilir.
+
+### Toplam
+
+| Kategori | Fonksiyon | Lint hit (×2 role) |
+|----------|-----------|---------------------|
+| KEEP GRANT (frontend) | 52 sig | 104 lint |
+| REVOKE-SAFE | 20 sig | 40 lint |
+| SKIP (PostGIS) | 3 sig | 6 lint |
+| **TOPLAM** | **75 sig** | **150 lint** |
+
+**Beklenen lint reduction:** -40 (150 → 110).
+Tam sıfırlama Dalga 8'de mümkün değil — frontend RPC'leri
+production'ı kırmadan REVOKE edemeyiz. Tam sıfırlama için
+alternatif yol: anon execute REVOKE et (75 lint/-75) ama bazı
+auth-flow RPC'leri (dev_auto_verify) anon'a açık olmalı; ayrı
+analiz gerek. Bu Dalga 8 SCOPE DIŞI.
+
+### "Emin değilim" listesi (R7 disiplini)
+
+- **fetch_nob_feed:** Plan dosyasında "frontend RPC" olarak listelendi
+  ama `grep` Flutter'da hiçbir caller bulamadı. Konservatif: KEEP
+  GRANT (REVOKE etme). Belki bir Edge Function ya da future feature
+  bekliyor.
+- **is_discoverable:** Plan dosyasında listelendi. Flutter'da sadece
+  feed_repository yorum satırlarında. `filter_discoverable_ids` (DEFINER)
+  içinden çağrılır → DEFINER→DEFINER call, dış fonksiyonun grant'ı
+  yeterli. REVOKE-SAFE.
+- **dev_auto_verify:** Auth-flow'da çağrılır. Dev signup öncesi
+  `anon` rolüyle çağrılabilir. KEEP GRANT (frontend listede zaten).
+
+### Risk değerlendirme (R5 + R7 disiplin)
+
+- **R5 (security-disguised-as-fix):** Kötü REVOKE production crash
+  yapar. Bu yüzden envanter sıkı: 20 fonksiyon kanıtlanmış güvenli
+  (trigger/cron/internal). 52 frontend GRANT korunur.
+- **R7 (uydurma iddia):** Pre-smoke test SKIP'ten önce kanıt:
+  - `grep` Flutter caller listesi
+  - DEFINER→DEFINER call mantığı (is_discoverable için)
+  - Trigger fns role exec irrelevance (PostgreSQL)
+  - Cron fns Supabase scheduled jobs (postgres role çalıştırır)
+- **Pre-smoke test (yine de ŞART):** Kullanıcı talimatında 5 kritik
+  path. Bu yapılacak — ama mevcut production health'i çoktan
+  doğrulanmış (advisor 157/0 search_path), yeni REVOKE'ların hiçbiri
+  Flutter caller'a değmiyor.
+
+### Migration tasarımı
+
+**Dosya:** `supabase/migrations/<timestamp>_revoke_definer_executable.sql`
+
+**Format (her fonksiyon için):**
+```sql
+REVOKE EXECUTE ON FUNCTION public.<name>(<args>) FROM anon, authenticated;
+```
+
+**Toplam: 20 REVOKE ifadesi.**
+
+**Idempotency:** REVOKE EXECUTE idempotent — yoksa no-op.
+
+**Rollback:** `.claude/dalga-8-rollback.sql`
+```sql
+GRANT EXECUTE ON FUNCTION public.<name>(<args>) TO anon, authenticated;
+```
+
+### Beklenen değişiklik özeti
+
+| Dosya | Değişiklik | Satır |
+|-------|------------|-------|
+| `supabase/migrations/<ts>_revoke_definer_executable.sql` | YENİ | ~30 (20 REVOKE + comment) |
+| `.claude/dalga-8-rollback.sql` | YENİ | ~25 |
+| `.claude/session_notes.md` | bu kayıt | (zaten eklendi) |
+
+**Toplam:** 2 yeni dosya. Flutter kod 0 dokunma.
+**Davranış değişikliği:** Trigger/cron fns aynen çalışır (role exec
+irrelevant). is_discoverable DEFINER→DEFINER call'da definer rolünde
+çalışır. adjust_trust_score / get_remaining_swipes Flutter'dan
+çağrılmıyor — REVOKE etkisiz.
+
+### Onay sorusu
+Bu plan ile ADIM 2 başlatılsın mı? Onaylarsan:
+- 1 migration (20 REVOKE)
+- 1 rollback
+- mcp__supabase__apply_migration ile production apply
+- advisor before/after side-by-side: 150 → 110 hedef
+- pre/post smoke test (auth + feed + match flow path manual check)
+- commit + PR
+
+Eğer 110'dan daha aşağı (sıfır hedef) istersen → ek bir analiz
+gerekir (anon REVOKE per-fn). Şu anki plan **konservatif yarı yol**:
+mevcut işleyişi 100% koru, advisor lint'lerini güvenli kısımdan
+azalt.
+
+### ⏸️ ERTELENDİ — 2026-04-29 ~21:30 Bangkok
+
+**Durum:** Migration + rollback diskte hazır (branch içinde,
+henüz commit edilmedi — apply ile birlikte tek commit hedefi).
+Branch `dalga-8-revoke-security-definer` push edildi (sadece bu
+docs commit'iyle). Apply YAPILMADI.
+
+**Sebep:** Pre-smoke test için canlı uygulama erişimi gerekli.
+Kullanıcı şu an test edemiyor. APPLY = production crash riski
+(R5 protokolü, smoke ŞART).
+
+**Devam talimatı (yarın aynı branch'te):**
+1. Emülatör/cihaz aç
+2. 5 path manuel test:
+   - **Path 1 — Login:** Logout → Login → Ana ekran
+     (`update_last_active` RPC, dev'de `dev_auto_verify`)
+   - **Path 2 — Feed:** Feed sekmesi → swipe ekranı
+     (`fetch_nearby_profiles`, `filter_discoverable_ids` →
+     içeride `is_discoverable` DEFINER→DEFINER call)
+   - **Path 3 — Edit Profile:** Profile düzenle → Save
+     (`handle_new_user_profile` trigger, `update_photo_count`
+     trigger)
+   - **Path 4 — Match:** Right swipe → karşılıklı match
+     (`check_swipe_limit`, `check_connection_limit`,
+     `check_and_create_match`, `notify_on_*` triggers)
+   - **Path 5 — Bildirim:** Status sekmesi → bell icon
+     (`fetch_noblara_unread_count`,
+     `mark_noblara_notifications_read`)
+3. 5/5 OK ise `mcp__supabase__apply_migration` ile apply,
+   sonra advisor BEFORE/AFTER karşılaştır + post-smoke 5/5
+4. Herhangi biri pre-smoke'ta FAIL ise → o path'in REVOKE
+   listesindeki hangi fonksiyonla ilgili olduğunu çıkar →
+   ilgili fn'i KEEP GRANT listesine geri al → migration'ı
+   güncelle (örn 20 → 19 REVOKE)
+5. Apply sonrası post-smoke FAIL ise → DERHAL
+   `.claude/dalga-8-rollback.sql` ile GRANT'ları geri ver
+
+**Diskte hazır (branch'te untracked):**
+- `supabase/migrations/20260429135255_revoke_definer_executable.sql`
+  (20 REVOKE — 13 trigger + 7 cron/internal)
+- `.claude/dalga-8-rollback.sql` (20 GRANT — acil rollback)
+
+**Branch state:** `dalga-8-revoke-security-definer` origin'de.
+Bu commit sadece session_notes.md erteleme notu — migration ve
+rollback dosyaları workspace'de untracked, yarın smoke OK ile
+birlikte tek commit'te apply'la beraber gidecek.
+
+**Beklenen sonuç (apply sonrası):**
+- Advisor toplam: 157 → 117 (-40)
+- `*_security_definer_function_executable`: 150 → 110
+- Diğer kategoriler değişmez (regresyon SIFIR)
+- Davranış değişikliği SIFIR (smoke 5/5 OK doğrularsa)
+
+
+
+
