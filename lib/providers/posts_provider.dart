@@ -9,6 +9,7 @@ import '../data/repositories/post_repository.dart';
 import '../data/repositories/comment_repository.dart';
 import '../data/repositories/echo_repository.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
 import 'realtime_provider.dart';
 import 'supabase_client_provider.dart';
 
@@ -648,12 +649,9 @@ final nobTierProvider = FutureProvider.autoDispose<NobTier>((ref) async {
   final userId = ref.watch(authProvider).userId;
   if (userId == null) return NobTier.observer;
   try {
-    final row = await Supabase.instance.client
-        .from('profiles')
-        .select('nob_tier')
-        .eq('id', userId)
-        .maybeSingle();
-    return NobTier.fromString(row?['nob_tier'] as String?);
+    final tier =
+        await ref.read(profileRepositoryProvider).fetchNobTier(userId);
+    return NobTier.fromString(tier);
   } catch (e) {
     debugPrint('[posts] nob_tier fetch failed: $e');
     return NobTier.observer;
@@ -665,10 +663,7 @@ final isAdminProvider = FutureProvider.autoDispose<bool>((ref) async {
   if (isMockMode) return true;
   final userId = ref.watch(authProvider).userId;
   if (userId == null) return false;
-  final row = await Supabase.instance.client
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', userId)
-      .maybeSingle();
-  return row?['is_admin'] as bool? ?? false;
+  final isAdmin =
+      await ref.read(profileRepositoryProvider).fetchIsAdmin(userId);
+  return isAdmin ?? false;
 });

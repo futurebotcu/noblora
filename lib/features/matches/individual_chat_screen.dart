@@ -267,9 +267,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
       final uid = ref.read(authProvider).userId;
       if (uid != null) {
         try {
-          final row = await Supabase.instance.client.from('profiles')
-              .select('ai_writing_help').eq('id', uid).maybeSingle();
-          final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
+          final prefs = await ref
+              .read(profileRepositoryProvider)
+              .fetchAiWritingHelp(uid);
           if (prefs != null && prefs['message_softening'] == false) {
             if (mounted) {
               ToastService.show(context, message: 'AI conversation help is turned off', type: ToastType.system);

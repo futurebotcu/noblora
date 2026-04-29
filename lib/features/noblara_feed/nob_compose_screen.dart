@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -13,6 +12,7 @@ import '../../core/utils/mock_mode.dart';
 import '../../providers/ai_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../providers/storage_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -105,9 +105,9 @@ class _NobComposeScreenState extends ConsumerState<NobComposeScreen> {
       final uid = ref.read(authProvider).userId;
       if (uid != null) {
         try {
-          final row = await Supabase.instance.client.from('profiles')
-              .select('ai_writing_help').eq('id', uid).maybeSingle();
-          final prefs = row?['ai_writing_help'] as Map<String, dynamic>?;
+          final prefs = await ref
+              .read(profileRepositoryProvider)
+              .fetchAiWritingHelp(uid);
           if (prefs != null && prefs['nob_cleanup'] == false) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
@@ -58,14 +57,11 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     try {
-      final row = await Supabase.instance.client
-          .from('profiles')
-          .select('theme_mode, accent_color')
-          .eq('id', uid)
-          .maybeSingle();
-      if (row == null) return;
-      final theme = _parseThemeMode(row['theme_mode'] as String?);
-      final accentId = (row['accent_color'] as String?) ?? 'gold';
+      final appearance =
+          await _ref.read(profileRepositoryProvider).fetchAppearance(uid);
+      if (appearance == null) return;
+      final theme = _parseThemeMode(appearance.themeMode);
+      final accentId = appearance.accentColor ?? 'gold';
       state = AppearanceState(themeMode: theme, accentId: accentId);
       // Update local cache
       final prefs = await SharedPreferences.getInstance();

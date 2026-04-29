@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart' show isMockMode, kSocialEnabled;
 import '../data/models/event.dart';
 import '../data/models/event_participant.dart';
@@ -9,6 +8,7 @@ import '../data/models/filter_state.dart';
 import '../data/repositories/event_repository.dart';
 import 'auth_provider.dart';
 import 'filter_provider.dart';
+import 'profile_provider.dart';
 import 'supabase_client_provider.dart';
 
 // ─── State ─────────────────────────────────────────────────────────
@@ -160,9 +160,10 @@ class EventDetailNotifier extends StateNotifier<EventDetailState> {
       final uid = _ref.read(authProvider).userId;
       if (uid != null) {
         try {
-          final row = await Supabase.instance.client.from('profiles')
-              .select('leave_event_chat_auto').eq('id', uid).maybeSingle();
-          if (row?['leave_event_chat_auto'] == true) {
+          final auto = await _ref
+              .read(profileRepositoryProvider)
+              .fetchLeaveEventChatAuto(uid);
+          if (auto == true) {
             await repo.updateAttendance(eventId, uid, 'out');
           }
         } catch (e) { debugPrint('[events] Auto-leave check failed: $e'); }
