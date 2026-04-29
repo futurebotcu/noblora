@@ -44,6 +44,191 @@ class ProfileRepository {
     return Profile.fromJson(data);
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Dedicated read methods (Dalga 5c2 — R9 final). Each one mirrors a
+  // single former direct-client call site: column list, filter, and
+  // maybeSingle preserved so callers' DTO mapping/cast logic stays intact.
+  // ───────────────────────────────────────────────────────────────────────
+
+  Future<List<String>?> fetchActiveModes(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('active_modes')
+        .eq('id', userId)
+        .maybeSingle();
+    final raw = row?['active_modes'];
+    if (raw is List) return raw.cast<String>();
+    return null;
+  }
+
+  Future<({String? themeMode, String? accentColor})?> fetchAppearance(
+      String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('theme_mode, accent_color')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) return null;
+    return (
+      themeMode: row['theme_mode'] as String?,
+      accentColor: row['accent_color'] as String?,
+    );
+  }
+
+  Future<({int photoCount, bool verifiedPhoto, String? nobTier})?>
+      fetchInteractionGate(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('photo_count, verified_profile_photo, nob_tier')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) return null;
+    return (
+      photoCount: (row['photo_count'] as int?) ?? 0,
+      verifiedPhoto: (row['verified_profile_photo'] as bool?) ?? false,
+      nobTier: row['nob_tier'] as String?,
+    );
+  }
+
+  Future<bool?> fetchMessagePreview(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('message_preview')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['message_preview'] as bool?;
+  }
+
+  Future<Map<String, dynamic>?> fetchAiWritingHelp(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('ai_writing_help')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['ai_writing_help'] as Map<String, dynamic>?;
+  }
+
+  Future<({List<String> blocked, List<String> hidden})> fetchBlockedAndHidden(
+      String userId) async {
+    if (isMockMode) return (blocked: <String>[], hidden: <String>[]);
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('blocked_users, hidden_users')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) return (blocked: <String>[], hidden: <String>[]);
+    final blocked = [
+      for (final id in (row['blocked_users'] as List<dynamic>? ?? []))
+        id as String
+    ];
+    final hidden = [
+      for (final id in (row['hidden_users'] as List<dynamic>? ?? []))
+        id as String
+    ];
+    return (blocked: blocked, hidden: hidden);
+  }
+
+  Future<bool?> fetchLeaveEventChatAuto(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('leave_event_chat_auto')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['leave_event_chat_auto'] as bool?;
+  }
+
+  Future<Map<String, dynamic>?> fetchNotificationPreferences(
+      String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('notification_preferences')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['notification_preferences'] as Map<String, dynamic>?;
+  }
+
+  /// Full row read for ProfileDraft.fromDbRow (edit_profile flow).
+  /// Returns the raw row map; caller drives parsing.
+  Future<Map<String, dynamic>?> fetchProfileDraftRow(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    return row;
+  }
+
+  /// Settings screen multi-column read (22 columns). Column list mirrors
+  /// the original settings_screen.dart query verbatim.
+  Future<Map<String, dynamic>?> fetchSettingsRow(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('notification_preferences, incognito_mode, calm_mode, '
+            'dating_visible, bff_visible, social_visible, '
+            'show_last_active, show_status_badge, message_preview, '
+            'reach_permission, signal_permission, note_permission, '
+            'city, is_paused, leave_event_chat_auto, '
+            'ai_writing_help, '
+            'is_verified, selfie_verified, photos_verified, verification_status, '
+            'blocked_users, hidden_users')
+        .eq('id', userId)
+        .maybeSingle();
+    return row;
+  }
+
+  Future<String?> fetchNobTier(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('nob_tier')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['nob_tier'] as String?;
+  }
+
+  Future<bool?> fetchIsAdmin(String userId) async {
+    if (isMockMode) return null;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    final row = await client
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['is_admin'] as bool?;
+  }
+
   /// Creates a minimal profile row with only confirmed-safe columns.
   /// Onboarding completion is determined by row existence, not a flag.
   Future<Profile> createProfile({

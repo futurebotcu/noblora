@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
+import 'profile_provider.dart';
 
 // kSocialEnabled controls whether Social actions can ever be permitted.
 
@@ -47,23 +47,18 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
   final uid = ref.watch(authProvider).userId;
   if (uid == null) return const InteractionGate();
   try {
-    final row = await Supabase.instance.client.from('profiles')
-        .select('photo_count, verified_profile_photo, nob_tier')
-        .eq('id', uid).maybeSingle();
-    if (row == null) return const InteractionGate();
-
-    final tier = row['nob_tier'] as String?;
-    final photoCount = (row['photo_count'] as int?) ?? 0;
-    final verified = (row['verified_profile_photo'] as bool?) ?? false;
+    final gate =
+        await ref.read(profileRepositoryProvider).fetchInteractionGate(uid);
+    if (gate == null) return const InteractionGate();
 
     // Noble tier users get full access — never blocked by gating
-    if (tier == 'noble') {
+    if (gate.nobTier == 'noble') {
       return const InteractionGate(photoCount: 5, verifiedPhoto: true);
     }
 
     return InteractionGate(
-      photoCount: photoCount,
-      verifiedPhoto: verified,
+      photoCount: gate.photoCount,
+      verifiedPhoto: gate.verifiedPhoto,
     );
   } catch (e) {
     debugPrint('[gate] row fetch failed: $e');

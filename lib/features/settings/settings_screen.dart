@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -31,18 +30,8 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     try {
-      final row = await Supabase.instance.client
-          .from('profiles')
-          .select('notification_preferences, incognito_mode, calm_mode, '
-              'dating_visible, bff_visible, social_visible, '
-              'show_last_active, show_status_badge, message_preview, '
-              'reach_permission, signal_permission, note_permission, '
-              'city, is_paused, leave_event_chat_auto, '
-              'ai_writing_help, '
-              'is_verified, selfie_verified, photos_verified, verification_status, '
-              'blocked_users, hidden_users')
-          .eq('id', uid)
-          .maybeSingle();
+      final row =
+          await _ref.read(profileRepositoryProvider).fetchSettingsRow(uid);
       if (row != null) state = row;
     } catch (e) {
       debugPrint('[settings] load failed: $e');

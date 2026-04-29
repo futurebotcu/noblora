@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
@@ -15,6 +14,7 @@ import '../../features/match/match_detail_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/check_in_provider.dart';
 import '../../providers/match_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../match/check_in_screen.dart';
 import '../../core/services/toast_service.dart';
 import '../../navigation/main_tab_navigator.dart';
@@ -32,9 +32,9 @@ final _messagePreviewProvider = FutureProvider.autoDispose<bool>((ref) async {
   final uid = ref.watch(authProvider).userId;
   if (uid == null) return true;
   try {
-    final row = await Supabase.instance.client.from('profiles')
-        .select('message_preview').eq('id', uid).maybeSingle();
-    return row?['message_preview'] as bool? ?? true;
+    final value =
+        await ref.read(profileRepositoryProvider).fetchMessagePreview(uid);
+    return value ?? true;
   } catch (e) {
     debugPrint('[matches] message_preview fetch failed: $e');
     return true;

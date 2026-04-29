@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/enums/noble_mode.dart';
 import '../core/utils/mock_mode.dart';
 import '../data/models/filter_state.dart';
@@ -13,6 +12,7 @@ import 'auth_provider.dart';
 import 'filter_provider.dart';
 import 'match_provider.dart';
 import 'mode_provider.dart';
+import 'profile_provider.dart';
 import 'status_provider.dart';
 import 'supabase_client_provider.dart';
 
@@ -125,15 +125,11 @@ class FeedNotifier extends StateNotifier<FeedState> {
       Set<String> blockedIds = {};
       Set<String> hiddenIds = {};
       try {
-        final row = await Supabase.instance.client
-            .from('profiles')
-            .select('blocked_users, hidden_users')
-            .eq('id', userId)
-            .maybeSingle();
-        if (row != null) {
-          blockedIds = {for (final id in (row['blocked_users'] as List<dynamic>? ?? [])) id as String};
-          hiddenIds = {for (final id in (row['hidden_users'] as List<dynamic>? ?? [])) id as String};
-        }
+        final lists = await _ref
+            .read(profileRepositoryProvider)
+            .fetchBlockedAndHidden(userId);
+        blockedIds = lists.blocked.toSet();
+        hiddenIds = lists.hidden.toSet();
       } catch (e) {
         debugPrint('[feed] blocked/hidden users fetch failed: $e');
         rethrow;

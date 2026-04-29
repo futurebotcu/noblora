@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/mock_mode.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/interaction_gate_provider.dart';
@@ -42,11 +41,9 @@ class EditProfileNotifier extends StateNotifier<EditProfileState> {
     if (uid == null) return;
     state = state.copyWith(isLoading: true);
     try {
-      final row = await Supabase.instance.client
-          .from('profiles')
-          .select()
-          .eq('id', uid)
-          .maybeSingle();
+      final row = await _ref
+          .read(profileRepositoryProvider)
+          .fetchProfileDraftRow(uid);
       if (row != null) {
         state = state.copyWith(draft: ProfileDraft.fromDbRow(row), isLoading: false);
       } else {

@@ -2640,3 +2640,156 @@ Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Onaylarsan:
 - analyze + test + grep kanıt + commit + PR
 
 
+## 2026-04-29 21:32 Bangkok — Dalga 5c2: Profile Reads (R9 FINAL)
+
+### Hedef
+13 site Profile-table reads → ProfileRepository yeni read method'ları
+(Yol A: dedicated). Profile model'e DOKUNULMAZ (R1/R2 risksiz).
+R9 FULLY CLOSED hedef: 13 → 0.
+
+### Risk alanı (R-kodlu)
+- **R9** (ana hedef) — KISMEN AÇIK, bu dalga -13 → R9 FULLY CLOSED
+- **R1 + R2** — Profile model + ProfileDraft DOKUNULMAZ. Yeni method'lar
+  raw `Map`/`record`/primitive döner. R1/R2 protokolü tetiklenmiyor.
+- **R7** — davranış değişikliği YASAK. Her method imzası mevcut SQL path'ten
+  birebir kopya: column adları, `eq('id', uid)`, `maybeSingle`, default
+  değerler caller-side aynı kalır.
+- **R4** — try/catch + debugPrint pattern'leri caller-side korunur (method
+  içinde rethrow stratejisi yok, caller'lar mevcut handling tutar).
+
+### Scope limiti (3 madde)
+1. Envanter + plan (bu mesaj — onay sonrası ADIM 2'ye geç)
+2. ~12 yeni method (1 reuse: `ai_writing_help` 2 caller) + 13 caller refactor
+3. analyze + test + grep kanıt + commit + PR
+
+3'ü geçersem dur, kullanıcıya sun.
+
+### ADIM 1 — Envanter
+
+**Toplam ihlal grep doğrulandı: 13 (önceki nottaki tahmin 100% match)**
+
+```
+lib/features/matches/individual_chat_screen.dart:270 — ai_writing_help (Map)
+lib/features/matches/matches_screen.dart:35 — message_preview (bool)
+lib/features/noblara_feed/nob_compose_screen.dart:108 — ai_writing_help (Map)
+lib/features/profile/edit/edit_profile_provider.dart:45 — select() full row → ProfileDraft
+lib/features/settings/settings_screen.dart:34 — multi-col 22 columns
+lib/navigation/main_tab_navigator.dart:267 — notification_preferences (Map)
+lib/providers/active_modes_provider.dart:60 — active_modes (List)
+lib/providers/appearance_provider.dart:61 — theme_mode + accent_color
+lib/providers/event_provider.dart:163 — leave_event_chat_auto (bool)
+lib/providers/feed_provider.dart:128 — blocked_users + hidden_users
+lib/providers/interaction_gate_provider.dart:50 — photo_count + verified_profile_photo + nob_tier
+lib/providers/posts_provider.dart:651 — nob_tier (string)
+lib/providers/posts_provider.dart:668 — is_admin (bool)
+```
+
+### Method tasarımı: 12 yeni method ProfileRepository'e
+
+| # | Method | Caller(s) | Return | Mock default |
+|---|--------|-----------|--------|--------------|
+| 1 | `fetchActiveModes(uid)` | active_modes:60 | `List<String>?` | `null` |
+| 2 | `fetchAppearance(uid)` | appearance:61 | `({String? themeMode, String? accentColor})?` | `null` |
+| 3 | `fetchInteractionGate(uid)` | interaction_gate:50 | `({int photoCount, bool verifiedPhoto, String? nobTier})?` | `null` |
+| 4 | `fetchMessagePreview(uid)` | matches_screen:35 | `bool?` | `null` |
+| 5 | `fetchAiWritingHelp(uid)` | individual_chat:270 + nob_compose:108 | `Map<String, dynamic>?` | `null` |
+| 6 | `fetchBlockedAndHidden(uid)` | feed:128 | `({List<String> blocked, List<String> hidden})` | `(blocked: [], hidden: [])` |
+| 7 | `fetchLeaveEventChatAuto(uid)` | event:163 | `bool?` | `null` |
+| 8 | `fetchNotificationPreferences(uid)` | main_tab_nav:267 | `Map<String, dynamic>?` | `null` |
+| 9 | `fetchProfileDraftRow(uid)` | edit_profile:45 | `Map<String, dynamic>?` | `null` |
+| 10 | `fetchSettingsRow(uid)` | settings:34 | `Map<String, dynamic>?` | `null` |
+| 11 | `fetchNobTier(uid)` | posts:651 | `String?` | `null` |
+| 12 | `fetchIsAdmin(uid)` | posts:668 | `bool?` | `null` |
+
+**Reuse:** `fetchAiWritingHelp` 2 caller'da kullanılır (ai_writing_help full
+Map dönüş — caller'lar farklı subkey okuyor: `nob_cleanup` vs
+`message_softening`).
+
+### Tasarım kararı: Yol A (dedicated method) onaylanır
+
+**Yol A seçildi:**
+- Profile model dokunulmuyor → R1 4'lü protokolü tetiklenmiyor
+- Profile getter eksiklikleri (`themeMode`, `activeModes`, `blockedUsers`,
+  `aiWritingHelp` vs.) yok → fetchProfile + getter pattern çalışmıyor
+- DTO mapping caller'da kalıyor (cast, parse, default fallback)
+- Atomik iş, regresyon riski minimal
+
+**Yol B (Profile model genişletme) reddedildi:**
+- 12+ yeni alan = copyWith + fromJson + toJson + ProfileDraft 4'lü
+- profile_roundtrip + profile_draft_roundtrip guardrail'leri 12 alan ile
+  genişletmek
+- 5c2 scope dışı, R1/R2 risk alanına gereksiz giriş
+
+**Yol C (generic `fetchProfileRow`) reddedildi:**
+- `setColumn` yasağının ruhuyla çelişir (CLAUDE.md §4)
+- 22-col settings vs 1-col nob_tier birleştirilemez (RLS expressionları
+  ve query plan farkı)
+
+### Mock davranış matrisi (R7 koruması)
+
+13 site'dan 12'si caller-side `if (isMockMode) ...` skip yapıyor zaten.
+Sadece **feed_provider:128 mock check'siz** — repo `fetchBlockedAndHidden`
+mock'ta `(blocked: [], hidden: [])` döner → caller'daki cast'lar empty
+list'e işler → mevcut davranış birebir korunur.
+
+| Site | Caller mock check | Repo mock dönüş |
+|------|-------------------|------------------|
+| active_modes:54 | `if (isMockMode) return;` | irrelevant |
+| appearance:57 | `if (isMockMode) return;` | irrelevant |
+| interaction_gate:46 | `if (isMockMode) return InteractionGate(5,true);` | irrelevant |
+| matches_screen:31 | `if (isMockMode) return true;` | irrelevant |
+| individual_chat:266 | `if (!isMockMode) {...}` | irrelevant |
+| nob_compose:104 | `if (!isMockMode) {...}` | irrelevant |
+| **feed:128** | **YOK** | **`(blocked: [], hidden: [])`** |
+| event:159 | `&& !isMockMode` | irrelevant |
+| main_tab_nav:263 | `if (!isMockMode)` | irrelevant |
+| edit_profile:40 | `if (isMockMode) return;` | irrelevant |
+| settings:30 | `if (isMockMode) {...defaults; return;}` | irrelevant |
+| posts:647 (nob_tier) | `if (isMockMode) return NobTier.noble;` | irrelevant |
+| posts:665 (is_admin) | `if (isMockMode) return true;` | irrelevant |
+
+### Beklenen değişiklik özeti
+
+| Dosya | Değişiklik | Satır |
+|-------|------------|-------|
+| `lib/data/repositories/profile_repository.dart` | +12 method | ~110 |
+| `lib/features/matches/individual_chat_screen.dart` | site 1 refactor | ~6 |
+| `lib/features/matches/matches_screen.dart` | site 2 refactor | ~5 |
+| `lib/features/noblara_feed/nob_compose_screen.dart` | site 3 refactor | ~6 |
+| `lib/features/profile/edit/edit_profile_provider.dart` | site 4 refactor | ~5 |
+| `lib/features/settings/settings_screen.dart` | site 5 refactor | ~10 (multi-col) |
+| `lib/navigation/main_tab_navigator.dart` | site 6 refactor | ~5 |
+| `lib/providers/active_modes_provider.dart` | site 7 refactor | ~6 |
+| `lib/providers/appearance_provider.dart` | site 8 refactor | ~7 |
+| `lib/providers/event_provider.dart` | site 9 refactor | ~5 |
+| `lib/providers/feed_provider.dart` | site 10 refactor | ~10 |
+| `lib/providers/interaction_gate_provider.dart` | site 11 refactor | ~10 |
+| `lib/providers/posts_provider.dart` | site 12+13 refactor | ~10 |
+
+**Toplam:** 1 dosya extension (+12 method) + 13 caller refactor.
+**Davranış değişikliği YOK** (R7 önlemi: column adları + filter + cast'lar
+caller-side aynı).
+
+### Risk notları
+- **interaction_gate `nob_tier` overlap:** posts_provider:651 da `nob_tier`
+  okuyor. **Birleştirme YOK** — interaction_gate 3-col select, posts 1-col
+  select. Mevcut SQL path birebir korunur.
+- **edit_profile `select()` full row:** ProfileDraft.fromDbRow(row) çağrısı
+  caller-side. Repo `Map<String, dynamic>?` dönüş — caller mevcut parse
+  korur.
+- **settings 22-col multi-col:** column listesi repo method içinde sabit
+  string. Yeni column eklendiğinde method güncellenmeli (test ile guardrail
+  yok ama caller sadece bu method'a bağımlı).
+- **R1/R2 sıfır risk:** Profile model + ProfileDraft dokunulmuyor.
+- **R4 try/catch:** her caller mevcut try/catch + debugPrint pattern'i
+  korur. Method'lar Supabase exception'ı `throw` eder (mevcut davranış).
+- **R7 koruması:** her method imzası mevcut select column listesi + filter
+  + maybeSingle ile birebir aynı SQL üretir.
+
+### Onay sorusu
+Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Onaylarsan:
+- ProfileRepository'e 12 yeni method
+- 13 caller dosyası refactor
+- analyze + test + grep kanıt (13 → 0) + commit + PR
+
+

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/utils/mock_mode.dart';
@@ -264,9 +263,9 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         try {
           final uid = ref.read(authProvider).userId;
           if (uid != null) {
-            final row = await Supabase.instance.client.from('profiles')
-                .select('notification_preferences').eq('id', uid).maybeSingle();
-            final prefs = row?['notification_preferences'] as Map<String, dynamic>?;
+            final prefs = await ref
+                .read(profileRepositoryProvider)
+                .fetchNotificationPreferences(uid);
             if (prefs != null) {
               final typeToCategory = {
                 'new_match': 'new_match', 'bff_connected': 'new_match', 'connection_closed': 'new_match',

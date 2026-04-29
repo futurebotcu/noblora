@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 import 'profile_provider.dart';
@@ -57,16 +56,13 @@ class ActiveModesNotifier extends StateNotifier<ActiveModesState> {
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final row = await Supabase.instance.client
-          .from('profiles')
-          .select('active_modes')
-          .eq('id', userId)
-          .maybeSingle();
+      final modes = await _ref
+          .read(profileRepositoryProvider)
+          .fetchActiveModes(userId);
 
-      final raw = row?['active_modes'];
       final Set<String> loaded;
-      if (raw is List && raw.isNotEmpty) {
-        loaded = raw.cast<String>().toSet();
+      if (modes != null && modes.isNotEmpty) {
+        loaded = modes.toSet();
       } else {
         // Default: date mode enabled
         loaded = {'date'};
