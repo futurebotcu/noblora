@@ -2793,3 +2793,146 @@ Bu plan ile ADIM 2 (kod yazımı) başlatılsın mı? Onaylarsan:
 - analyze + test + grep kanıt (13 → 0) + commit + PR
 
 
+## 2026-04-29 — Dalga 7: function_search_path_mutable batch fix
+
+### Hedef
+60 lint (59 unique fn + 1 overload) için ALTER FUNCTION ile
+`SET search_path` ekle. Advisor `function_search_path_mutable`
+WARN'leri 60 → 0.
+
+### Risk alanı (R-kodlu)
+- **R5 (bypass-disguised-as-fix)** — yaygın hata: ALTER FUNCTION yapıp
+  doğru search_path verilmezse fonksiyon body'sinde unqualified
+  `auth.uid()` veya `users` gibi referanslar kırılabilir. Çözüm:
+  search_path olarak `public, extensions, auth, pg_temp` (geniş)
+  veya body inceleme + `public, pg_temp` (dar). KARAR ALTI.
+- **R7 (uydurma iddia)** — apply sonrası advisor before/after
+  side-by-side ŞART. "Fix" = hedef satırların ikinci çıktıda yokluğu.
+
+### Scope (3 madde)
+1. Envanter + plan (bu mesaj — onay sonrası ADIM 2)
+2. Migration yaz (60 ALTER ifadesi tek dosyada)
+3. apply + advisor before/after kanıt + commit + PR
+
+### ADIM 1 — Envanter (yapıldı)
+
+**Advisor toplam findings:** 217
+**function_search_path_mutable lint count:** 60
+
+**Dağılım:**
+- 59 unique fonksiyon adı
+- `fetch_nob_feed` 2 overload (7-arg + 8-arg) → +1 = 60 toplam
+- 51 SECURITY DEFINER + 9 SECURITY INVOKER
+
+**SECURITY INVOKER (9):**
+decrement_rewinds, decrement_super_likes, increment_nob_count,
+increment_profile_views, set_updated_at, set_video_session_expiry,
+sync_is_verified, update_has_pinned_nob, update_photo_count
+
+**SECURITY DEFINER (51):** geri kalan 51 fonksiyon
+
+**Trigger fonksiyonları (returns trigger, args=()) — 12 adet:**
+handle_new_user_gating, handle_new_user_profile, set_updated_at,
+set_video_session_expiry, sync_is_verified, trg_room_message_insert,
+trg_room_participant_delete, trg_room_participant_insert,
+trigger_push_notification, update_has_pinned_nob,
+update_photo_count, increment_nob_count
+(close_inactive_rooms, recalculate_tiers, hard_delete_expired_accounts,
+ update_vitality_decay, dev_auto_verify de args=() ama scheduled job /
+ manual call'lar — trigger değil)
+
+**Overload uyarısı:**
+fetch_nob_feed yalnızca 1 fonksiyon adı ama 2 farklı signature.
+Her overload için ayrı ALTER ŞART (signature ile).
+
+**Diğer advisor lint'leri (FYI — bu dalga kapsamı dışı):**
+- anon_security_definer_function_executable: 75
+- authenticated_security_definer_function_executable: 75
+- public_bucket_allows_listing: 2
+- auth_leaked_password_protection: 1
+- extension_in_public: 1 (PostGIS public schema'da)
+- rls_disabled_in_public: 1
+- rls_enabled_no_policy: 1
+- rls_policy_always_true: 1 (kalan video_sessions.video_update_own,
+  R5b kasıtlı)
+
+### Tasarım kararı: search_path değeri
+
+İki seçenek var:
+
+**Seçim A (kullanıcı önerisi):** `SET search_path = public`
+- AVANTAJ: en az satır
+- RİSK: fonksiyon body'sinde `auth.uid()` qualified ise OK,
+  ama bare `uid()` ya da bare `users` referansı varsa KIRILIR
+- Body inceleme zorunlu (51 DEFINER + 9 INVOKER = 60 fonksiyon body)
+
+**Seçim B (önerilen):** `SET search_path = public, extensions, auth, pg_temp`
+- AVANTAJ: davranış değişikliği RİSKİ ÇOK DÜŞÜK — tüm yaygın
+  Supabase referans şemaları kapsanır (auth, extensions). pg_temp
+  güvenlik için sona eklendi (saldırgan temp tablo enjekte edemez)
+- Lint'i susturur (mutable demek = SET edilmemiş; herhangi bir
+  fixed list lint'i geçer)
+- Supabase docs önerisi bu pattern
+- DEZAVANTAJ: "tam kapatma" değil, ama en hassas saldırı vektörü
+  olan pg_temp/non-public search_path manipülasyonu engellendi
+
+**Seçim C:** `SET search_path = ''` (boş, en sıkı)
+- AVANTAJ: en güvenli — tüm referanslar fully qualified olmak zorunda
+- DEZAVANTAJ: 60 fonksiyon body'sinin tümünde fully-qualified
+  referans olduğunu doğrulamak gerek. **Çoğu büyük ihtimal kırılır**
+- Bu dalga kapsamı dışı
+
+**Tercih: Seçim B (`public, extensions, auth, pg_temp`).**
+- Davranış değişikliği yok (en geniş kapsama)
+- Lint geçer (mutable değil, fixed list)
+- R5 (bypass-disguised-as-fix) riskine karşı en güvenli — body
+  inceleme gerekmez, qualified/unqualified her referans çalışır
+- Production için en güvenli yol
+
+### Migration tasarımı
+
+**Dosya:** `supabase/migrations/<timestamp>_fix_function_search_path_mutable.sql`
+
+**Format (her fonksiyon için):**
+```sql
+ALTER FUNCTION public.<name>(<args>) SET search_path = public, extensions, auth, pg_temp;
+```
+
+**Toplam: 60 ALTER ifadesi.**
+
+**Idempotency:** ALTER FUNCTION ... SET ... idempotent — aynı
+fonksiyon birden çok apply'da aynı sonuç. Migration güvenli.
+
+**Rollback:** ALTER FUNCTION ... RESET search_path; (60 satır)
+Standalone dosyada: `.claude/dalga-7-rollback.sql`
+
+### Risk notları
+- **R5 ana risk:** search_path değeri yanlış seçilirse fonksiyon
+  body kırılır. Seçim B bu riski elimine eder (geniş kapsama).
+- **Pre-smoke skip OK:** search_path SET salt güvenlik sertleştirmesi,
+  davranış değişmez. R5b'deki cosmetic dead policy DROP'u gibi.
+- **Apply sonrası advisor doğrulama ŞART (R7):** before count 60,
+  after count 0 hedef.
+- **Other 217 advisor findings:** bu dalga kapsamı dışı. Ayrı
+  dalgalarda (anon/authenticated SECURITY DEFINER lints, public
+  bucket, password protection vs.).
+
+### Beklenen değişiklik özeti
+
+| Dosya | Değişiklik | Satır |
+|-------|------------|-------|
+| `supabase/migrations/<ts>_fix_function_search_path_mutable.sql` | YENİ | ~80 (60 ALTER + comments) |
+| `.claude/dalga-7-rollback.sql` | YENİ | ~70 |
+| `.claude/session_notes.md` | bu kayıt | (zaten eklendi) |
+
+**Toplam:** 2 yeni dosya. Davranış değişikliği YOK.
+Flutter kod sıfır dokunma.
+
+### Onay sorusu
+Bu plan ile ADIM 2 (migration yazımı) başlatılsın mı? Onaylarsan:
+- 1 migration dosyası (60 ALTER, search_path = public, extensions, auth, pg_temp)
+- 1 rollback dosyası
+- mcp__supabase__apply_migration ile production apply
+- advisor before/after side-by-side kanıt
+- commit + PR
+
