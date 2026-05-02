@@ -3147,5 +3147,80 @@ birlikte tek commit'te apply'la beraber gidecek.
 - Davranış değişikliği SIFIR (smoke 5/5 OK doğrularsa)
 
 
+## 2026-05-02 ~10:45 Bangkok — Dalga 8 + 8b: KAPANIŞ (R5 tuzağı yakalandı)
+
+### Hedef ve sonuç
+
+**Hedef:** Advisor `*_security_definer_function_executable` lint
+sayısını 150 → 110 (-40) düşür. 20 fonksiyon (13 trigger + 7 cron/internal),
+Flutter caller analizi sonrası "REVOKE-safe" kategorisine konuldu.
+
+**Sonuç:** Advisor 157 → 117 ✅ (-40), security_definer 150 → 110 ✅,
+davranış değişikliği SIFIR (post-smoke 5/5 OK kullanıcı doğrulaması).
+
+### Kronoloji
+
+**Dalga 8 apply (`20260429135255_revoke_definer_executable.sql`):**
+- Pre-smoke 5/5 OK (kullanıcı emülatör/cihazda 5 path doğruladı,
+  baseline production state)
+- `mcp__supabase__apply_migration` → `{"success": true}`
+- **Advisor AFTER aynı kaldı** (157, hiç değişmedi)
+- **md5 BEFORE/AFTER eşit** (`3a59d576480d4ab6069a7a6f008267b5`):
+  cache değil, gerçek state aynı.
+
+**SQL doğrulama (R5 disiplini):**
+- `has_function_privilege('anon|authenticated', fn, 'EXECUTE')` →
+  20/20 fn için TRUE (REVOKE no-op).
+- `proacl: {=X/postgres, postgres=X/postgres, service_role=X/postgres}`
+  → `=X` = PUBLIC role has EXECUTE.
+
+**Kök neden:** PostgreSQL fonksiyonlarda default grant **PUBLIC**'e gider.
+`anon`/`authenticated` PUBLIC'ten miras alır — direct grant yok.
+`REVOKE FROM anon, authenticated` direct grant'ı kaldırır, ama
+direct grant zaten yoktu → sessiz no-op (PostgreSQL hata vermez).
+Doğru komut: `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated`.
+
+**Dalga 8b apply (`20260502075743_revoke_definer_executable_public.sql`):**
+- Pre-smoke skip (state değişmedi, davranış aynı)
+- `mcp__supabase__apply_migration` → `{"success": true}`
+- SQL doğrulama: 40/40 FALSE (anon×20 + auth×20) ✅,
+  20/20 TRUE (service_role) ✅
+- Advisor AFTER: 165k → 125k byte, **157 → 117** ✅
+- Post-smoke 5/5 OK kullanıcı doğruladı ✅
+
+### R5 tuzağı yakalama
+
+R5 ana kayıt: "P0 migration eski permissive policy DROP etmedi, sadece
+yeni restrictive ekledi → applied ama etkisiz."
+
+Dalga 8 farklı mekanizma, aynı tuzak: "REVOKE FROM anon, authenticated
+PUBLIC inheritance var, REVOKE syntactically valid ama effective değil."
+
+**Ders:** "Apply success" + "advisor değişmedi" görünce **derhal**
+SQL state doğrulaması (`has_function_privilege` ya da `proacl` dump)
+yapılır. Advisor cache'lenmiş gibi görünebilir — değildir, gerçek state'i
+yansıtır. R7 disiplini: kanıt olmadan "fix yapıldı" demek yasak.
+
+### Disk durumu (commit edilecek)
+
+| Dosya | Durum |
+|-------|-------|
+| `supabase/migrations/20260429135255_revoke_definer_executable.sql` | Dalga 8, apply edildi, no-op kaldı (history korunur) |
+| `supabase/migrations/20260502075743_revoke_definer_executable_public.sql` | Dalga 8b, etkili fix |
+| `.claude/dalga-8-rollback.sql` | 20 GRANT (anon, authenticated) — gereksiz beklenir |
+| `.claude/dalga-8b-rollback.sql` | 20 GRANT (PUBLIC, anon, authenticated) — acil rollback |
+| `.claude/session_notes.md` | bu kayıt |
+| `.claude/known_regressions.md` | R5 tuzağı tekrar dersi + Dalga 7/8/8b durumu |
+
+### Kalan iş (Dalga 9 adayı)
+
+`*_security_definer_function_executable` 110 lint kaldı = 51 frontend RPC fonksiyonu × 2 role + ekstra (st_estimatedextent ×6 PostGIS overload, fetch_nob_feed ×4 overload). Tam sıfırlama için:
+- Frontend RPC'leri SECURITY DEFINER yerine SECURITY INVOKER + RLS pattern'ine geçmek (büyük iş, davranış riski)
+- Ya da per-fn anon revoke (auth-flow'a özel istisna), authenticated grant koru (orta zorluk)
+- Ya da advisor kabul edilebilir baseline olarak 110'da bırakılır (frontend DEFINER pattern Supabase'in tipik kullanımı)
+
+Karar Dalga 9 oturumunda. Bu sprint için kapanış: 157 → 117 ✅.
+
+
 
 
