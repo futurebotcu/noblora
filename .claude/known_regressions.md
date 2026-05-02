@@ -548,5 +548,6 @@ doğrulamasında).
 | 6 | incognito_mode enforce | CLOSED (R8 partial) | 7 setting OPEN |
 | 7 | function_search_path_mutable 60 → 0 | CLOSED | — |
 | 8 + 8b | security_definer batch REVOKE | KISMEN (-40) | 110 advisor lint (51 frontend RPC) |
-| 9 (aday) | security_definer kalan 110 | NOT STARTED | — |
+| 9 | public_bucket_allows_listing 2 → 0 | CLOSED | — |
+| 10 (aday) | security_definer kalan 110 | NOT STARTED | — |
 | R8 kalan | 7 ek setting enforce | NOT STARTED | — |

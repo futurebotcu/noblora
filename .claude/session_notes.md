@@ -3222,5 +3222,116 @@ yansıtır. R7 disiplini: kanıt olmadan "fix yapıldı" demek yasak.
 Karar Dalga 9 oturumunda. Bu sprint için kapanış: 157 → 117 ✅.
 
 
+## 2026-05-02 ~öğleden sonra Bangkok — Dalga 9: public_bucket_allows_listing fix
+
+### Hedef
+Supabase advisor `public_bucket_allows_listing` 2 lint sıfırla.
+Advisor: 117 → 115 (-2). Davranış değişikliği YOK
+(public read korunur, listing kapatılır).
+
+### Risk
+- Düşük: Storage policy değişikliği, dosya read/write etkilenmez
+- Davranış: Bucket içindeki dosyaları listeleme (LIST) authenticated için kapanır
+  ama her dosya doğrudan URL ile erişilebilir kalır (bucket public=true, CDN-level)
+- Frontend etkilenmez çünkü dosyalar zaten URL ile çağrılıyor (storage repository pattern, getPublicUrl)
+- Pre-smoke gerekmez (cosmetic security tightening, frontend `.list()` çağrısı yok — kanıt: grep sıfır)
+
+### Branch durumu (oturum başı)
+- Aktif branch: `dalga-9-bucket-listing-fix` (yeni, taze main `ad7b443`'ten)
+- main üzerinde Dalga 8+8b (PR #23) merge edilmiş
+
+### Kural
+- Tek migration dosyası
+- Production'a apply
+- SQL doğrulama (R10 dersi: "apply success" kanıt değil)
+- Davranış değişikliği YASAK
+- Scope 3 madde: (1) envanter, (2) migration yaz + apply, (3) advisor doğrula + commit
+
+### ADIM 1 — Envanter (kanıt)
+
+**Advisor lint detayı (agent ile çıkarıldı):**
+
+| # | bucket | sorumlu policy | cache_key |
+|---|--------|----------------|-----------|
+| 1 | `galleries` | "anyone can read gallery photos" (SELECT, authenticated) | public_bucket_allows_listing_galleries |
+| 2 | `profile-photos` | "authenticated users can read profile photos" (SELECT, authenticated) | public_bucket_allows_listing_profile-photos |
+
+Advisor mesajı (verbatim): *"Public buckets don't need this for object URL access and it may expose more data than intended."*
+
+**storage.buckets durumu:**
+
+| name | public | object_count | Lint? |
+|------|:------:|:------------:|:----:|
+| avatars | TRUE | 0 | hayır (policy yok) |
+| chat-media | FALSE | 9 | hayır (public değil) |
+| galleries | TRUE | 0 | EVET |
+| profile-photos | TRUE | 22 | EVET |
+| selfies | FALSE | 0 | hayır |
+| verification-photos | FALSE | 15 | hayır |
+| verifications | FALSE | 0 | hayır |
+
+**Frontend kullanım analizi (lib/ tam tarama):**
+
+`storage.from(...)` çağrıları (9 yer, hepsi uploadBinary/getPublicUrl/remove):
+- chat-media: messages_repository:367,372
+- galleries: storage_repository:27 (uploadToGallery)
+- profile-photos: storage_repository:45,59 (uploadProfilePhoto, removeProfilePhoto), verification_repository:160,169
+- verification-photos: verification_repository:155,167
+
+Kritik aramalar (sıfır sonuç):
+- `.list(` → 0
+- `.download(` → 0
+- `FileObject` → 0
+- `listObjects` → 0
+
+SELECT policy'leri **dead code**. DROP davranış riski sıfır.
+
+### ADIM 2 — Apply + doğrulama (kanıt)
+
+**Migration:** `supabase/migrations/20260502083216_drop_dead_listing_policies.sql` (2 DROP POLICY)
+
+**Apply:** `mcp__supabase__apply_migration` → `{"success":true}`
+
+**SQL doğrulama (R10 disiplini):**
+
+```sql
+SELECT policyname FROM pg_policies WHERE schemaname='storage'
+  AND tablename='objects' AND policyname IN (
+    'anyone can read gallery photos',
+    'authenticated users can read profile photos');
+```
+
+Sonuç: **0 satır** ✅ (her iki policy DROP edildi)
+
+**Korunan policy regresyon kontrolü:** users can upload/delete/update own ... policies (5 satır) hâlâ yerinde ✅
+
+**Advisor AFTER (advisor JSON 124k → 123k byte, agent ile sayım):**
+
+| Metrik | BEFORE | AFTER | Δ |
+|---|---:|---:|---:|
+| Toplam findings | 117 | **115** | **-2** ✅ |
+| public_bucket_allows_listing | 2 | **0** | -2 ✅ |
+| anon_security_definer_function_executable | 55 | 55 | 0 |
+| authenticated_security_definer_function_executable | 55 | 55 | 0 |
+| rls_enabled_no_policy | 1 | 1 | 0 |
+| rls_disabled_in_public | 1 | 1 | 0 |
+| extension_in_public | 1 | 1 | 0 |
+| rls_policy_always_true | 1 | 1 | 0 |
+| auth_leaked_password_protection | 1 | 1 | 0 |
+
+Hedef lint kategorisi sıfırlandı, diğerleri değişmedi (regresyon yok).
+
+**Flutter regresyon:**
+- `flutter analyze --fatal-infos` → `No issues found!` (43.5s)
+- `flutter test` → **285/0 All tests passed!** (regresyon SIFIR)
+
+### Kapanış
+
+Davranış değişikliği SIFIR. Migration etkili (R10 disiplini SQL ile kanıtladı).
+Public bucket'lar getPublicUrl ile erişilebilir kalıyor, INSERT/DELETE policy'leri korundu.
+R5b (cosmetic dead policy DROP) pattern'inin yeni bir uygulaması.
+
+
+
 
 
