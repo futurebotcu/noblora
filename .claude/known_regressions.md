@@ -485,3 +485,68 @@ final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
 - Realtime/Storage/Auth gibi dedicated wrapper olmayan alanlarda Dalga 5c/5d'ye
   bırak — şimdilik allowlist genişletme.
 - Test mocking için: `ProviderScope(overrides: [supabaseClientProvider.overrideWithValue(mockClient)])`
+
+---
+
+## R10: PostgreSQL PUBLIC Inheritance — REVOKE FROM anon Sessiz No-Op
+
+**Belirti:** `REVOKE EXECUTE ON FUNCTION ... FROM anon, authenticated`
+migration'ı `success:true` döndü, ama gerçek state hiç değişmedi.
+Advisor BEFORE/AFTER **byte-byte aynı** (md5 eş). `has_function_privilege`
+hâlâ TRUE.
+
+**Kök neden:** PostgreSQL fonksiyonlarda default grant **PUBLIC** role'üne
+gider. Supabase'de `anon` ve `authenticated` rol'leri PUBLIC'ten miras
+alır — direct grant yoktur. `REVOKE FROM anon, authenticated` direct
+grant'ı kaldırır, ama direct grant **zaten yok** → PostgreSQL sessiz
+no-op uygular, hata vermez.
+
+`pg_proc.proacl` ipucu:
+```
+{=X/postgres, postgres=X/postgres, service_role=X/postgres}
+ ^^^^^^^^^^^^
+ "=X" prefix-i (boş identifier) = PUBLIC role has EXECUTE
+```
+
+**Tespit tarihi:** 2026-05-02 (Dalga 8 apply sonrası, post-apply SQL
+doğrulamasında).
+
+**Tekrar sayısı:** 1
+
+**Status:** FULLY CLOSED (2026-05-02) — Dalga 8b ile düzeltildi.
+
+**Kanıt (Dalga 8b, 2026-05-02):**
+- Migration: `supabase/migrations/20260502075743_revoke_definer_executable_public.sql`
+  (20 satır, `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated`)
+- Apply: `{"success":true}`
+- SQL doğrulama: `has_function_privilege` → 40/40 FALSE (anon+auth),
+  20/20 TRUE (service_role + postgres direct grant korundu)
+- Advisor: 165k → 125k byte, **157 → 117** (-40, beklenen)
+- Post-smoke 5/5 OK (davranış değişikliği SIFIR)
+
+**Dokunma protokolü:**
+- Public schema fonksiyonu için role REVOKE yazıyorsan **mutlaka
+  PUBLIC'i ekle**: `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated`.
+- Direct grant gerçekten varsa (örn. service_role'e özel grant)
+  o role'ü REVOKE listesinden çıkar — yoksa trigger/cron çalışmaz.
+- Apply sonrası **mutlaka SQL doğrulama**: advisor cache'lenmiş gibi
+  görünse bile gerçek state'i yansıtır. `has_function_privilege` ya da
+  `proacl` dump kanıttır.
+- "Apply success" ≠ "Fix effective". R5 ana kuralının bir varyantı.
+
+---
+
+## Dalga Durum Özeti (2026-05-02)
+
+| Dalga | Hedef | Status | Kalan |
+|-------|-------|--------|-------|
+| 1 | Hygiene | CLOSED | — |
+| 2/2b/2c | Profile copyWith + draft | CLOSED | — |
+| 3/3b | `_substantive` + R5b dead policies | CLOSED | — |
+| 4/4b | `catch (_)` 38 → 0 | CLOSED | — |
+| 5a/5b/5c1/5c2/5d1–5d7 | `Supabase.instance.client` 121 → 0 | CLOSED | — |
+| 6 | incognito_mode enforce | CLOSED (R8 partial) | 7 setting OPEN |
+| 7 | function_search_path_mutable 60 → 0 | CLOSED | — |
+| 8 + 8b | security_definer batch REVOKE | KISMEN (-40) | 110 advisor lint (51 frontend RPC) |
+| 9 (aday) | security_definer kalan 110 | NOT STARTED | — |
+| R8 kalan | 7 ek setting enforce | NOT STARTED | — |
