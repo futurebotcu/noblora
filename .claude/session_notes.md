@@ -3332,6 +3332,141 @@ Public bucket'lar getPublicUrl ile erişilebilir kalıyor, INSERT/DELETE policy'
 R5b (cosmetic dead policy DROP) pattern'inin yeni bir uygulaması.
 
 
+## 2026-05-03 ~13:30 Bangkok — Dalga 11: R8 leak fixes (3 privacy bug)
 
+### Hedef ve sonuç
+
+**Hedef:** R8 "7 OPEN setting" iddiası kanıtlanırken keşfedilen 3 gerçek
+privacy leak'i kapat:
+1. show_status_badge gate eksik — swipe_card_widget.dart:685
+2. show_status_badge gate eksik — bff_screen.dart:347
+3. incognito_mode filter eksik — generate_bff_suggestions RPC
+
+**Sonuç:** 3/3 leak kapatıldı, advisor 115 → 115 (sabit, regresyon sıfır),
+davranış SQL kanıtıyla doğrulandı (`a_in_b=0`).
+
+### R7 disiplin zaferi (kanıtlama → revize)
+
+Önceki R8 dokümantasyonu: "7 OPEN setting" varsayımı (Dalga 6 sonrası,
+kanıtsız). Dalga 11 başında ADIM 1 kanıtlama ile her setting'in caller
+analizi yapıldı:
+
+| Setting | Önceki not | Gerçek (kanıt) |
+|---|---|---|
+| incognito_mode | CLOSED | KISMEN — BFF leak vardı |
+| show_last_active | OPEN | FULLY CLOSED (zaten gated, swipe_card:400) |
+| show_status_badge | OPEN | KISMEN — 2 leak (swipe_card:685, bff_screen:347) |
+| message_preview | OPEN | FULLY CLOSED (matches gated; chat-push trigger N/A) |
+| calm_mode | OPEN | KISMEN (can_reach_user only) |
+| hide_exact_distance | OPEN | OPEN — altyapı yok |
+| show_city_only | OPEN | **PHANTOM** — DB'de granular location yok |
+| notification_preferences | OPEN | OPEN — push system büyük iş |
+
+**Ders:** "OPEN" etiketi kanıtsız konmamalıydı. Eğer Dalga 11 doğrudan
+show_city_only enforce'a girseydi (önceki plan), saatler harcandıktan
+sonra "gizlenecek bir şey yok" anlaşılacaktı. R7 disiplini doğrudan
+korudu.
+
+### Kronoloji
+
+**ADIM 1 — kanıtlama (~30 dk):**
+- 4 setting için tam caller grep: profile_screen, user_profile_screen,
+  individual_chat_screen, matches_screen, swipe_card, bff_screen,
+  bff_suggestion_card, push_notification_service, send-push edge function,
+  notifications.body trigger
+- Bulgu: 2 setting tam kapanış, 2 setting + 1 RPC için 3 leak
+
+**ADIM 2 — UI fix (5 dk):**
+- `lib/features/feed/swipe_card_widget.dart:685`:
+  ```dart
+  // Önce: if (card.isVerified)
+  // Sonra: if (card.isVerified && card.showStatusBadge)
+  ```
+- `lib/features/bff/bff_screen.dart:347`: aynı değişiklik
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: **285/0 All tests passed!**
+
+**ADIM 3 — Migration (15 dk):**
+
+Pre-check (R10 dersi, "apply success ≠ effective"):
+- `pg_proc` query ile mevcut RPC durumu: `generate_bff_suggestions`
+  SECURITY DEFINER, `search_path=public, extensions, auth, pg_temp`
+  (Dalga 7 baseline)
+- `is_discoverable` aynı search_path, body mevcut
+
+Migration: `supabase/migrations/20260503063000_bff_incognito_filter.sql`
+- CREATE OR REPLACE FUNCTION (mevcut body birebir + 1 satır ekleme)
+- Yeni satır: `AND public.is_discoverable(p.id, 'bff', p_user_id)`
+- search_path Dalga 7 baseline korundu
+- DEFINER→DEFINER call (Dalga 6 pattern ile aynı)
+
+Apply: `mcp__supabase__apply_migration` → `{"success":true}`
+
+Rollback: `.claude/dalga-11-rollback.sql` (eski body, is_discoverable
+satırı çıkarılmış)
+
+**ADIM 4 — R10 doğrulama (10 dk):**
+
+A) Body kontrol (statik, pg_proc):
+```
+proname: generate_bff_suggestions
+definer: true
+settings: search_path=public, extensions, auth, pg_temp
+is_discoverable_pos: 811  ← body'de mevcut
+body_length: 1891
+```
+
+B) Davranış testi (DO block + RAISE EXCEPTION rollback, kalıcı state
+değişmedi):
+```sql
+DO $$
+DECLARE v_added INT; v_a_in_b INT; v_total_for_b INT;
+BEGIN
+  UPDATE profiles SET incognito_mode = true WHERE id = '<user-A>';
+  SELECT generate_bff_suggestions('<user-B>') INTO v_added;
+  SELECT count(*) INTO v_a_in_b FROM bff_suggestions
+    WHERE user_a_id = '<user-B>' AND user_b_id = '<user-A>';
+  SELECT count(*) INTO v_total_for_b FROM bff_suggestions
+    WHERE user_a_id = '<user-B>';
+  RAISE EXCEPTION 'TEST_INCOGNITO added=% a_in_b=% total_for_b=%',
+    v_added, v_a_in_b, v_total_for_b;
+END $$;
+```
+
+Sonuç: `added=3 a_in_b=0 total_for_b=3` ✅
+- B (explorer tier, daily_used=0, limit=3) için 3 suggestion eklendi
+- A (incognito) **listede YOK** → fix etkili
+- Diğer 3 candidate normal akışta (regresyon yok)
+
+C) AFTER advisor:
+- `mcp__supabase__get_advisors(security)` → 115 (BEFORE = 115)
+- MD5 BEFORE/AFTER: `92d0d0dabd7f1abf72440c672ce0eaa3` (byte-byte aynı)
+- security_definer (anon+auth): 110 sabit
+- function_search_path_mutable: 0 (Dalga 7 baseline korundu)
+- 5 küçük lint: değişmedi
+
+### Disk durumu (commit edilecek)
+
+| Dosya | Durum |
+|-------|-------|
+| `lib/features/feed/swipe_card_widget.dart` | M (1 satır) |
+| `lib/features/bff/bff_screen.dart` | M (1 satır) |
+| `supabase/migrations/20260503063000_bff_incognito_filter.sql` | A (yeni) |
+| `.claude/dalga-11-rollback.sql` | A (yeni, acil rollback) |
+| `.claude/known_regressions.md` | M (R8 tablo + Dalga özet yenilendi) |
+| `.claude/session_notes.md` | M (bu kayıt) |
+
+### Bonus bulgu (BFF Suggestions tab — out of scope)
+
+`bff_suggestion_card.dart` (Suggestions tab'ı) verified badge **HİÇ
+GÖSTERMİYOR** (avatar + isim + bio + common ground + buttons). Bu
+surface için show_status_badge fix gerekmedi.
+
+### Kapanış
+
+3 gerçek privacy bug kapandı, advisor sabit (115), tüm testler yeşil
+(285/0), R10 disiplin SQL ile kanıt sağlandı. R8 tablosu kanıt-dayalı
+revize edildi (8 → 4 FULLY CLOSED + 1 KISMEN + 3 OPEN; 1 phantom
+setting gelecek dalgada drop adayı).
 
 

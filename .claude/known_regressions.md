@@ -326,18 +326,18 @@ gerçekte uydurma.
 feed/repository/UI **okumuyor**. Kullanıcı "incognito aç" der, DB değeri
 değişir, davranış DEĞİŞMEZ. "Ayar uygulandı" illüzyonu.
 
-**Etkilenen setting envanteri (FEATURE_REGISTRY.md:42-49 + README.md:101):**
+**Etkilenen setting envanteri (kanıt-dayalı, Dalga 11 sonrası 2026-05-03):**
 
-| Setting | UI toggle | Enforce yeri | Status |
-|---------|-----------|--------------|--------|
-| incognito_mode | settings_screen.dart:188 ✅ | feed_repository Step 1.5 ✅ (Dalga 6) | **CLOSED** |
-| hide_exact_distance | YOK ❌ | feed render ❌ | ayrı dalga 6b |
-| show_city_only | araştırılacak | araştırılacak | ileride |
-| show_last_active | settings_screen.dart:196 ✅ | araştırılacak | ileride |
-| show_status_badge | settings_screen.dart:199 ✅ | araştırılacak | ileride |
-| calm_mode | settings_screen.dart:192 ✅ | can_reach_user RPC ✅ (KISMEN — feed'de değil, signal/note/reach permission'da) | ileride incele |
-| message_preview | araştırılacak | araştırılacak | ileride |
-| notification_preferences | settings_screen.dart ✅ | push system YOK | büyük iş |
+| Setting | UI toggle | Enforce yeri (kanıt) | Status |
+|---------|-----------|---------------------|--------|
+| incognito_mode | settings_screen.dart:182 ✅ | feed Step 1.5 (Dalga 6) + can_reach_user (P0) + generate_bff_suggestions (Dalga 11) | **FULLY CLOSED** ✅ |
+| show_last_active | settings_screen.dart:190 ✅ | swipe_card_widget.dart:400 `if (card.showLastActive && ...)` ✅ tek display surface, gated | **FULLY CLOSED** ✅ |
+| show_status_badge | settings_screen.dart:193 ✅ | swipe_card:287, swipe_card:685, bff_screen:347 ✅ (Dalga 11 ile 3/3 site gated) | **FULLY CLOSED** ✅ |
+| message_preview | settings_screen.dart:267 ✅ | matches_screen `_messagePreviewProvider` ✅; chat-push trigger henüz yok (N/A) | **FULLY CLOSED** ✅ |
+| calm_mode | settings_screen.dart:186 ✅ | can_reach_user RPC (signal/note/reach) ✅ KISMEN — feed/notification context'te değil | **KISMEN** |
+| hide_exact_distance | YOK ❌ | feed render ❌ (mesafe ProfileCard'da hiç yok, infra eksik) | OPEN — altyapı gerek |
+| show_city_only | YOK ❌ | render ❌ (DB'de city/travel_city zaten city-level; daha granular location yok → **phantom setting**, drop adayı) | OPEN — phantom |
+| notification_preferences | settings_screen ✅ | push system: chat için trigger yok; new_match/comment/etc. trigger'ları preference filter yapmıyor | OPEN — büyük iş |
 
 **Kök neden hipotezi:** Özellikler iteratif yazıldı, "önce DB kolonu + UI
 toggle, enforce sonra" planı bazı özelliklerde gerçekleşmedi. Backend
@@ -348,10 +348,11 @@ RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
 
 **Tekrar sayısı:** 1 (toplu envanter) — 8 setting altında.
 
-**Status:** KISMEN CLOSED (2026-04-23)
-- **incognito_mode:** CLOSED — Dalga 6, batch RPC `filter_discoverable_ids`
-  + feed_repository Step 1.5 entegrasyonu. 3 senaryo SQL kanıtıyla yeşil.
-- **Diğer 7 setting:** OPEN — gelecek dalgalar (her biri ayrı keşif)
+**Status:** KISMEN CLOSED (2026-05-03, Dalga 11 sonrası — kanıt-dayalı revize)
+- **4 FULLY CLOSED:** incognito_mode (Dalga 6 + 11), show_last_active (zaten gated, Dalga 11 kanıtladı), show_status_badge (Dalga 11 ile 3 site), message_preview (matches gated; push N/A)
+- **1 KISMEN:** calm_mode (can_reach_user only, feed/notif değil)
+- **3 OPEN:** hide_exact_distance (altyapı yok), show_city_only (phantom), notification_preferences (push system)
+- Önceki "7 OPEN setting" iddiası kanıtsızdı (R7 disiplini): kanıtlama 4 setting'in zaten kapalı olduğunu, 3 gerçek leak (Dalga 11'de kapatıldı) ve 1 phantom setting'i ortaya çıkardı.
 
 **Kanıt (incognito_mode, 2026-04-23 ~12:35 UTC):**
 - Migration: `supabase/migrations/20260423122907_filter_discoverable_ids_batch.sql`
@@ -369,6 +370,33 @@ RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
 - `flutter test`: 257 pass / 2 fail (baseline korundu, regresyon sıfır;
   kalan 2 fail R4 banned_patterns guardrail, R8 ile ilgisiz)
 - Rollback: `.claude/dalga-6-rollback.sql` (standalone, DROP FUNCTION)
+
+**Kanıt (Dalga 11 — 3 leak fix, 2026-05-03):**
+
+UI fix (2 satır):
+- `lib/features/feed/swipe_card_widget.dart:685` → `if (card.isVerified && card.showStatusBadge)` (ikinci verified badge konumu, gate eksikti)
+- `lib/features/bff/bff_screen.dart:347` → `if (card.isVerified && card.showStatusBadge)` (BFF Free Discovery card, gate eksikti)
+
+Migration (`20260503063000_bff_incognito_filter.sql`):
+- `generate_bff_suggestions` candidate WHERE'a `AND public.is_discoverable(p.id, 'bff', p_user_id)` eklendi
+- search_path Dalga 7 baseline `public, extensions, auth, pg_temp` korundu
+- Apply: `{"success":true}`
+- Body kontrol (R10): `pg_proc.prosrc` `is_discoverable` string'i içeriyor (position 811, body length 1891)
+- Davranış testi (DO block + RAISE EXCEPTION rollback):
+  - Test: A=`...0001` incognito=true, B=`...0002` (explorer tier) için `generate_bff_suggestions(B)` çağrı
+  - Sonuç: `added=3 a_in_b=0 total_for_b=3` ✅
+  - A incognito iken B'nin suggestion'larında **YOK**, diğer 3 candidate normal akışta önerildi (regresyon yok)
+- Advisor BEFORE=AFTER MD5 `92d0d0dabd7f1abf72440c672ce0eaa3` (byte-byte aynı, 115 finding sabit)
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 285/0 baseline korundu
+- Rollback: `.claude/dalga-11-rollback.sql` (eski body, is_discoverable satırı yok)
+
+**R7 disiplin zaferi (Dalga 11 keşfi):**
+"7 OPEN setting" varsayımı kanıt sorgulanınca:
+- 4 setting zaten enforce edilmişti (kanıtsız OPEN etiketi yanlıştı)
+- 2 setting'te 3 gerçek leak vardı (kanıt: grep ile gate eksikliği bulundu)
+- 1 setting "phantom" — DB'de granular location yok, gizlenecek bir şey yok
+- Kapanış: 4 FULLY CLOSED + 1 KISMEN + 3 OPEN (1 phantom drop adayı)
 
 **Test stratejisi (diğer setting'ler için):**
 - Her setting için: DB'ye değer yaz → davranış değişti mi smoke test
@@ -536,7 +564,7 @@ doğrulamasında).
 
 ---
 
-## Dalga Durum Özeti (2026-05-02)
+## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |
 |-------|-------|--------|-------|
@@ -545,9 +573,10 @@ doğrulamasında).
 | 3/3b | `_substantive` + R5b dead policies | CLOSED | — |
 | 4/4b | `catch (_)` 38 → 0 | CLOSED | — |
 | 5a/5b/5c1/5c2/5d1–5d7 | `Supabase.instance.client` 121 → 0 | CLOSED | — |
-| 6 | incognito_mode enforce | CLOSED (R8 partial) | 7 setting OPEN |
+| 6 | incognito_mode enforce (feed) | CLOSED | — |
 | 7 | function_search_path_mutable 60 → 0 | CLOSED | — |
 | 8 + 8b | security_definer batch REVOKE | KISMEN (-40) | 110 advisor lint (51 frontend RPC) |
 | 9 | public_bucket_allows_listing 2 → 0 | CLOSED | — |
-| 10 (aday) | security_definer kalan 110 | NOT STARTED | — |
-| R8 kalan | 7 ek setting enforce | NOT STARTED | — |
+| 11 | R8 leak fixes (show_status_badge ×2 + incognito BFF) | CLOSED | calm_mode KISMEN, hide_exact_distance OPEN, show_city_only phantom, notification_preferences OPEN |
+| 12 (aday) | security_definer kalan 110 | NOT STARTED | — |
+| R8 kalan | calm_mode tam enforce + hide_exact_distance altyapı + show_city_only drop + notification_preferences | NOT STARTED | — |
