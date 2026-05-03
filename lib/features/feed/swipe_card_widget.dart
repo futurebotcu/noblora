@@ -682,7 +682,7 @@ class _BffCardBody extends StatelessWidget {
                     ),
                   ),
                   // Verified badge
-                  if (card.isVerified)
+                  if (card.isVerified && card.showStatusBadge)
                     Positioned(
                       top: AppSpacing.md,
                       right: AppSpacing.md,
