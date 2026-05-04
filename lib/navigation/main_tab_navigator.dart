@@ -273,7 +273,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 'signal_received': 'signals', 'note_received': 'notes',
                 'bff_reach_out': 'bff_suggestion',
                 'video_proposed': 'new_match', 'video_confirmed': 'new_match',
-                'event_farewell': 'event_activity',
               };
               final category = typeToCategory[latest.type];
               if (category != null && prefs[category] == false) return; // Suppressed by user

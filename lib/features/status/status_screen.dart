@@ -10,7 +10,6 @@ import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
 
-import '../../providers/event_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/status_provider.dart';
@@ -176,8 +175,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
         ],
         body: TabBarView(controller: _tabs, children: [
           _OverviewTab(p: p, tc: tc, animate: _animate, ai: _ai, aiLoading: _aiLoading,
-            matchState: ref.watch(matchProvider),
-            eventState: const EventListState()),
+            matchState: ref.watch(matchProvider)),
           _InterestTab(p: p, tc: tc,
             matchState: ref.watch(matchProvider),
             signalsReceived: _signalsReceived, signalsSent: _signalsSent,
@@ -196,9 +194,9 @@ class _StatusScreenState extends ConsumerState<StatusScreen> with TickerProvider
 
 class _OverviewTab extends StatelessWidget {
   final Profile p; final Color tc; final bool animate; final String? ai; final bool aiLoading;
-  final MatchListState matchState; final EventListState eventState;
+  final MatchListState matchState;
   const _OverviewTab({required this.p, required this.tc, required this.animate,
-      this.ai, this.aiLoading = false, required this.matchState, required this.eventState});
+      this.ai, this.aiLoading = false, required this.matchState});
 
   @override
   Widget build(BuildContext context) {
@@ -232,12 +230,10 @@ class _OverviewTab extends StatelessWidget {
       ],
 
       // Upcoming
-      if (matchState.matches.any((m) => m.status == 'video_scheduled') || eventState.events.isNotEmpty) ...[
+      if (matchState.matches.any((m) => m.status == 'video_scheduled')) ...[
         _Sec('Coming up'),
         ...matchState.matches.where((m) => m.status == 'video_scheduled').take(2).map((m) =>
             _Upcoming(Icons.videocam_rounded, 'Intro with ${m.otherUserName ?? "match"}', 'Scheduled', AppColors.emerald500)),
-        ...eventState.events.take(2).map((e) =>
-            _Upcoming(Icons.event_rounded, e.title, '${e.timeLabel} · ${e.locationText ?? ""}', const Color(0xFFAB47BC))),
         const SizedBox(height: AppSpacing.xxl),
       ],
 

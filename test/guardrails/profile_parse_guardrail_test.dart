@@ -28,7 +28,6 @@ void main() {
         'follow_through_score': 60,
         'date_bio': 'I build calm products and run every morning.',
         'bff_bio': 'Deep talks over long walks. Always up for a museum.',
-        'social_bio': 'Event host, coffee snob, weekend musician.',
         'bio': 'Product designer · dog person · ocean lover',
         'age': 29,
         'city': 'Istanbul',
@@ -162,7 +161,6 @@ void main() {
       // ── personas ───────────────────────────────────────────────────
       expect(p.dateBio, contains('calm products'));
       expect(p.bffBio, contains('long walks'));
-      expect(p.socialBio, contains('Event host'));
 
       // ── visibility map ─────────────────────────────────────────────
       expect(p.visibility['age'], 'Public');

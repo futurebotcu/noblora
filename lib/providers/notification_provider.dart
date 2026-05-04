@@ -60,14 +60,13 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     super.dispose();
   }
 
-  /// Strip notifications the current build should ignore (e.g. event/room
+  /// Strip notifications the current build should ignore (e.g. room/circle
   /// when the Social layer is disabled). Prevents stale banners, unread
   /// badges, and category preference lookups for dead notification types.
   List<AppNotification> _filterForBuild(List<AppNotification> all) {
     if (kSocialEnabled) return all;
     return all
         .where((n) =>
-            !n.type.startsWith('event_') &&
             !n.type.startsWith('room_') &&
             n.type != 'circle_invite')
         .toList();

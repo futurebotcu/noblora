@@ -16,7 +16,6 @@ class ToastService {
     ToastType.match => const Duration(seconds: 8),
     ToastType.signal => const Duration(seconds: 6),
     ToastType.message => const Duration(seconds: 6),
-    ToastType.event => const Duration(seconds: 6),
     ToastType.success => const Duration(seconds: 4),
     ToastType.error => const Duration(seconds: 5),
     ToastType.system => const Duration(seconds: 3),

@@ -31,8 +31,6 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
     switch (widget.match.mode) {
       case 'bff':
         return NobleMode.bff;
-      case 'social':
-        return NobleMode.social;
       default:
         return NobleMode.date;
     }

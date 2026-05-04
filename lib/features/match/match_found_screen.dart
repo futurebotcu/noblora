@@ -56,8 +56,6 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
     switch (widget.match.mode) {
       case 'bff':
         return NobleMode.bff;
-      case 'social':
-        return NobleMode.social;
       default:
         return NobleMode.date;
     }
@@ -99,9 +97,7 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
                 Text(
                   mode == NobleMode.bff
                       ? 'Alliance Formed!'
-                      : mode == NobleMode.social
-                          ? 'Connection Made!'
-                          : 'It\'s a Match!',
+                      : 'It\'s a Match!',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         color: mode.accentColor,
                         fontWeight: FontWeight.w800,
