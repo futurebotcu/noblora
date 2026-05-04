@@ -3470,3 +3470,156 @@ revize edildi (8 → 4 FULLY CLOSED + 1 KISMEN + 3 OPEN; 1 phantom
 setting gelecek dalgada drop adayı).
 
 
+## 2026-05-04 ~öğleden sonra Bangkok — Dalga 13 ADIM 1: Events removal envanter
+
+### Hedef
+Noblara app'ten Events özelliğinin tamamen kaldırılması. Vizyon
+daralması — pazar yeri (event sosyal) olmaktan çıkıp dating + BFF
+odaklı app olma. Bugün **sadece envanter** (kullanıcı kuralı: "Yarın
+taze kafa için bugün sadece envanter"). Kod/migration YASAK.
+
+### Branch durumu
+- main `e95da36` (Dalga 11 sonrası, temiz) → yeni branch
+  `dalga-13-events-removal` açıldı
+
+### Risk profili (envanter sonrası)
+- BÜYÜK kod yüzeyi: 12 dosya silimi + 14 cross-reference güncellemesi
+- DB veri kaybı: events 1, event_participants 1, event_farewell
+  notification 1 (toplam ~3 satır, düşük etki)
+- Beklenti uyuşmazlığı (kritik): "Events tab UI'dan kalkacak"
+  iddiası — bottom nav'da Events tab **YOK**. Gerçek hedef Discover
+  içindeki Date/BFF/Event mode toggle'dan Event seçeneğinin
+  kaldırılması (mode silimi)
+
+### Bulgular — kod tarafı
+
+**Komple silinecek 12 dosya:**
+
+| Kategori | Dosya |
+|---|---|
+| Models | lib/data/models/event.dart |
+| Models | lib/data/models/event_participant.dart |
+| Models | lib/data/models/event_message.dart |
+| Repository | lib/data/repositories/event_repository.dart |
+| Provider | lib/providers/event_provider.dart |
+| UI (social/) | event_chat_screen.dart |
+| UI (social/) | edit_event_screen.dart |
+| UI (social/) | create_event_screen.dart |
+| UI (social/) | event_card_widget.dart |
+| UI (social/) | social_events_screen.dart |
+| UI (social/) | event_checkin_screen.dart |
+| UI (social/) | event_detail_screen.dart |
+
+> `lib/features/events/` klasörü **boş** — Events kodu `lib/features/social/` altında.
+
+**Cross-reference (güncellenecek 14 dosya):**
+
+| Dosya:satır | Aksiyon |
+|---|---|
+| feed_screen.dart:21,75-78 | import + Event mode → SocialEventsScreen branch SİL |
+| core/enums/noble_mode.dart | NobleMode.social enum değeri kaldır |
+| shared/widgets/mode_switcher.dart:318 | Event toggle seçeneği kaldır |
+| status_screen.dart:13,180,199,201,235,239-240 | EventListState + Upcoming events widget kaldır |
+| navigation/main_tab_navigator.dart:276 | event_farewell→event_activity mapping SİL |
+| settings_screen.dart:44-45,50,222-223,270-271 | event_activity + event_chat notif toggle, leave_event_chat_auto, "Leave Event Chat After End" toggle, "Event Activity" toggle SİL |
+| profile_repository.dart:148-157,199 | fetchLeaveEventChatAuto + select clause |
+| notification_provider.dart:63-70 | "strip event_*" filter yorumu güncelle |
+| profile_screen.dart:168 | 'Social Open' label + Icons.event_rounded mod listesinden çıkar |
+| onboarding_flow_screen.dart:852 | "join events and rooms" → "join rooms" |
+| help_center_screen.dart:448 | "creating Social events..." cümle güncelle |
+| core/utils/mock_mode.dart:11-18 | Social layer flag yorumu temizle |
+| swipe_toast.dart:6,69,85 | ToastType.event enum (kullanım taraması ADIM 3'te) |
+| toast_service.dart:19 | ToastType.event duration mapping |
+
+**Bottom nav tab listesi (kanıt — main_tab_navigator.dart:214-220):**
+Discover, Noblara, Chats, Status, Profile (+admin koşullu).
+**Events tab YOK.** Hedef: Discover tab içi Event mode toggle'dan
+Event seçeneği kalkar.
+
+**Test sayısı:** 0 dosya event-related (test/ tarama). Guardrail
+baseline 285/0 hedefte korunacak.
+
+### Bulgular — DB tarafı
+
+**Tablolar (5 sayım, 1 koru):**
+
+| Tablo | Satır | Aksiyon |
+|---|---:|---|
+| events | 1 | DROP |
+| event_participants | 1 | DROP |
+| event_messages | 0 | DROP |
+| event_checkins | 0 | DROP |
+| feed_events | 2 | **DOKUNMA** (feed activity log) |
+
+**RPCs (7 sayım, 4 koru):**
+
+| RPC | Aksiyon |
+|---|---|
+| join_event(2) | DROP |
+| leave_event(1) | DROP |
+| submit_event_checkin(4) | DROP |
+| feed_event_post_published() | KORU (posts trigger) |
+| feed_event_reaction_changed() | KORU |
+| feed_event_comment_added() | KORU |
+| feed_event_echo_changed() | KORU |
+
+**Policies:** 11 events-* policy DROP TABLE CASCADE ile düşer.
+`feed_events_select` korunur.
+
+**Triggers:** Events-özel YOK. `feed_event_*_trg` (×4) posts/
+post_reactions/post_comments/post_echoes üzerinde — dokunulmaz.
+
+**FK zinciri:**
+```
+events ← event_participants (CASCADE)
+events ← event_messages (CASCADE)
+events ← event_checkins (CASCADE)
+events → auth.users(host_id, CASCADE)
+```
+DROP TABLE events CASCADE tek komutla yeterli.
+
+**profiles kolonları (event-bağlı):**
+
+| Kolon | Tip | Default | Aday aksiyon |
+|---|---|---|---|
+| leave_event_chat_auto | bool | — | DROP |
+| social_active | bool | true | KARAR? |
+| social_visible | bool | true | KARAR? |
+| active_modes | text[] | '{}' | 'social' UPDATE temizleme? |
+
+**Notifications:** type='event_farewell' = 1 kayıt. DELETE adayı.
+
+### Migration history (eski — DOKUNULMAZ)
+- 20260329000002_noblara_social_posts.sql (feed/posts)
+- 20260401000002_social_events.sql (Events kuran)
+- 20260401000008_social_finish.sql (kontrol gerek)
+- 20260402000001_social_rooms.sql (Rooms)
+
+Yeni: `dalga_13_drop_events.sql` (yarın yazılacak)
+
+### Yarına devredilen kararlar (kullanıcı onayı bekleyen 6 soru)
+
+1. **Rooms kalıyor mu?** social/ altında 5 room_* dosya var, ayrı
+   migration. Default varsayım: **rooms KALIR** (kullanıcı sadece
+   "Events" dedi).
+2. **Event mode toggle (Discover içi)** — beklenti netleştirme:
+   bottom nav'da Events tab yok, mode toggle'dan Event kalkar.
+3. **profiles.social_active / social_visible** DROP mu KORU mu?
+4. **active_modes 'social' değeri** UPDATE temizle mi BIRAK mı?
+5. **notifications event_farewell** (1 satır) DELETE mi KAL mı?
+6. **ToastType.event enum** — kullanım taraması ADIM 3'te yapılıp
+   karar verilecek.
+
+### Tahmini iş süresi (yarın)
+- ADIM 3 — Kod silimi (12 dosya + 14 cross-ref + analyze + test): 2-3 saat
+- ADIM 4 — DB migration (DROP + R10 SQL doğrulama + advisor diff): 1 saat
+- ADIM 5 — Smoke (mode toggle, settings, status, onboarding): 30 dk
+- TOPLAM: ~4 saat
+
+### Kapanış (bugün)
+
+ADIM 1 envanter tamamlandı. Kod/DB değişikliği SIFIR (ritüel:
+"bugün sadece envanter"). Branch `dalga-13-events-removal` açık,
+session notes commit edilecek. Kararlar (6 soru) yarına devredildi.
+
+
