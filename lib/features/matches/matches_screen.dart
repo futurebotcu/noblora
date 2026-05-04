@@ -784,7 +784,7 @@ class _CircleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NobleMode.social.accentColor;
+    final accent = NobleMode.bff.accentColor;
 
     return PressEffect(
       onTap: onTap,

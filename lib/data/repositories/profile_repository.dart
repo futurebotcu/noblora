@@ -6,10 +6,9 @@ import '../models/profile.dart';
 // public.profiles — query/write columns (LIVE schema):
 //   id           — UUID PK = auth.users.id  ← ALL queries filter on this
 //   full_name    — TEXT
-//   current_mode — TEXT ('date' | 'bff' | 'social')
+//   current_mode — TEXT ('date' | 'bff')
 //   date_bio / date_avatar_url
 //   bff_bio / bff_avatar_url
-//   social_bio / social_avatar_url
 //   noble_score  — INTEGER (read-only, set by backend)
 //   updated_at   — TIMESTAMPTZ (managed by DB trigger)
 // ---------------------------------------------------------------------------
@@ -23,7 +22,6 @@ const _mockProfile = Profile(
   nobleScore: 87,
   dateBio: 'Art lover & sunset chaser.',
   bffBio: 'Design Lead obsessed with minimalism.',
-  socialBio: 'Rooftop dinners and jazz bars.',
 );
 
 class ProfileRepository {
@@ -145,18 +143,6 @@ class ProfileRepository {
     return (blocked: blocked, hidden: hidden);
   }
 
-  Future<bool?> fetchLeaveEventChatAuto(String userId) async {
-    if (isMockMode) return null;
-    final client = _supabase;
-    if (client == null) throw Exception('Supabase client not initialized');
-    final row = await client
-        .from('profiles')
-        .select('leave_event_chat_auto')
-        .eq('id', userId)
-        .maybeSingle();
-    return row?['leave_event_chat_auto'] as bool?;
-  }
-
   Future<Map<String, dynamic>?> fetchNotificationPreferences(
       String userId) async {
     if (isMockMode) return null;
@@ -193,10 +179,10 @@ class ProfileRepository {
     final row = await client
         .from('profiles')
         .select('notification_preferences, incognito_mode, calm_mode, '
-            'dating_visible, bff_visible, social_visible, '
+            'dating_visible, bff_visible, '
             'show_last_active, show_status_badge, message_preview, '
             'reach_permission, signal_permission, note_permission, '
-            'city, is_paused, leave_event_chat_auto, '
+            'city, is_paused, '
             'ai_writing_help, '
             'is_verified, selfie_verified, photos_verified, verification_status, '
             'blocked_users, hidden_users')
@@ -325,10 +311,10 @@ class ProfileRepository {
   }
 
   /// Updates mode-specific bio and avatar — both column names are confirmed
-  /// to exist in the real schema (date_bio, bff_bio, social_bio, etc.).
+  /// to exist in the real schema (date_bio, bff_bio).
   Future<void> updatePersona({
     required String userId,
-    required String mode, // 'date' | 'bff' | 'social'
+    required String mode, // 'date' | 'bff'
     String? bio,
     String? avatarUrl,
   }) async {

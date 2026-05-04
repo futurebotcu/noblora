@@ -164,9 +164,6 @@ class _CuratedProfile {
     if (activeModes.contains('bff')) {
       out.add((icon: Icons.people_rounded, label: 'Noble BFF Open'));
     }
-    if (activeModes.contains('social')) {
-      out.add((icon: Icons.event_rounded, label: 'Social Open'));
-    }
     return out;
   }
 
@@ -226,8 +223,6 @@ class _CuratedProfile {
   String? get dateBio =>
       _substantive(raw?.dateBio, minChars: 16, minWords: 3);
   String? get bffBio => _substantive(raw?.bffBio, minChars: 16, minWords: 3);
-  String? get socialBio =>
-      _substantive(raw?.socialBio, minChars: 16, minWords: 3);
 
   // ── proof ─────────────────────────────────────────────────────────────
   bool get isVerified => (raw?.trustScore ?? 0) > 60;
@@ -291,7 +286,7 @@ class _CuratedProfile {
 
   bool get hasPrompts => strongPrompts.isNotEmpty;
   bool get hasPersonas =>
-      dateBio != null || bffBio != null || socialBio != null;
+      dateBio != null || bffBio != null;
 }
 
 /// Whether a prompt Q&A pair is substantial enough to render in
@@ -833,9 +828,7 @@ class _PersonaSectionState extends State<_PersonaSection> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: Row(
             children: NobleMode.values
-                .where((m) =>
-                    m != NobleMode.noblara &&
-                    m != NobleMode.social)
+                .where((m) => m != NobleMode.noblara)
                 .map((mode) {
               final isActive = mode == _selectedMode;
               return GestureDetector(
@@ -900,13 +893,11 @@ class _PersonaSectionState extends State<_PersonaSection> {
     final bio = switch (mode) {
       NobleMode.date => p?.dateBio,
       NobleMode.bff => p?.bffBio,
-      NobleMode.social => p?.socialBio,
       _ => null,
     };
     final avatarUrl = switch (mode) {
       NobleMode.date => p?.dateAvatarUrl,
       NobleMode.bff => p?.bffAvatarUrl,
-      NobleMode.social => p?.socialAvatarUrl,
       _ => null,
     };
     final hasBio = bio != null && bio.trim().isNotEmpty;

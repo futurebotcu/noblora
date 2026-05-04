@@ -6,8 +6,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../providers/mode_provider.dart';
 
 /// Modes offered to the user in the mode switcher + mode selection dialog.
-/// Date, BFF, Event (Event reuses the social enum value internally).
-const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff, NobleMode.social];
+const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff];
 
 class ModeSwitcher extends ConsumerWidget {
   const ModeSwitcher({super.key});
@@ -143,7 +142,6 @@ class ModeSelectionDialog extends ConsumerWidget {
                 ?.copyWith(color: context.textMuted),
           ),
           const SizedBox(height: AppSpacing.xxxl),
-          // Show in reverse order (Social first when enabled) as original design
           ..._availableModes.reversed.map(
             (mode) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),

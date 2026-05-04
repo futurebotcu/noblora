@@ -46,8 +46,6 @@ void main() {
     _testPreserved('dateAvatarUrl', original.dateAvatarUrl, () => modified.dateAvatarUrl);
     _testPreserved('bffBio', original.bffBio, () => modified.bffBio);
     _testPreserved('bffAvatarUrl', original.bffAvatarUrl, () => modified.bffAvatarUrl);
-    _testPreserved('socialBio', original.socialBio, () => modified.socialBio);
-    _testPreserved('socialAvatarUrl', original.socialAvatarUrl, () => modified.socialAvatarUrl);
     _testPreserved('bio', original.bio, () => modified.bio);
     _testPreserved('age', original.age, () => modified.age);
     _testPreserved('city', original.city, () => modified.city);
@@ -129,8 +127,6 @@ void main() {
     _testRoundtrip('dateAvatarUrl', original.dateAvatarUrl, () => restored.dateAvatarUrl);
     _testRoundtrip('bffBio', original.bffBio, () => restored.bffBio);
     _testRoundtrip('bffAvatarUrl', original.bffAvatarUrl, () => restored.bffAvatarUrl);
-    _testRoundtrip('socialBio', original.socialBio, () => restored.socialBio);
-    _testRoundtrip('socialAvatarUrl', original.socialAvatarUrl, () => restored.socialAvatarUrl);
     _testRoundtrip('bio', original.bio, () => restored.bio);
     _testRoundtrip('age', original.age, () => restored.age);
     _testRoundtrip('city', original.city, () => restored.city);
@@ -228,8 +224,6 @@ Profile _buildFullProfile() {
     dateAvatarUrl: 'https://example.com/date.jpg',
     bffBio: 'bff bio',
     bffAvatarUrl: 'https://example.com/bff.jpg',
-    socialBio: 'social bio',
-    socialAvatarUrl: 'https://example.com/social.jpg',
     bio: 'general bio',
     age: 30,
     city: 'Istanbul',

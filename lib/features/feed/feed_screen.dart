@@ -18,7 +18,6 @@ import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
 import '../bff/bff_screen.dart';
 import '../../navigation/main_tab_navigator.dart';
-import '../social/social_events_screen.dart';
 import 'swipe_card_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -70,11 +69,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     // BFF mode → dedicated BFF suggestion screen
     if (mode == NobleMode.bff) {
       return const BffScreen();
-    }
-
-    // Event mode → events feed (reuses social enum value internally).
-    if (mode == NobleMode.social) {
-      return const SocialEventsScreen();
     }
 
     return Scaffold(

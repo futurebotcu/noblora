@@ -24,8 +24,6 @@ class Profile {
   final String? dateAvatarUrl;
   final String? bffBio;
   final String? bffAvatarUrl;
-  final String? socialBio;
-  final String? socialAvatarUrl;
   final String? bio;
   final int? age;
   final String? city;
@@ -101,8 +99,6 @@ class Profile {
     this.dateAvatarUrl,
     this.bffBio,
     this.bffAvatarUrl,
-    this.socialBio,
-    this.socialAvatarUrl,
     this.bio,
     this.age,
     this.city,
@@ -208,8 +204,6 @@ class Profile {
       dateAvatarUrl: json['date_avatar_url'] as String?,
       bffBio: json['bff_bio'] as String?,
       bffAvatarUrl: json['bff_avatar_url'] as String?,
-      socialBio: json['social_bio'] as String?,
-      socialAvatarUrl: json['social_avatar_url'] as String?,
       bio: json['bio'] as String?,
       age: json['age'] as int?,
       city: json['city'] as String?,
@@ -292,8 +286,6 @@ class Profile {
       'date_avatar_url': dateAvatarUrl,
       'bff_bio': bffBio,
       'bff_avatar_url': bffAvatarUrl,
-      'social_bio': socialBio,
-      'social_avatar_url': socialAvatarUrl,
       'bio': bio,
       'age': age,
       'city': city,
@@ -369,8 +361,6 @@ class Profile {
     String? dateAvatarUrl,
     String? bffBio,
     String? bffAvatarUrl,
-    String? socialBio,
-    String? socialAvatarUrl,
     String? bio,
     int? age,
     String? city,
@@ -444,8 +434,6 @@ class Profile {
       dateAvatarUrl: dateAvatarUrl ?? this.dateAvatarUrl,
       bffBio: bffBio ?? this.bffBio,
       bffAvatarUrl: bffAvatarUrl ?? this.bffAvatarUrl,
-      socialBio: socialBio ?? this.socialBio,
-      socialAvatarUrl: socialAvatarUrl ?? this.socialAvatarUrl,
       bio: bio ?? this.bio,
       age: age ?? this.age,
       city: city ?? this.city,

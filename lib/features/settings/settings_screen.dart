@@ -41,13 +41,12 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
 
   Map<String, dynamic> _defaults() => {
     'notification_preferences': {'new_match': true, 'new_message': true,
-      'bff_suggestion': true, 'event_activity': true, 'safety': true, 'signals': true,
-      'notes': true, 'event_chat': true, 'verification': true, 'updates': true},
+      'bff_suggestion': true, 'safety': true, 'signals': true,
+      'notes': true, 'verification': true, 'updates': true},
     'incognito_mode': false, 'calm_mode': false, 'is_paused': false,
-    'dating_visible': true, 'bff_visible': true, 'social_visible': true,
+    'dating_visible': true, 'bff_visible': true,
     'show_last_active': true, 'show_status_badge': true, 'message_preview': true,
     'reach_permission': 'everyone', 'signal_permission': 'everyone', 'note_permission': 'everyone',
-    'leave_event_chat_auto': true,
     'ai_writing_help': {'nob_cleanup': true, 'message_softening': true},
     'is_verified': false, 'selfie_verified': false, 'photos_verified': false,
     'verification_status': 'not_started',
@@ -219,8 +218,6 @@ class SettingsScreen extends ConsumerWidget {
                 n.notif('notes'), (_) => n.toggleNotif('notes')),
             _Toggle(Icons.people_outline, 'BFF Suggestions',
                 n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-            _Toggle(Icons.event_outlined, 'Event Activity',
-                n.notif('event_activity'), (_) => n.toggleNotif('event_activity')),
             _Toggle(Icons.verified_outlined, 'Verification',
                 n.notif('verification'), (_) => n.toggleNotif('verification')),
             _Toggle(Icons.shield_outlined, 'Safety Alerts',
@@ -267,9 +264,6 @@ class SettingsScreen extends ConsumerWidget {
                 s['message_preview'] as bool? ?? true,
                 (_) => n.toggleBool('message_preview'),
                 sub: 'Show content in inbox list'),
-            _Toggle(Icons.exit_to_app_rounded, 'Leave Event Chat After End',
-                s['leave_event_chat_auto'] as bool? ?? true,
-                (_) => n.toggleBool('leave_event_chat_auto')),
           ]),
 
           // ── 8. AI PREFERENCES ───────────────────────────────────

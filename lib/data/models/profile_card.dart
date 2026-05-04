@@ -53,7 +53,6 @@ class ProfileCard {
     final bio = switch (mode) {
       NobleMode.date    => row['date_bio'],
       NobleMode.bff     => row['bff_bio'],
-      NobleMode.social  => row['social_bio'],
       NobleMode.noblara => row['bio'],
     } as String? ??
         row['bio'] as String?;
@@ -61,7 +60,6 @@ class ProfileCard {
     final avatar = switch (mode) {
       NobleMode.date    => row['date_avatar_url'],
       NobleMode.bff     => row['bff_avatar_url'],
-      NobleMode.social  => row['social_avatar_url'],
       NobleMode.noblara => null,
     } as String?;
 

@@ -445,7 +445,6 @@ const _categories = [
         title: 'Why are some features locked?',
         body: 'Noblara uses a gating system to keep the community safe and high-quality:\n\n'
             '• Photo required — you need at least one photo to use Dating and BFF modes. This ensures everyone in the feed is a real person.\n\n'
-            '• Verified photo required — creating Social events requires photo verification.\n\n'
             '• Noble tier — some premium accent colors and features are available only to Noble tier users.',
       ),
       _HelpItem(

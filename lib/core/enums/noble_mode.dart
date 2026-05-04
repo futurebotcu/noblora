@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-enum NobleMode { date, bff, social, noblara }
+enum NobleMode { date, bff, noblara }
 
 extension NobleModeX on NobleMode {
   String get label {
@@ -10,8 +10,6 @@ extension NobleModeX on NobleMode {
         return 'Noble Date';
       case NobleMode.bff:
         return 'Noble BFF';
-      case NobleMode.social:
-        return 'Noble Event';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -23,8 +21,6 @@ extension NobleModeX on NobleMode {
         return 'Find your match';
       case NobleMode.bff:
         return 'Build your circle';
-      case NobleMode.social:
-        return 'Join events';
       case NobleMode.noblara:
         return 'Community feed';
     }
@@ -36,8 +32,6 @@ extension NobleModeX on NobleMode {
         return 'Date';
       case NobleMode.bff:
         return 'BFF';
-      case NobleMode.social:
-        return 'Event';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -49,8 +43,6 @@ extension NobleModeX on NobleMode {
         return Icons.favorite_rounded;
       case NobleMode.bff:
         return Icons.people_rounded;
-      case NobleMode.social:
-        return Icons.event_rounded;
       case NobleMode.noblara:
         return Icons.article_rounded;
     }
@@ -62,8 +54,6 @@ extension NobleModeX on NobleMode {
         return AppColors.emerald500;
       case NobleMode.bff:
         return AppColors.emerald600;
-      case NobleMode.social:
-        return AppColors.emerald700;
       case NobleMode.noblara:
         return AppColors.emerald500;
     }
@@ -75,8 +65,6 @@ extension NobleModeX on NobleMode {
         return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.bff:
         return AppColors.emerald600.withValues(alpha: 0.14);
-      case NobleMode.social:
-        return AppColors.emerald700.withValues(alpha: 0.14);
       case NobleMode.noblara:
         return AppColors.emerald600.withValues(alpha: 0.14);
     }
@@ -88,8 +76,6 @@ extension NobleModeX on NobleMode {
         return AppColors.bg;
       case NobleMode.bff:
         return const Color(0xFF0A0E0D);
-      case NobleMode.social:
-        return AppColors.bg;
       case NobleMode.noblara:
         return AppColors.bg;
     }

@@ -8,17 +8,15 @@ bool get isMockMode {
   return isMock;
 }
 
-/// Feature flag — Social layer (events, rooms, circles, group chats).
+/// Feature flag — Social layer (rooms, circles, group chats).
 ///
 /// When false:
-///   • Social tab hidden from mode switcher, profile persona pills,
-///     stats tabs, inbox tabs.
-///   • Event/Room providers short-circuit (no network calls, no streams).
-///   • Onboarding defaults exclude 'social' from active_modes.
-///   • Settings toggles for social_active/social_visible/event_* hidden.
+///   • Room providers short-circuit (no network calls, no streams).
+///   • Notifications of type room_*/circle_invite are stripped.
 ///
-/// The Social code lives in lib/features/social/ and related providers/
-/// repositories, but is inert at runtime. Flip to true to re-enable.
+/// Events were removed in Dalga 13. Rooms/circles code lives in
+/// lib/features/social/ and related providers, but is inert at runtime.
+/// Flip to true to re-enable.
 const bool kSocialEnabled = false;
 
 /// True when running on localhost in debug mode.

@@ -76,7 +76,6 @@ class FeedRepository {
     final visibleCol = switch (mode) {
       'date' => 'dating_visible',
       'bff' => 'bff_visible',
-      'social' => 'social_visible',
       _ => 'dating_visible',
     };
 

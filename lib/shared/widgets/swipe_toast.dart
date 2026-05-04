@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/premium.dart';
 
-enum ToastType { signal, match, message, event, system, success, error }
+enum ToastType { signal, match, message, system, success, error }
 
 class SwipeToast extends StatefulWidget {
   final String message;
@@ -66,7 +66,6 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
     ToastType.signal => AppColors.emerald500,
     ToastType.match => AppColors.emerald500,
     ToastType.message => AppColors.emerald500,
-    ToastType.event => AppColors.emerald700,
     ToastType.system => AppColors.textMuted,
     ToastType.success => AppColors.emerald500,
     ToastType.error => AppColors.error,
@@ -82,7 +81,6 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
     ToastType.signal => Icons.bolt_rounded,
     ToastType.match => Icons.favorite_rounded,
     ToastType.message => Icons.chat_bubble_rounded,
-    ToastType.event => Icons.event_rounded,
     ToastType.system => Icons.info_outline_rounded,
     ToastType.success => Icons.check_circle_rounded,
     ToastType.error => Icons.error_outline_rounded,
