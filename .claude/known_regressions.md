@@ -290,6 +290,22 @@ kurulmadı. Sadece mock / placeholder UI.
   ⏳ durumunda kalsın
 - Yeni feature benzer risk taşıyorsa: önce altyapı varlığını doğrula
 
+> **AUDIT YANILGISI — 2026-05-05 (Dalga 14g, PR #30):** Bu maddenin "fake / mock UI"
+> iddiası kanıt-dayalı incelendiğinde **YANLIŞ** bulundu.
+>
+> **Kanıt:** `lib/services/video_service.dart:34-42` — `https://meet.jit.si/noblara-<matchId>`
+> URL'i `url_launcher` ile **gerçekten açılıyor**. Jitsi Meet kullanıcının tarayıcısında
+> işlevsel video call sağlıyor. WebRTC native plugin yok ama Jitsi browser-side WebRTC'yi
+> kendisi handle ettiği için gereksiz.
+>
+> **Status revize:** Feature MVP seviyesinde **işlevsel**, "fake" değil. PR #30 ile
+> kullanıcıya transparency subtitle'ı eklendi ("Opens in your browser via Jitsi Meet.") —
+> browser hand-off'u açıkça belirtiliyor.
+>
+> **R7 disiplin dersi:** "WebRTC yok = fake" kısayol mantığı yanıltıcıydı. WebRTC bir ürün
+> gereksinimi değil, implementasyon detayıdır — kullanıcı için Jitsi/browser üzerinden
+> çalışan video call ile aynı.
+
 ---
 
 ## R7: Audit Raporunda Uydurma İddialar
@@ -614,6 +630,13 @@ Audit raporu (5 Mayıs full app audit) bazı iddiaları kanıt-dayalı doğrulan
 - **Audit listesinde yoktu.**
 - **Gerçek (Dalga 14b kanıtı):** Manifest merger plugin'lerden (firebase_messaging, cached_network_image, supabase_flutter) implicit ekliyor, ama Play Console Data Safety formu için + best practice için **explicit declare gerek**.
 - **Sonuç:** Dalga 14b'de eklendi. Audit raporu güncellenirken P0-2 listesi 4 → 5 permission'a genişledi (CAMERA, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, RECORD_AUDIO, INTERNET).
+
+### A4: R6 "Fake Video Call" İddiası
+
+- **Audit/known_regressions iddiası:** Video call WebRTC'siz yazıldı, sadece mock/placeholder UI.
+- **Gerçek:** `lib/services/video_service.dart` `https://meet.jit.si/noblara-<matchId>` URL'ini `url_launcher` ile gerçekten açıyor. Jitsi Meet işlevsel.
+- **Yanılgı tipi:** İmplementasyon detayını (native WebRTC plugin yok) ürün durumu (feature çalışmıyor) ile karıştırma.
+- **Çözüm:** PR #30 — kullanıcıya browser hand-off'unu belirten transparency subtitle eklendi. Detay: R6 altındaki AUDIT YANILGISI bloğu.
 
 ---
 
