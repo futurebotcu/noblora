@@ -210,6 +210,16 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                   ?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Opens in your browser via Jitsi Meet.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(
+                      color: AppColors.textMuted.withValues(alpha: 0.7)),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSpacing.xl),
             Container(
               padding: const EdgeInsets.symmetric(
