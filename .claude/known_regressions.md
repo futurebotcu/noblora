@@ -580,3 +580,43 @@ doğrulamasında).
 | 11 | R8 leak fixes (show_status_badge ×2 + incognito BFF) | CLOSED | calm_mode KISMEN, hide_exact_distance OPEN, show_city_only phantom, notification_preferences OPEN |
 | 12 (aday) | security_definer kalan 110 | NOT STARTED | — |
 | R8 kalan | calm_mode tam enforce + hide_exact_distance altyapı + show_city_only drop + notification_preferences | NOT STARTED | — |
+
+---
+
+## Audit Raporu Yanılgıları (5 Mayıs 2026)
+
+Audit raporu (5 Mayıs full app audit) bazı iddiaları kanıt-dayalı doğrulanınca yanlış çıktı. R7 disiplin gereği kayıt altına alınır — gelecek sprint'lerde aynı yanılgıya düşmeyelim.
+
+### A1: P0-3 ".env git history'de leaked" — YANLIŞ
+
+- **İddia (audit §11 P0-4):** `.env` ve `android/local.properties` git history'de leaked, BFG / filter-branch / force-push ile temizleme + key rotate ŞART.
+- **Kanıt (Dalga 14c, 2026-05-05):**
+  - `git log --all --oneline -- .env` → **boş çıktı**
+  - `git log --all --oneline -- android/local.properties` → **boş çıktı**
+  - `git ls-files .env android/local.properties` → **boş** (tracked değil)
+  - `.gitignore:2` `.env` ignore'da; `android/.gitignore:6` `/local.properties` ignore'da
+- **Gerçek:** Dosyalar yalnızca disk'te, hiç commit edilmemiş. Audit "repo'da" derken disk klasörünü kastetti, bunu "git history" olarak yanlış genelleştirdi.
+- **Sonuç:** Filter-branch / BFG / force-push **gereksiz** (ve tehlikeli olurdu — geri dönüşsüz history rewriting).
+- **Gerçek risk (audit'in gözden kaçırdığı):**
+  - `pubspec.yaml:41` `- .env` asset olarak dahil → **APK içinde bundled** (her dağıtılmış APK plaintext)
+  - `android/app/build.gradle.kts:48-49` `manifestPlaceholders["GOOGLE_PLACES_KEY"]` → APK manifest meta-data'sında plaintext (`<meta-data android:value="AIzaSy...">`)
+  - Kanıt: `unzip -p app-release.apk assets/flutter_assets/.env` → 339 byte, 3 satır secrets; `aapt dump xmltree` → manifest içinde plaintext key
+- **Doğru aksiyon:** Google Cloud Console'da Places API key rotate + package name + SHA-1 restriction (manuel). APK bundled .env temizliği ayrı sprint (Dalga 14c2: `--dart-define` build-time injection).
+
+### A2: P0-2 "RECORD_AUDIO gelecek video call (R6) için" — GEREKÇE YANLIŞ
+
+- **İddia (audit §11 P0-2):** RECORD_AUDIO gerekçesi "gelecek video call (R6) için".
+- **Gerçek (Dalga 14b kanıtı):** `lib/features/noblara_feed/nob_compose_screen.dart:296` `pickVideo(ImageSource.camera)` — nob compose video kayıt ses için **şu an gerek**. R6 (WebRTC video call) altyapısı yok, ama bu permission ondan bağımsız.
+- **Sonuç:** Permission yine de gerekli (Dalga 14b'de eklendi), ama gerekçe doğru kayıt altında: nob video kayıt.
+
+### A3: P0-2 "INTERNET kaçırılmış" — AUDİT EKSİKLİK
+
+- **Audit listesinde yoktu.**
+- **Gerçek (Dalga 14b kanıtı):** Manifest merger plugin'lerden (firebase_messaging, cached_network_image, supabase_flutter) implicit ekliyor, ama Play Console Data Safety formu için + best practice için **explicit declare gerek**.
+- **Sonuç:** Dalga 14b'de eklendi. Audit raporu güncellenirken P0-2 listesi 4 → 5 permission'a genişledi (CAMERA, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, RECORD_AUDIO, INTERNET).
+
+---
+
+**Audit Yanılgılarından Çıkarılan Genel Ders:**
+
+> "Audit iddiası ≠ kanıt." Her audit maddesi git/aapt/dumpsys/grep ile bağımsız doğrulanmalı. R10 ("apply success ≠ effective fix") kuralının kuzeni: **"audit claim ≠ git/runtime reality"**. Korkutucu iddialar (force-push, history rewrite) özellikle kanıt-dayalı sorgulanmalı — kanıtsız aksiyon geri dönüşsüz hasar verebilir.
