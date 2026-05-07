@@ -49,8 +49,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
         ),
         maxDistance: (map['maxDistance'] as num?)?.toDouble() ?? 25,
         trustShieldEnabled: map['trustShield'] as bool? ?? false,
-        verifiedOnly: map['verifiedOnly'] as bool? ?? false,
-        completeOnly: map['completeOnly'] as bool? ?? false,
         hasNobs: map['hasNobs'] as bool? ?? false,
         hasPrompts: map['hasPrompts'] as bool? ?? false,
         sixPlusPhotos: map['sixPlusPhotos'] as bool? ?? false,
@@ -67,7 +65,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
         bffLookingFor: map['bffLookingFor'] as String?,
         languages: (map['languages'] as List<dynamic>?)?.cast<String>() ?? [],
         interests: (map['interests'] as List<dynamic>?)?.cast<String>() ?? [],
-        strictFilters: (map['strict'] as List<dynamic>?)?.cast<String>().toSet() ?? {},
       );
     } catch (e) { debugPrint('[filters] Load from prefs failed: $e'); }
   }
@@ -79,8 +76,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
       'ageMax': state.ageRange.end,
       'maxDistance': state.maxDistance,
       'trustShield': state.trustShieldEnabled,
-      'verifiedOnly': state.verifiedOnly,
-      'completeOnly': state.completeOnly,
       'hasNobs': state.hasNobs,
       'hasPrompts': state.hasPrompts,
       'sixPlusPhotos': state.sixPlusPhotos,
@@ -97,7 +92,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
       'bffLookingFor': state.bffLookingFor,
       'languages': state.languages,
       'interests': state.interests,
-      'strict': state.strictFilters.toList(),
     };
     await prefs.setString(_prefsKey, jsonEncode(map));
   }

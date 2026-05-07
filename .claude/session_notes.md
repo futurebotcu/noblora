@@ -3738,4 +3738,43 @@ güncellemesi + draft yok + roundtrip test güncellemesi → 281/0 yeşil).
 R10 disiplini SQL ile kanıt (advisor 115→109, 6 events lint sıfırlandı).
 R7 disiplini: her iddia kanıt-dayalı sayım veya komut çıktısı eşliğinde.
 
+---
+
+## 2026-05-07 — Dalga 14f: Filter UI Dürüstlük Envanter + Hibrit Cleanup
+
+### Açılış (CLAUDE.md §2 ritueli)
+
+**Dokunma alanı:**
+- `lib/data/models/filter_state.dart`
+- `lib/providers/filter_provider.dart`
+- `lib/features/filters/filter_bottom_sheet.dart`
+- `lib/providers/bff_provider.dart`
+- `lib/data/repositories/feed_repository.dart` (5. dosya — kullanıcı onaylı, §5 ihlali kabul)
+
+**Risk alanı (R-precedent'ler):**
+- **R3** (`_substantive` filter): "filter UI değiştiriyor ama veri yutuyor" pattern'i — bu PR'da DOĞRUDAN aynı sınıf (filter UI hijyeni)
+- **R7** (uydurma audit iddiaları): Audit "Trust Shield + Languages + Interests + Strict + Presets ya implement ya kaldır" demiş — kanıt-dayalı doğrulama yapıldı, 5 iddiadan 3'ü TAM, 2'si NÜANS (Strict/Presets dead code, kozmetik değil; Trust Shield UI yok backend var)
+- **R8** (UI_ONLY settings — write-never-read): filter karşılığı "state'e yazılır ama query'ye geçmez" — Languages/Interests bu sınıfta (sadece sort)
+- **R10** (apply success ≠ effective fix): "dead code silindi" demek için flutter analyze + test 281/0 baseline KORUNMALI; aksi halde "yapıldı" demek yasak
+
+**Scope sınırı (§5):**
+Planlanan değişiklik 5 dosya (kullanıcı feed_repository.dart'ı onayladı). Trust Shield UI Switch ekleme + BFF RPC filter param ekleme yapılmayacak — ayrı sprint kararı.
+
+**Audit § 11 hedefleri (5 May, dalga14c-rapor.md:81):**
+| Hedef | Trace gerçeği | Aksiyon (PR-A) |
+|---|---|---|
+| Trust Shield kozmetik | UI yok, Dating backend aktif (feed_repository:101-105), BFF empty if (bff_provider:62-64) | Sadece bff_provider:62-64 yorum-only if SİL. UI/Dating backend DOKUNMA. |
+| Languages kozmetik | UI var, DB filter yok, sadece sort | "Smart sort" subtitle ekle |
+| Interests kozmetik | aynı | aynı |
+| Strict mode kozmetik | UI yok, çağrı yok — DEAD CODE | Model'den SİL |
+| Presets kozmetik | UI yok, import yok — DEAD CODE | Model'den SİL |
+
+**Yeni keşif (audit'in kaçırdığı):** BFF feed `generate_bff_suggestions(p_user_id)` RPC filter parametresi almıyor — kullanıcı BFF'te filter sheet'te yaptığı seçimlerin çoğu RPC'ye geçmiyor. Bu PR-B (`R11 BFF Feed Filter Dead-Path` doc-only) ayrı PR'da known_regressions.md'ye yazılacak.
+
+**Branch stratejisi:** İki PR.
+- PR-A: `dalga-14f-filter-honesty` (kod, 5 dosya)
+- PR-B: `dalga-14f-r11-bff-deadpath` (doc-only, known_regressions.md)
+
+PR #30 (kod) + PR #31 (doc) pattern'iyle aynı.
+
 

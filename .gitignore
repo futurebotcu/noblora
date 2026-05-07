@@ -6,6 +6,10 @@ service-account*.json
 # Local config
 .claude/settings.local.json
 
+# Test creds (local-only, never commit)
+test_credentials*
+.claude/test_credentials*
+
 # Junk artifacts
 Get
 Process
