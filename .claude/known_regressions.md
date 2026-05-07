@@ -909,6 +909,179 @@ Listesi"ne eklendi (PR-C ile birlikte), seed protokol hatırlatması.
 
 ---
 
+## R13: testfeed* Seed Missing photo_verifications.approved
+
+**Belirti:** testfeed1 (ve diğer testfeed* hesapları) `profiles`
+tablosunda `is_verified=true`, `is_onboarded=true`,
+`gating_status.is_entry_approved=true` flag'leriyle seed edilmiş, ama
+`photo_verifications` tablosunda **hiçbir kayıt yok**. Login başarılı,
+ama Discover tab'a tıklayınca client `verificationProvider.status =
+idle` (verifications listesi boş) → "Verify to meet people" modal sheet
+açılır. Kullanıcı feed'e ulaşamaz, Filter sheet erişilemez. testfeed*
+hesapları manuel emülatör smoke için kullanışsız.
+
+**Kök neden:** Verification provider DB profile flag'lerine değil,
+`photo_verifications` tablosundaki **en güncel kayda** bakıyor:
+
+```dart
+// lib/providers/verification_provider.dart:77-92
+VerificationStatus get verificationStatus {
+  if (verifications.isEmpty) return VerificationStatus.idle;
+  final latest = verifications.first;
+  if (latest.isApproved) return VerificationStatus.approved;
+  if (latest.isPending || latest.isManualReview) {
+    return VerificationStatus.manualReview;
+  }
+  if (latest.isRejected) return VerificationStatus.rejected;
+  return VerificationStatus.idle;
+}
+```
+
+testfeed* batch seed (2026-04-09) `profiles.is_verified=true` set etti
+ama `photo_verifications` tablosuna karşılık gelen kayıt insert
+etmedi. Profile flag'i ile photo_verifications kaydı **çiftli zorunlu**
+ama seed sadece flag'i yazdı. Sonradan SQL Editor'den oluşturulan ek
+hesaplar da aynı boşluğu taşıyor.
+
+`AppRouter` / `MainTabNavigator` boot sırasında
+`verificationProvider.status` kontrol ediyor → `idle` olduğu için
+secure-gate aktif → default tab Noblara/Community (tab 1) +
+Discover/Chats tap'ları "Verify to meet people" modal'ı açıyor.
+
+**Tespit tarihi:** 2026-05-07 (Dalga 14f smoke 3. blocker, R12 auth
+fix sonrası login başarılı, ama Discover bloke).
+
+**Tekrar sayısı:** 1 (smoke blocker, ad-hoc fix uygulanmadı — scope dışı).
+
+**Etki:** testfeed* (32+ hesap) manuel emülatör smoke için
+kullanışsız. Login → tab 1 default → Discover'a geçince modal blok.
+Filter sheet (Discover'da) erişilemez. Production user'lar etkilenmez
+— production sign-up flow Edge Function (`verify-both-photos`)
+çağırarak `photo_verifications` kayıtlarını yazıyor.
+
+**Status:** OPEN — test infrastructure gap. Dalga 14f scope'u dışı.
+Manual emülatör smoke deferred → widget test ile alternatif kanıt
+zinciri kuruldu (`test/features/filters/filter_bottom_sheet_test.dart`,
+6 test pass). Migration script önerisi aşağıda.
+
+**Kanıt:**
+
+```sql
+-- 1. testfeed1 profile + gating flag'leri OK:
+SELECT
+  p.id, p.is_verified, p.is_paused, p.is_onboarded,
+  p.dating_visible, p.bff_visible, p.active_modes,
+  gs.is_entry_approved
+FROM profiles p
+LEFT JOIN gating_status gs ON gs.user_id = p.id
+WHERE p.id = '858a0f3d-2da6-4133-ba2c-65f35c7d71c2';
+-- → is_verified=true, is_paused=false, is_onboarded=true,
+--   dating_visible=true, bff_visible=true, active_modes=['date'],
+--   is_entry_approved=true   (HER ŞEY OK)
+
+-- 2. photo_verifications boş:
+SELECT COUNT(*) FROM photo_verifications
+WHERE user_id = '858a0f3d-2da6-4133-ba2c-65f35c7d71c2';
+-- → 0   (HER testfeed* için aynı sonuç)
+
+-- 3. Client davranışı (lib/providers/verification_provider.dart):
+-- VerificationState.verifications.isEmpty → status = idle
+-- AppRouter / MainTabNavigator init → _needsSecureGate(verif, gating) → true
+-- → default tab = 1 (Noblara/Community), Discover gate
+-- UI: tap Discover → "Verify to meet people" modal sheet
+```
+
+Auth log kanıt (login başarılı ama Discover bloke):
+```
+2026-05-07T09:04:57Z  /token POST 200
+  user_id=858a0f3d-2da6-4133-ba2c-65f35c7d71c2 (testfeed1)
+-- Login OK, ama UI Discover modal blok → R13 root cause
+```
+
+**Audit yanılgısı bağı (R7):** Bu bug seed-time check listesinde
+yoktu. R7 envanter zinciri "is_verified flag'i UI'da nasıl
+yorumlanıyor?" sorusunu sorunca: client gerçek kanıt
+(photo_verifications) bekliyor, profile flag tek başına yetmiyor.
+Profile flag = "kullanıcının verification durumu sonuç durumu"
+(denormalized cache); ground truth = `photo_verifications` row.
+Seed sadece cache'i yazıp ground truth'u atlamış.
+
+**Dokunma protokolü:**
+- testfeed* seed'i revize ederken: `photo_verifications` tablosuna
+  per-user 1 selfie + 1 profile (her ikisi `is_approved=true`) insert
+  et. **profile flag + photo_verifications row çiftli zorunlu.**
+- Yeni manual seed Console'dan oluşturuyorsan: `photo_verifications`
+  kayıtlarını da ekle.
+- Production sign-up flow dokunma — orada Edge Function
+  (`verify-both-photos`) doğru kayıtları yazıyor.
+- Test infrastructure için: `supabase/seed/test_users.sql` (varsa) ya
+  da migration script ile her testfeed user için
+  `photo_verifications` kaydı garanti et.
+
+**Migration önerisi (PR-D kapsamında doc, henüz oluşturulmadı):**
+
+Path: `supabase/migrations/<timestamp>_seed_photo_verifications_for_testfeed.sql`
+
+```sql
+-- Seed photo_verifications.approved rows for legacy test users.
+--
+-- Context: 2026-04-09 batch testfeed* seed set profiles.is_verified=true
+-- but did not insert corresponding photo_verifications rows. Client
+-- verificationProvider.status reads from photo_verifications (latest
+-- row), not the profile flag, so testfeed users are blocked behind
+-- the "Verify to meet people" modal on Discover.
+--
+-- This migration is no-op for users who already have an approved
+-- selfie + profile pair (NOT EXISTS guard). Safe to re-run.
+--
+-- Production sign-up flow already populates photo_verifications via
+-- the verify-both-photos edge function — this only fixes legacy
+-- seed / SQL-Editor-created users.
+
+INSERT INTO photo_verifications (
+  user_id, photo_type, status, is_approved, ai_confidence, created_at
+)
+SELECT
+  u.id,
+  pt.photo_type,
+  'approved',
+  true,
+  0.95,
+  now()
+FROM auth.users u
+CROSS JOIN (VALUES ('selfie'), ('profile')) AS pt(photo_type)
+WHERE u.email LIKE 'testfeed%@test.noblara.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM photo_verifications pv
+    WHERE pv.user_id = u.id
+      AND pv.photo_type = pt.photo_type
+      AND pv.is_approved = true
+  );
+
+-- Verification (run after apply):
+-- SELECT
+--   COUNT(DISTINCT user_id) AS users_with_approved_selfie
+-- FROM photo_verifications
+-- WHERE photo_type = 'selfie' AND is_approved = true
+--   AND user_id IN (SELECT id FROM auth.users WHERE email LIKE 'testfeed%@test.noblara.com');
+-- Expected: count matches testfeed* user count (32+ as of 2026-05-07).
+```
+
+**Schema notu:** `photo_verifications` kolon listesi (`status`,
+`is_approved`, `ai_confidence`) yukarıdaki migration'a doğru — Edge
+Function `verify-both-photos`'un yazdığı şemayla aynı. Migration apply
+öncesi `\d photo_verifications` ile tam kolon listesi doğrulanmalı,
+NOT NULL constraint'leri olabilir (örn. `claimed_gender`, `same_person`,
+`probability` — bunlar Edge Function'da hesaplanıyor, seed'de varsayılan
+değerle doldurulmalı).
+
+**CLAUDE.md §8 güncelleme:** R13 maddesi "Eski Hatalar Listesi"ne
+eklendi (PR-D ile birlikte). Test seed yazarken `profile.is_verified` +
+matching `photo_verifications.approved` ÇİFTLİ zorunluluk —
+birini koyup diğerini unutmak R13 tekrarı.
+
+---
+
 ## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |

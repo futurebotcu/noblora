@@ -3778,3 +3778,7 @@ Planlanan değişiklik 5 dosya (kullanıcı feed_repository.dart'ı onayladı). 
 PR #30 (kod) + PR #31 (doc) pattern'iyle aynı.
 
 
+
+
+## [2026-05-07] — Karar: V1 tek dil İngilizce. 14h L10n iskelet iptal.
+Sprint Dalga 14'ten çıkarıldı. Sebep: hedef pazar İngilizce, çoklu dil sonra ele alınacak (V2+).
