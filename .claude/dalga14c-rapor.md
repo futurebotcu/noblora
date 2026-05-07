@@ -80,7 +80,7 @@ APK bundled .env temizliği — production-grade secret management:
 - **14e**: Privacy policy URL (canlı noblara.com/privacy yayını + in-app link)
 - **14f**: Filter UI dürüstlük (Trust Shield + Languages + Interests + Strict + Presets ya implement ya kaldır)
 - **14g**: Video Call etiketleme (R6 — UI'a "🟡 Beta" / "Coming soon" ekle)
-- **14h**: L10n iskelet (flutter_localizations + app_tr.arb / app_en.arb)
+- **14h**: L10n iskelet (flutter_localizations + app_tr.arb / app_en.arb) **(İPTAL — V1 tek dil İngilizce, 2026-05-07)**
 - **14c2** (sonra): APK bundled .env temizliği (--dart-define injection)
 
 ## Disiplin Kazanımları
