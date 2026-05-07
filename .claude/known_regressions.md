@@ -580,6 +580,89 @@ doğrulamasında).
 
 ---
 
+## R11: BFF Feed Filter Dead-Path
+
+**Belirti:** BFF mode'da kullanıcı filter sheet'i açtığında 18 filter
+dimension'u (age, distance, drinks, smokes, nightlife, socialEnergy,
+routine, lookingFor, bffLookingFor, statusBadge, hasNobs, hasPrompts,
+sixPlusPhotos, pinnedNobExists, sameCityOnly, languages, trustShield, +
+faith Dating-only) için chip seçer. Seçimler state'e yazılıyor
+(filterProvider) ve SharedPreferences'a persist ediliyor, ama
+`generate_bff_suggestions` RPC ve `fetchSuggestions` query filter
+parametresi almıyor. Sadece `interests` BFF'de etki ediyor — o da
+client-side sort/boost (eleme değil). 18 dimension UI yalanı.
+
+**Kök neden:** İki katmanda filter parametresi geçmiyor.
+
+Trace zinciri:
+
+1. UI: `lib/features/filters/filter_bottom_sheet.dart` BFF mode'da 18+
+   chip render ediyor (line 105-230). Kullanıcı seçim yapıyor.
+2. State: `lib/providers/filter_provider.dart:24` `set(FilterState)` →
+   SharedPreferences `_save()` (line 72-97).
+3. Notify: `lib/providers/bff_provider.dart:56`
+   `_ref.listen<FilterState>(filterProvider, (_, __) => load());`
+4. Server fetch: `lib/providers/bff_provider.dart:80`
+   `var suggestions = await repo.fetchSuggestions(uid);`
+5. Repository: `lib/data/repositories/bff_suggestion_repository.dart:18-23`
+   ```dart
+   final rows = await _supabase!.from('bff_suggestions').select()
+       .or('user_a_id.eq.$userId,user_b_id.eq.$userId')
+       .eq('status', 'pending')
+       .order('created_at', ascending: false);
+   ```
+   Filter parametresi YOK.
+6. Server-side generate: `lib/data/repositories/bff_suggestion_repository.dart:127-133`
+   ```dart
+   Future<int> generateSuggestions(String userId) async {
+     final result = await _supabase!.rpc('generate_bff_suggestions', params: {
+       'p_user_id': userId,
+     });
+   ```
+   Tek param `p_user_id`. RPC imzası filter almıyor.
+7. Client-side filter: `lib/providers/bff_provider.dart:61-71`
+   ```dart
+   List<BffSuggestion> _applyFilters(...) {
+     if (f.interests.isNotEmpty) {
+       suggestions.sort(...);   // SORT BOOST, eleme yok
+     }
+     return suggestions;
+   }
+   ```
+   Sadece `interests` (sort boost). 18 dimension burada da yok.
+
+**Tespit tarihi:** 2026-05-07 (Dalga 14f filter envanter, R11 yan-keşfi).
+
+**Tekrar sayısı:** 1 (toplu envanter).
+
+**Etki:** Sadece UI yalanı — BFF mode'da kullanıcı filter çevirmiş gibi
+hissediyor, DB'de değişen tek şey SharedPreferences. Dating mode'da aynı
+18 dimension feed_repository üzerinden gerçekten filtreleniyor
+(`lib/data/repositories/feed_repository.dart:91-165`). Asymmetric UX.
+
+**Status:** OPEN. Dalga 14f scope'u dışı (filter_bottom_sheet honesty
+rebrand kapsamında yan-keşif). PR-B doc-only kayıt.
+
+**Audit yanılgısı bağı (R7):** Audit (5 May §11) bu bug'ı yakalamadı.
+Audit listesi sadece Trust Shield + Languages + Interests + Strict +
+Presets idi. R7 envanter zinciri (UI → state → persist → DB query)
+BFF'de filter trace yapınca 18 dimension dead-path olarak ortaya çıktı.
+
+**Dokunma protokolü:**
+- BFF feature'ına dokunuyorsan filter integration'ı planla.
+- `generate_bff_suggestions` imzasına filter param eklemek = CLAUDE.md
+  §6 protokolü (advisor before/after, migration body kontrol, smoke).
+- Hızlı çözüm yolu: BFF mode'da Filter butonunu disable et + tooltip
+  "Filters not yet supported in BFF mode" — dürüstlük öncelikli.
+- Veya: BFF için subset filter (örn. sadece age + distance + tier)
+  destekle, kalanı UI'dan kaldır.
+
+**CLAUDE.md §8 güncelleme gerekli:** R11 maddesi "Eski Hatalar
+Listesi"ne eklenmeli, "BFF feature dokunmadan önce filter integration
+planla" hatırlatması.
+
+---
+
 ## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |
