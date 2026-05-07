@@ -12,6 +12,17 @@ Format:
 
 ---
 
+## [2026-05-07] — BFF Feed Filter Dead-Path (R11 — PR-B'de known_regressions'a yazılacak)
+**Alan:** `lib/data/repositories/bff_suggestion_repository.dart:127-133` `generate_bff_suggestions` RPC + BFF filter UI flow
+**Neden ertelendi:** Dalga 14f kapsamı: dürüstlük + UI rebrand + dead code cleanup. BFF feed RPC imza değişikliği = ayrı sprint (CLAUDE.md §6 protokolü gerek: migration, advisor before/after, smoke). Yaklaşım B kapsamında.
+**Yapılacak:** İki seçenek:
+  (a) `generate_bff_suggestions(p_user_id, p_filters jsonb)` imzasına filter parametresi ekle, RPC body içinde candidate WHERE clause genişlet.
+  (b) BFF mode'da filter butonunu disable et + kullanıcıya "Filters not yet supported in BFF mode" tooltip.
+Kararı PR-A merge sonrası tartışacağız.
+**Aciliyet:** medium (kullanıcı bugün BFF mode'da filter seçiyor, etkisi yok — UI yalanı)
+
+---
+
 ## [2026-04-21] — Viewer-context feature (match / stranger)
 **Alan:** `lib/features/profile/profile_screen.dart` — `_ViewerContext` enum
 **Neden ertelendi:** Dalga 1 hijyen scope'unda değil. Enum değerleri yarım

@@ -104,9 +104,6 @@ class FeedRepository {
             .inFilter('nob_tier', ['explorer', 'noble']);
       }
 
-      // Complete profiles only
-      if (filters.completeOnly) query = query.eq('is_onboarded', true);
-
       // Tier badge
       if (filters.statusBadge == 'Explorer+') {
         query = query.inFilter('nob_tier', ['explorer', 'noble']);
@@ -197,8 +194,8 @@ class FeedRepository {
       'p_mode': mode,
       'p_age_min': filters?.ageRange.start.round() ?? 18,
       'p_age_max': filters?.ageRange.end.round() ?? 65,
-      'p_verified_only': filters?.verifiedOnly ?? false,
-      'p_complete_only': filters?.completeOnly ?? false,
+      'p_verified_only': false,
+      'p_complete_only': false,
       'p_tier_filter': filters?.statusBadge == 'Noble only'
           ? 'noble'
           : filters?.statusBadge == 'Explorer+'

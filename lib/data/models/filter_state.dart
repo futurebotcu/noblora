@@ -18,8 +18,6 @@ class FilterState {
   final String? socialEnergy;
   final String? routine;
   final String? faithSensitivity;
-  final bool verifiedOnly;
-  final bool completeOnly;
   final bool hasNobs;
   final bool hasPrompts;
   final bool sixPlusPhotos;
@@ -28,12 +26,6 @@ class FilterState {
   // ── BFF ──
   final String? bffLookingFor; // New friends / Activity buddy / City companion / Social circle
   final List<String> interests;
-
-  // ── Strict mode ──
-  final Set<String> strictFilters; // keys of filters that are strict (hard)
-
-  // ── Presets ──
-  final String? activePreset;
 
   const FilterState({
     this.ageRange = const RangeValues(18, 45),
@@ -48,8 +40,6 @@ class FilterState {
     this.socialEnergy,
     this.routine,
     this.faithSensitivity,
-    this.verifiedOnly = false,
-    this.completeOnly = false,
     this.hasNobs = false,
     this.hasPrompts = false,
     this.sixPlusPhotos = false,
@@ -57,8 +47,6 @@ class FilterState {
     this.sameCityOnly = false,
     this.bffLookingFor,
     this.interests = const [],
-    this.strictFilters = const {},
-    this.activePreset,
   });
 
   FilterState copyWith({
@@ -74,8 +62,6 @@ class FilterState {
     String? socialEnergy,
     String? routine,
     String? faithSensitivity,
-    bool? verifiedOnly,
-    bool? completeOnly,
     bool? hasNobs,
     bool? hasPrompts,
     bool? sixPlusPhotos,
@@ -83,8 +69,6 @@ class FilterState {
     bool? sameCityOnly,
     String? bffLookingFor,
     List<String>? interests,
-    Set<String>? strictFilters,
-    String? activePreset,
     bool clearLookingFor = false,
     bool clearDrinks = false,
     bool clearSmokes = false,
@@ -94,7 +78,6 @@ class FilterState {
     bool clearFaith = false,
     bool clearStatusBadge = false,
     bool clearBffLookingFor = false,
-    bool clearPreset = false,
   }) {
     return FilterState(
       ageRange: ageRange ?? this.ageRange,
@@ -109,8 +92,6 @@ class FilterState {
       socialEnergy: clearSocialEnergy ? null : (socialEnergy ?? this.socialEnergy),
       routine: clearRoutine ? null : (routine ?? this.routine),
       faithSensitivity: clearFaith ? null : (faithSensitivity ?? this.faithSensitivity),
-      verifiedOnly: verifiedOnly ?? this.verifiedOnly,
-      completeOnly: completeOnly ?? this.completeOnly,
       hasNobs: hasNobs ?? this.hasNobs,
       hasPrompts: hasPrompts ?? this.hasPrompts,
       sixPlusPhotos: sixPlusPhotos ?? this.sixPlusPhotos,
@@ -118,8 +99,6 @@ class FilterState {
       sameCityOnly: sameCityOnly ?? this.sameCityOnly,
       bffLookingFor: clearBffLookingFor ? null : (bffLookingFor ?? this.bffLookingFor),
       interests: interests ?? this.interests,
-      strictFilters: strictFilters ?? this.strictFilters,
-      activePreset: clearPreset ? null : (activePreset ?? this.activePreset),
     );
   }
 
@@ -147,8 +126,6 @@ class FilterState {
       if (socialEnergy != null) c++;
       if (routine != null) c++;
       if (faithSensitivity != null) c++;
-      if (verifiedOnly) c++;
-      if (completeOnly) c++;
       if (hasNobs) c++;
       if (hasPrompts) c++;
       if (sixPlusPhotos) c++;
@@ -159,8 +136,6 @@ class FilterState {
       if (interests.isNotEmpty) c++;
       if (socialEnergy != null) c++;
       if (routine != null) c++;
-      if (verifiedOnly) c++;
-      if (completeOnly) c++;
       if (hasNobs) c++;
     }
     return c;
@@ -168,63 +143,11 @@ class FilterState {
 
   /// Mock result count based on active filters.
   int estimatedResults(NobleMode mode) {
-    int base = 50;
-    final strict = strictFilters.length;
+    const base = 50;
     final total = activeCount(mode);
-    final prefs = total - strict;
-    return (base - strict * 3 - prefs).clamp(0, 99);
-  }
-
-  bool isStrict(String key) => strictFilters.contains(key);
-
-  FilterState toggleStrict(String key) {
-    final next = Set<String>.from(strictFilters);
-    next.contains(key) ? next.remove(key) : next.add(key);
-    return copyWith(strictFilters: next, clearPreset: true);
+    return (base - total).clamp(0, 99);
   }
 }
-
-// ── Preset definitions ──────────────────────────────────────────────
-
-class FilterPreset {
-  final String id;
-  final String label;
-  final NobleMode mode;
-  final FilterState Function(FilterState) apply;
-  const FilterPreset({required this.id, required this.label, required this.mode, required this.apply});
-}
-
-final datingPresets = [
-  FilterPreset(
-    id: 'serious_only', label: 'Serious Only', mode: NobleMode.date,
-    apply: (s) => s.copyWith(lookingFor: 'Serious relationship', verifiedOnly: true, statusBadge: 'noble'),
-  ),
-  FilterPreset(
-    id: 'calm_profiles', label: 'Calm Profiles', mode: NobleMode.date,
-    apply: (s) => s.copyWith(socialEnergy: 'Quiet', completeOnly: true),
-  ),
-  FilterPreset(
-    id: 'lifestyle_aligned', label: 'Lifestyle Aligned', mode: NobleMode.date,
-    apply: (s) => s.copyWith(
-      strictFilters: {'drinks', 'smokes', 'routine'},
-    ),
-  ),
-];
-
-final bffPresets = [
-  FilterPreset(
-    id: 'weekend_mode', label: 'Weekend Mode', mode: NobleMode.bff,
-    apply: (s) => s.copyWith(socialEnergy: 'Very social', maxDistance: 10),
-  ),
-  FilterPreset(
-    id: 'coffee_buddy', label: 'Coffee Buddy', mode: NobleMode.bff,
-    apply: (s) => s.copyWith(interests: ['Coffee'], maxDistance: 2),
-  ),
-  FilterPreset(
-    id: 'structured', label: 'Structured People', mode: NobleMode.bff,
-    apply: (s) => s.copyWith(routine: 'Structured', verifiedOnly: true),
-  ),
-];
 
 // ── Chip option lists ────────────────────────────────────────────────
 

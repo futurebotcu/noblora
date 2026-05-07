@@ -144,7 +144,10 @@ class _State extends ConsumerState<FilterBottomSheet> {
                   _Chip(o, _f.bffLookingFor == o, () => _set(_f.copyWith(
                       bffLookingFor: _f.bffLookingFor == o ? null : o, clearBffLookingFor: _f.bffLookingFor == o)), accent)).toList()),
               const SizedBox(height: AppSpacing.md),
-              _Label('Language (preference)'),
+              _Label('Smart sort: Languages'),
+              Padding(padding: const EdgeInsets.only(bottom: 6),
+                child: Text('Boosts matching profiles in feed order',
+                    style: TextStyle(color: context.textMuted, fontSize: 11))),
               Wrap(spacing: 6, runSpacing: 6, children: languageOptions.map((l) {
                 final sel = _f.languages.contains(l);
                 return _Chip(l, sel, () {
@@ -210,7 +213,10 @@ class _State extends ConsumerState<FilterBottomSheet> {
               ],
 
               if (mode == NobleMode.bff) ...[
-                _Label('Interests (preference)'),
+                _Label('Smart sort: Interests'),
+                Padding(padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('Boosts matching profiles in feed order',
+                      style: TextStyle(color: context.textMuted, fontSize: 11))),
                 Wrap(spacing: 6, runSpacing: 6, children: bffInterestOptions.map((i) {
                   final sel = _f.interests.contains(i);
                   return _Chip(i, sel, () { final next = [..._f.interests]; sel ? next.remove(i) : next.add(i); _set(_f.copyWith(interests: next)); }, accent);

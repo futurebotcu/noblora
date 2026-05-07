@@ -59,10 +59,6 @@ class BffNotifier extends StateNotifier<BffState> {
   String? get _userId => _ref.read(authProvider).userId;
 
   List<BffSuggestion> _applyFilters(List<BffSuggestion> suggestions, FilterState f) {
-    if (f.trustShieldEnabled) {
-      // Trust Shield: would need tier info on suggestion — skip unverified
-    }
-    // Age filter (if suggestion had age — currently not in model, skip gracefully)
     // Interests/vibes: boost matching suggestions to top
     if (f.interests.isNotEmpty) {
       suggestions.sort((a, b) {
