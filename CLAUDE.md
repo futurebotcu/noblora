@@ -134,6 +134,7 @@ Aşağıdaki alanlara dokunuyorsan, önce AÇIKÇA belirt ve önlem sun:
 - **R5 — Bypass-disguised-as-fix.** P0 migration eski permissive policy'yi DROP etmedi, sadece yenisini ekledi.
 - **R6 — Video call WebRTC'siz yazıldı.** UI var, altyapı yok. Feature sahte.
 - **R7 — Audit raporunda uydurma iddialar.** `push/delete/comments/distance` aslında çalışıyordu, sen yanlışlıkla "FAKE" etiketledin. Doğrulamadan "feature çalışmıyor" denmez.
+- **R12 — Supabase auth.users seed NULL string columns → GoTrue 500.** Batch testfeed seed'inde 13 string kolonunun bir kısmı NULL bırakılırsa GoTrue Go scanner login'i 500 ile patlatır (whack-a-mole: bir kolon fix → sonraki NULL kolon yine fail). Yeni hesap batch seed yaparken **tüm 13 string kolonunu '' ile doldur** (phone hariç — UNIQUE constraint, unique placeholder kullan). Detaylar: `.claude/known_regressions.md` R12 + idempotent migration script önerisi.
 
 Detaylar için `.claude/known_regressions.md`.
 

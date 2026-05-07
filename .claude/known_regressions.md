@@ -663,6 +663,252 @@ planla" hatırlatması.
 
 ---
 
+## R12: Supabase auth.users Seed NULL String Columns → GoTrue 500
+
+**Belirti:** Password ile login isteği `/token` endpoint'ine gittiğinde
+GoTrue 500 dönüyor. Flutter app
+`AuthRetryableFetchException(message: {"code":"unexpected_failure",
+"message":"Database error querying schema"}, statusCode: 500)`
+gösteriyor. Sebep: GoTrue Go SQL scanner `auth.users` row'unu
+`character varying` kolon kolon string'e cast ederken NULL'a çuvallıyor:
+`sql: Scan error on column index N, name "<col>": converting NULL to
+string is unsupported`. Whack-a-mole pattern: bir kolon fix edilir,
+scanner bir sonraki NULL kolona kadar ilerler, yine fail eder.
+`/recover` ve `/magiclink` endpoint'leri de aynı schema scan'i kullandığı
+için onlar da etkilenir.
+
+**Kök neden:** `auth.users` 13 `character varying`/`text` kolonu içeriyor:
+`aud`, `role`, `email`, `encrypted_password`, `confirmation_token`,
+`recovery_token`, `email_change_token_new`, `email_change_token_current`,
+`email_change`, `phone`, `phone_change`, `phone_change_token`,
+`reauthentication_token`. Default'lar karışık: bazıları
+`''::character varying`, bazıları `NULL::character varying`. 2026-04-09
+batch testfeed* seed'i (32 hesap) string kolonların bir kısmını NULL
+bıraktı. Sonradan SQL Editor'den oluşturulan ek hesaplar da etkilendi.
+
+GoTrue Go versiyon davranışı: `pgx` driver'ında `Scan` çağrısı
+`Nullable` flag olmadan `string`'e cast ediyor. Supabase platform
+katmanı sorunu, kullanıcı kontrol edemiyor — NULL satırların hiç
+olmaması gerekiyor.
+
+**Pre-fix envanter (2026-05-07T09:00 UTC):**
+
+| Kolon | Default | NULL count |
+|---|---|---|
+| confirmation_token | NULL | 41/46 |
+| recovery_token | NULL | 41/46 |
+| email_change_token_new | NULL | 41/46 |
+| email_change_token_current | `''` | 41/46 |
+| phone_change_token | `''` | 41/46 |
+| reauthentication_token | `''` | 41/46 |
+| email_change | NULL | 41/46 |
+| phone | `NULL::character varying` | 46/46 |
+| aud, role, email, encrypted_password, phone_change | karışık | 0/46 |
+
+**Tespit tarihi:** 2026-05-07 (Dalga 14f smoke 1. blocker, login 500).
+
+**Tekrar sayısı:** 1 (smoke blocker, ad-hoc fix uygulandı).
+
+**Etki:** Tüm testfeed* hesapları + manuel olarak Console'dan oluşturulan
+hesaplar login yapamıyor. Production user'lar etkilenmiyor (Supabase
+sign-up flow tüm string kolonları '' ile dolduruyor). Sadece SQL Editor
+ile oluşturulan ya da batch seed edilen hesaplar etkili.
+
+**Status:** AD-HOC FIXED (2026-05-07). DML-only, RLS dokunulmadı.
+Migration olarak scripted hale getirilmedi → tekrar seed edilirse
+yine patlar. PR-C ile doc kayıt + migration önerisi yapıldı.
+
+**Kanıt zinciri (chronological):**
+
+```
+-- 1. İlk hata (auth log):
+2026-05-07T08:47:21Z  /token POST 500
+  error: "Scan error on column index 3, name 'confirmation_token':
+          converting NULL to string is unsupported"
+
+-- 2. Batch 1 UPDATE — 6 token kolonu:
+UPDATE auth.users SET
+  confirmation_token         = COALESCE(confirmation_token, ''),
+  recovery_token             = COALESCE(recovery_token, ''),
+  email_change_token_new     = COALESCE(email_change_token_new, ''),
+  email_change_token_current = COALESCE(email_change_token_current, ''),
+  phone_change_token         = COALESCE(phone_change_token, ''),
+  reauthentication_token     = COALESCE(reauthentication_token, '')
+WHERE confirmation_token IS NULL
+   OR recovery_token IS NULL
+   OR email_change_token_new IS NULL
+   OR email_change_token_current IS NULL
+   OR phone_change_token IS NULL
+   OR reauthentication_token IS NULL;
+-- → Post-check 6 token kolonu hepsi 0 NULL ✓
+
+-- 3. R10 yakalama: ikinci hata (auth log):
+2026-05-07T08:59:19Z  /token POST 500
+  error: "Scan error on column index 8, name 'email_change':
+          converting NULL to string is unsupported"
+
+-- 4. Genişletilmiş envanter — 13 string kolonu:
+SELECT
+  COUNT(*) FILTER (WHERE aud IS NULL)                        AS null_aud,
+  COUNT(*) FILTER (WHERE role IS NULL)                       AS null_role,
+  COUNT(*) FILTER (WHERE email IS NULL)                      AS null_email,
+  COUNT(*) FILTER (WHERE encrypted_password IS NULL)         AS null_pw,
+  COUNT(*) FILTER (WHERE confirmation_token IS NULL)         AS null_conf,
+  COUNT(*) FILTER (WHERE recovery_token IS NULL)             AS null_recov,
+  COUNT(*) FILTER (WHERE email_change_token_new IS NULL)     AS null_ect_new,
+  COUNT(*) FILTER (WHERE email_change_token_current IS NULL) AS null_ect_cur,
+  COUNT(*) FILTER (WHERE email_change IS NULL)               AS null_email_change,
+  COUNT(*) FILTER (WHERE phone IS NULL)                      AS null_phone,
+  COUNT(*) FILTER (WHERE phone_change IS NULL)               AS null_phone_change,
+  COUNT(*) FILTER (WHERE phone_change_token IS NULL)         AS null_pct,
+  COUNT(*) FILTER (WHERE reauthentication_token IS NULL)     AS null_reauth,
+  COUNT(*)                                                   AS total
+FROM auth.users;
+-- → email_change: 41, phone: 46, diğer 11: 0, total: 46
+
+-- 5. Batch 2 UPDATE — 12 kolon (phone hariç):
+UPDATE auth.users SET
+  aud                        = COALESCE(aud, ''),
+  role                       = COALESCE(role, ''),
+  email                      = COALESCE(email, ''),
+  encrypted_password         = COALESCE(encrypted_password, ''),
+  confirmation_token         = COALESCE(confirmation_token, ''),
+  recovery_token             = COALESCE(recovery_token, ''),
+  email_change_token_new     = COALESCE(email_change_token_new, ''),
+  email_change               = COALESCE(email_change, ''),
+  phone_change               = COALESCE(phone_change, ''),
+  phone_change_token         = COALESCE(phone_change_token, ''),
+  email_change_token_current = COALESCE(email_change_token_current, ''),
+  reauthentication_token     = COALESCE(reauthentication_token, '')
+WHERE
+  aud IS NULL OR role IS NULL OR email IS NULL OR encrypted_password IS NULL
+  OR confirmation_token IS NULL OR recovery_token IS NULL
+  OR email_change_token_new IS NULL OR email_change IS NULL
+  OR phone_change IS NULL OR phone_change_token IS NULL
+  OR email_change_token_current IS NULL OR reauthentication_token IS NULL;
+
+-- 6. Phone fix — UNIQUE constraint engeli:
+-- 'CREATE UNIQUE INDEX users_phone_key ON auth.users USING btree (phone)'
+-- partial DEĞİL. NULL'lar bypass eder ama '' tek bir kez olabilir.
+-- İlk denemede: ERROR 23505: duplicate key value violates unique
+--   constraint "users_phone_key" DETAIL: Key (phone)=() already exists.
+-- Çözüm: per-user unique placeholder.
+UPDATE auth.users
+SET phone = '+placeholder_' || id::text
+WHERE phone IS NULL;
+-- ✓ (id UUID benzersiz olduğu için unique)
+
+-- 7. Post-check (13 string kolonu, hepsi 0 NULL):
+-- → 0,0,0,0,0,0,0,0,0,0,0,0,0  total: 46 ✓
+
+-- 8. Login retry kanıt (auth log):
+2026-05-07T09:04:57Z  /token POST 200
+  action=login, login_method=password, provider=email
+  user_id=858a0f3d-2da6-4133-ba2c-65f35c7d71c2 (testfeed1)
+  status: 200 ✓
+```
+
+**R10 disiplin (apply success ≠ effective fix):** Batch 1 UPDATE
+satır-affected sayıları doğruydu ve 6 token kolonunun NULL count'u 0'a
+düştü. Ama ikinci login attempt yine 500 verdi → col 8 email_change
+NULL. "Fix çalıştı" iddiası tek başına yetmedi. Pre/post envanter
+karşılaştırması + login retry kanıtı gerekti. R10 ana kuralının
+auth-katmanı varyantı.
+
+**Audit yanılgısı bağı (R7):** Bu bug audit raporlarında YOKTU
+(dış-side keşif, smoke sırasında ortaya çıktı). Auth log analizi
+olmadan "login çalışmıyor" diyerek root cause atlanabilirdi. Auth
+log'tan kolon adı + scanner mesajı kanıtı şart oldu — yoksa whack-a-
+mole pattern devam ederdi.
+
+**Dokunma protokolü:**
+- `auth.users` schema'ya **dokunma** (Supabase platform-managed).
+  Sadece DML.
+- Yeni hesap batch seed yapıyorsan **tüm 13 string kolonunu '' ile
+  doldur** (phone hariç — UNIQUE constraint, NULL bırak ya da unique
+  placeholder).
+- Sign-up flow'ı kullanan production akışları etkilenmez — orada
+  GoTrue tüm kolonları zaten '' ile yazıyor.
+- Ad-hoc fix yetmez — migration olarak idempotent script yazılmalı
+  (aşağıda).
+
+**Migration önerisi (PR-C kapsamında doc, henüz oluşturulmadı):**
+
+Path: `supabase/migrations/<timestamp>_auth_users_string_column_coalesce.sql`
+
+```sql
+-- Idempotent COALESCE batch for auth.users string columns.
+--
+-- Context: 2026-04-09 batch testfeed* seed left several auth.users
+-- string columns NULL. GoTrue Go SQL scanner cast `NULL -> string`
+-- fails with `converting NULL to string is unsupported`, breaking
+-- /token /recover /magiclink for affected users.
+--
+-- This migration is no-op for healthy rows (WHERE clause excludes
+-- them). Safe to re-run.
+--
+-- Production sign-up flow already writes '' for all string columns
+-- on user creation; this only fixes legacy seed / SQL-Editor-created
+-- users.
+
+-- Step 1: 12 string columns — COALESCE NULL -> ''
+UPDATE auth.users SET
+  aud                        = COALESCE(aud, ''),
+  role                       = COALESCE(role, ''),
+  email                      = COALESCE(email, ''),
+  encrypted_password         = COALESCE(encrypted_password, ''),
+  confirmation_token         = COALESCE(confirmation_token, ''),
+  recovery_token             = COALESCE(recovery_token, ''),
+  email_change_token_new     = COALESCE(email_change_token_new, ''),
+  email_change               = COALESCE(email_change, ''),
+  phone_change               = COALESCE(phone_change, ''),
+  phone_change_token         = COALESCE(phone_change_token, ''),
+  email_change_token_current = COALESCE(email_change_token_current, ''),
+  reauthentication_token     = COALESCE(reauthentication_token, '')
+WHERE
+  aud IS NULL OR role IS NULL OR email IS NULL OR encrypted_password IS NULL
+  OR confirmation_token IS NULL OR recovery_token IS NULL
+  OR email_change_token_new IS NULL OR email_change IS NULL
+  OR phone_change IS NULL OR phone_change_token IS NULL
+  OR email_change_token_current IS NULL OR reauthentication_token IS NULL;
+
+-- Step 2: phone column has UNIQUE constraint (users_phone_key) that
+-- is NOT partial. NULL bypass uniqueness but '' would clash on the
+-- second user. Use per-user unique placeholder built from UUID.
+UPDATE auth.users
+SET phone = '+placeholder_' || id::text
+WHERE phone IS NULL;
+
+-- Verification (run after apply):
+-- SELECT
+--   COUNT(*) FILTER (WHERE aud IS NULL OR role IS NULL OR email IS NULL
+--     OR encrypted_password IS NULL OR confirmation_token IS NULL
+--     OR recovery_token IS NULL OR email_change_token_new IS NULL
+--     OR email_change_token_current IS NULL OR email_change IS NULL
+--     OR phone IS NULL OR phone_change IS NULL OR phone_change_token IS NULL
+--     OR reauthentication_token IS NULL) AS still_null,
+--   COUNT(*) AS total
+-- FROM auth.users;
+-- Expected: still_null=0
+```
+
+**Alternatif (ileri seviye):** `auth.users.phone` için partial UNIQUE
+INDEX:
+```sql
+DROP INDEX users_phone_key;
+CREATE UNIQUE INDEX users_phone_key ON auth.users (phone)
+  WHERE phone IS NOT NULL AND phone <> '';
+```
+Bu sayede `phone` NULL ya da `''` olarak bırakılabilir, placeholder
+gerekmez. Uyarı: `auth.users` Supabase platform-managed table, index
+değişikliği risk taşır — önce Supabase branch'inde dene, advisor
+before/after karşılaştır.
+
+**CLAUDE.md §8 güncelleme gerekli:** R12 maddesi "Eski Hatalar
+Listesi"ne eklendi (PR-C ile birlikte), seed protokol hatırlatması.
+
+---
+
 ## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |
