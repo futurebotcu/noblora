@@ -4,7 +4,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/admin_provider.dart';
-import '../../providers/posts_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Admin data models
@@ -115,7 +114,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -149,7 +148,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
           tabs: const [
             Tab(text: 'Overview'),
             Tab(text: 'Verifications'),
-            Tab(text: 'Posts'),
           ],
         ),
       ),
@@ -158,7 +156,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
         children: const [
           _OverviewTab(),
           _VerificationsTab(),
-          _PostsModerationTab(),
         ],
       ),
     );
@@ -498,113 +495,3 @@ class _VerificationCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Posts moderation tab
-// ---------------------------------------------------------------------------
-
-class _PostsModerationTab extends ConsumerWidget {
-  const _PostsModerationTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FutureBuilder(
-      future: _loadRecentPosts(ref),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(
-              child: CircularProgressIndicator(color: AppColors.emerald500));
-        }
-        final posts = snap.data ?? <Map<String, dynamic>>[];
-        if (posts.isEmpty) {
-          return const Center(
-            child: Text('No posts to moderate.',
-                style: TextStyle(color: AppColors.textMuted)),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          itemCount: posts.length,
-          itemBuilder: (_, i) {
-            final p = posts[i];
-            return _PostModerationCard(
-              postId: p['id'] as String,
-              content: p['content'] as String,
-              authorName: p['author'] as String? ?? 'Unknown',
-              onDelete: () async {
-                await ref.read(postRepositoryProvider).deletePost(p['id'] as String);
-                // ignore: use_build_context_synchronously
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Post removed')),
-                  );
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _loadRecentPosts(WidgetRef ref) async {
-    return ref.read(adminRepositoryProvider).fetchRecentPosts();
-  }
-}
-
-class _PostModerationCard extends StatelessWidget {
-  final String postId;
-  final String content;
-  final String authorName;
-  final VoidCallback onDelete;
-
-  const _PostModerationCard({
-    required this.postId,
-    required this.content,
-    required this.authorName,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            authorName,
-            style: const TextStyle(
-                color: AppColors.emerald500,
-                fontWeight: FontWeight.w600,
-                fontSize: 12),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            content,
-            style: const TextStyle(
-                color: AppColors.textPrimary, fontSize: 13, height: 1.4),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error, size: 16),
-              label: const Text('Remove',
-                  style: TextStyle(color: AppColors.error, fontSize: 12)),
-              onPressed: onDelete,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
-import '../../data/models/post.dart';
+import '../../data/models/post.dart' show NobTier;
 import '../../data/models/profile.dart';
-import '../../providers/posts_provider.dart';
 import '../../providers/profile_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -14,7 +13,6 @@ import '../../providers/profile_provider.dart';
 // ---------------------------------------------------------------------------
 
 const _profileBg       = Color(0xFF1A211E);  // warm dark sage (editorial base)
-const _profileCard     = Color(0xFF283130);  // lifted card
 const _profileElevated = Color(0xFF323B38);  // highlight card (prompts, chips)
 const _profileBorder   = Color(0xFF445049);  // strong visible edge
 
@@ -54,7 +52,6 @@ class UserProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(_otherProfileProvider(userId));
-    final nobsAsync = ref.watch(lastNobsProvider(userId));
 
     return Scaffold(
       backgroundColor: _profileBg,
@@ -235,32 +232,6 @@ class UserProfileScreen extends ConsumerWidget {
                       Wrap(spacing: 8, runSpacing: 8,
                         children: profile.languages.map((l) => _Chip(l)).toList()),
                     ],
-
-                    // ── Recent Nobs ──
-                    const SizedBox(height: 24),
-                    _SectionLabel('Recent Nobs'),
-                    const SizedBox(height: 10),
-                    nobsAsync.when(
-                      loading: () => const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Center(child: SizedBox(width: 16, height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 1, color: AppColors.emerald600))),
-                      ),
-                      error: (_, __) => Text('Could not load.',
-                          style: TextStyle(color: context.textMuted, fontSize: 12)),
-                      data: (nobs) {
-                        if (nobs.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text('No public Nobs yet.',
-                                style: TextStyle(color: context.textMuted, fontSize: 13)),
-                          );
-                        }
-                        return Column(
-                          children: nobs.map((n) => _NobPreview(nob: n)).toList(),
-                        );
-                      },
-                    ),
 
                     const SizedBox(height: 40),
                   ]),
@@ -494,33 +465,6 @@ class _PhotoGrid extends StatelessWidget {
             child: Icon(Icons.image_not_supported_outlined, color: context.textMuted, size: 20),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _NobPreview extends StatelessWidget {
-  final Post nob;
-  const _NobPreview({required this.nob});
-
-  @override
-  Widget build(BuildContext context) {
-    final text = nob.isThought ? nob.content : (nob.caption ?? '');
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: _profileCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _profileBorder.withValues(alpha: 0.35)),
-        ),
-        child: Text(text,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: context.textPrimary, fontSize: 13.5, height: 1.4, fontStyle: FontStyle.italic)),
       ),
     );
   }

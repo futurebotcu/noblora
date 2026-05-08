@@ -658,12 +658,3 @@ final nobTierProvider = FutureProvider.autoDispose<NobTier>((ref) async {
   }
 });
 
-// Whether current user is an admin — autoDispose so it refreshes on user switch.
-final isAdminProvider = FutureProvider.autoDispose<bool>((ref) async {
-  if (isMockMode) return true;
-  final userId = ref.watch(authProvider).userId;
-  if (userId == null) return false;
-  final isAdmin =
-      await ref.read(profileRepositoryProvider).fetchIsAdmin(userId);
-  return isAdmin ?? false;
-});
