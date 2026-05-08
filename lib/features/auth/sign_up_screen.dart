@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
+import '../../core/utils/legal_urls.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/device_service.dart';
 import '../../providers/auth_provider.dart';
@@ -23,12 +25,28 @@ class _SignUpState extends ConsumerState<SignUpScreen> {
   bool _showConfirm = false;
   bool _loading = false;
   bool _emailSent = false;
+  late final TapGestureRecognizer _privacyTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _privacyTap = TapGestureRecognizer()
+      ..onTap = () async {
+        final ok = await launchLegalUrl(kPrivacyPolicyUrl);
+        if (!ok && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open Privacy Policy')),
+          );
+        }
+      };
+  }
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
+    _privacyTap.dispose();
     super.dispose();
   }
 
@@ -255,7 +273,33 @@ class _SignUpState extends ConsumerState<SignUpScreen> {
                   Text(auth.error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
                 ],
 
-                const SizedBox(height: AppSpacing.xxxl),
+                const SizedBox(height: AppSpacing.xxl),
+
+                // Privacy Policy disclaimer
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  child: Text.rich(
+                    TextSpan(
+                      style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4),
+                      children: [
+                        const TextSpan(text: 'By creating an account, you agree to our '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: TextStyle(
+                            color: AppColors.emerald500,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: _privacyTap,
+                        ),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.lg),
 
                 // Create Account button
                 ElevatedButton(
