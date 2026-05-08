@@ -953,8 +953,8 @@ fix sonrası login başarılı, ama Discover bloke).
 
 **Tekrar sayısı:** 1 (smoke blocker, ad-hoc fix uygulanmadı — scope dışı).
 
-**Etki:** testfeed* (32+ hesap) manuel emülatör smoke için
-kullanışsız. Login → tab 1 default → Discover'a geçince modal blok.
+**Etki:** testfeed* (35 hesap — PR-α pre-state envanteri 2026-05-08)
+manuel emülatör smoke için kullanışsız. Login → tab 1 default → Discover'a geçince modal blok.
 Filter sheet (Discover'da) erişilemez. Production user'lar etkilenmez
 — production sign-up flow Edge Function (`verify-both-photos`)
 çağırarak `photo_verifications` kayıtlarını yazıyor.
@@ -1008,7 +1008,7 @@ Seed sadece cache'i yazıp ground truth'u atlamış.
 
 **Dokunma protokolü:**
 - testfeed* seed'i revize ederken: `photo_verifications` tablosuna
-  per-user 1 selfie + 1 profile (her ikisi `is_approved=true`) insert
+  per-user 1 selfie + 1 profile (her ikisi `status='approved'`) insert
   et. **profile flag + photo_verifications row çiftli zorunlu.**
 - Yeni manual seed Console'dan oluşturuyorsan: `photo_verifications`
   kayıtlarını da ekle.
@@ -1018,9 +1018,9 @@ Seed sadece cache'i yazıp ground truth'u atlamış.
   da migration script ile her testfeed user için
   `photo_verifications` kaydı garanti et.
 
-**Migration önerisi (PR-D kapsamında doc, henüz oluşturulmadı):**
+**Migration (PR-α kapsamında uygulanacak):**
 
-Path: `supabase/migrations/<timestamp>_seed_photo_verifications_for_testfeed.sql`
+Path: `supabase/migrations/20260508120000_pr_alpha_testfeed_seed_fix.sql`
 
 ```sql
 -- Seed photo_verifications.approved rows for legacy test users.
@@ -1037,16 +1037,24 @@ Path: `supabase/migrations/<timestamp>_seed_photo_verifications_for_testfeed.sql
 -- Production sign-up flow already populates photo_verifications via
 -- the verify-both-photos edge function — this only fixes legacy
 -- seed / SQL-Editor-created users.
+--
+-- Schema-correct (PR-α envanter ile doğrulandı):
+--   approval signal = status='approved' (NO `is_approved` column).
+--   No `same_person` / `probability` / `ai_confidence` columns;
+--   AI signals live in `ai_score` (double) and
+--   `real_selfie_probability` (double) — kept NULL here (testfeed
+--   honesty: seed kept minimal, no fake AI scores).
+--   `photo_url` DB-nullable but model non-null required —
+--   placeholder string ŞART (R14 candidate: model↔DB mismatch).
 
 INSERT INTO photo_verifications (
-  user_id, photo_type, status, is_approved, ai_confidence, created_at
+  user_id, photo_type, photo_url, status, created_at
 )
 SELECT
   u.id,
   pt.photo_type,
+  'placeholder://testfeed-seed',
   'approved',
-  true,
-  0.95,
   now()
 FROM auth.users u
 CROSS JOIN (VALUES ('selfie'), ('profile')) AS pt(photo_type)
@@ -1055,25 +1063,34 @@ WHERE u.email LIKE 'testfeed%@test.noblara.com'
     SELECT 1 FROM photo_verifications pv
     WHERE pv.user_id = u.id
       AND pv.photo_type = pt.photo_type
-      AND pv.is_approved = true
+      AND pv.status = 'approved'
   );
 
 -- Verification (run after apply):
 -- SELECT
 --   COUNT(DISTINCT user_id) AS users_with_approved_selfie
 -- FROM photo_verifications
--- WHERE photo_type = 'selfie' AND is_approved = true
+-- WHERE photo_type = 'selfie' AND status = 'approved'
 --   AND user_id IN (SELECT id FROM auth.users WHERE email LIKE 'testfeed%@test.noblara.com');
--- Expected: count matches testfeed* user count (32+ as of 2026-05-07).
+-- Expected: 35 (testfeed* user count, PR-α pre-state envanter
+-- 2026-05-08); 35 × 2 photo_types = 70 total approved rows.
 ```
 
-**Schema notu:** `photo_verifications` kolon listesi (`status`,
-`is_approved`, `ai_confidence`) yukarıdaki migration'a doğru — Edge
-Function `verify-both-photos`'un yazdığı şemayla aynı. Migration apply
-öncesi `\d photo_verifications` ile tam kolon listesi doğrulanmalı,
-NOT NULL constraint'leri olabilir (örn. `claimed_gender`, `same_person`,
-`probability` — bunlar Edge Function'da hesaplanıyor, seed'de varsayılan
-değerle doldurulmalı).
+**Schema notu (PR-α envanter ile düzeltildi 2026-05-08):**
+`photo_verifications` gerçek schema'sı 18 kolon. NOT NULL: `id`
+(default `gen_random_uuid()`), `user_id`, `status` (default
+`'pending'`), `created_at` (default `now()`). Approval sinyali =
+`status = 'approved'` (kolon adı `is_approved` DEĞİL — eski R13
+doc bu hatayı içeriyordu). `same_person`, `probability`,
+`ai_confidence` kolonları YOK; AI sinyalleri için `ai_score`
+(double), `real_selfie_probability` (double), `gender_detected`
+(text), `decision` (text), `claimed_gender` (text) var. `photo_url`
+DB'de nullable ama `lib/data/models/photo_verification.dart:4` model
+non-null required; NULL insert → SQL geçer ama Flutter `fromJson`
+cast crash. **Migration `photo_url` non-null değer ŞART** —
+PR-α'da `'placeholder://testfeed-seed'` kullanıldı. Model↔DB
+nullability mismatch R14 candidate olarak `.claude/todos.md`'ye
+eklendi (PR-α scope dışı, ayrı PR).
 
 **CLAUDE.md §8 güncelleme:** R13 maddesi "Eski Hatalar Listesi"ne
 eklendi (PR-D ile birlikte). Test seed yazarken `profile.is_verified` +
