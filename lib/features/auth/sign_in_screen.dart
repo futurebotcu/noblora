@@ -6,6 +6,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../core/services/device_service.dart';
+import '../../core/services/toast_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
@@ -22,6 +23,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _passCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _deviceError;
+  bool _isResettingPassword = false;
 
   @override
   void dispose() {
@@ -52,6 +54,37 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated && !isMockMode) {
       DeviceService.registerDevice(auth.userId!);
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    if (_isResettingPassword) return;
+
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      ToastService.show(context, message: 'Enter your email first', type: ToastType.error);
+      return;
+    }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
+      ToastService.show(context, message: 'Enter a valid email', type: ToastType.error);
+      return;
+    }
+
+    if (isMockMode) return;
+
+    setState(() => _isResettingPassword = true);
+    try {
+      await ref.read(authRepositoryProvider).resetPasswordForEmail(email);
+      if (mounted) {
+        ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
+      }
+    } catch (e, st) {
+      debugPrint('[auth] forgot password failed: $e\n$st');
+      if (mounted) {
+        ToastService.show(context, message: 'Could not send reset email. Try again.', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _isResettingPassword = false);
     }
   }
 
@@ -104,15 +137,16 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {
-                      // Forgot password — could trigger reset flow
-                    },
-                    child: const Text(
-                      'Forgot password?',
-                      style: TextStyle(
-                        color: AppColors.emerald500,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    onTap: _isResettingPassword ? null : _handleForgotPassword,
+                    child: Opacity(
+                      opacity: _isResettingPassword ? 0.5 : 1.0,
+                      child: const Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          color: AppColors.emerald500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
