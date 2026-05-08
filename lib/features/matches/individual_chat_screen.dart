@@ -24,7 +24,7 @@ import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
 import '../match/real_meeting_screen.dart';
 import '../match/video_scheduling_screen.dart';
-import '../noblara_feed/user_profile_screen.dart';
+import '../profile/user_profile_screen.dart';
 import 'end_connection_screen.dart';
 
 // Available reaction emojis

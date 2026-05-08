@@ -10,7 +10,7 @@ import '../../core/theme/premium.dart';
 import '../../data/models/post.dart';
 import '../../data/models/profile_card.dart';
 import '../../providers/posts_provider.dart';
-import '../noblara_feed/user_profile_screen.dart';
+import '../profile/user_profile_screen.dart';
 
 class SwipeCardWidget extends StatefulWidget {
   final ProfileCard card;

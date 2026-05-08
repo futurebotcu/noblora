@@ -4,7 +4,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../data/models/bff_suggestion.dart';
-import '../noblara_feed/user_profile_screen.dart';
+import '../profile/user_profile_screen.dart';
 
 const _accent = AppColors.emerald500;
 const _accentLight = AppColors.emerald350;

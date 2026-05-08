@@ -1099,6 +1099,90 @@ birini koyup diğerini unutmak R13 tekrarı.
 
 ---
 
+## R15 (CANDIDATE): Dating + Profile cross-reads Noblara posts (lastNobsProvider)
+
+**Belirti:** PR-1 envanterinde keşfedildi (2026-05-08).
+`lib/features/feed/swipe_card_widget.dart:347` (Dating swipe card) **VE**
+`lib/features/profile/profile_screen.dart:1597` (kendi profil ekranı)
+`lastNobsProvider` ile Noblara post'larını okuyor — "Recent Nobs"
+preview gösteriyor.
+
+**Kanıt (grep, 2026-05-08):**
+
+```
+posts_provider.dart:640: final lastNobsProvider =                ← tanım
+profile_screen.dart:1597:    final nobsAsync = ref.watch(lastNobsProvider(userId));
+swipe_card_widget.dart:347:    final nobsAsync = ref.watch(lastNobsProvider(card.id));
+features/profile/user_profile_screen.dart:57:    final nobsAsync = ref.watch(lastNobsProvider(userId));
+```
+
+**Kök neden:** Noblara post'ları sadece Noblara feed'inde değil, kullanıcı
+profillerinde de Recent Nobs preview olarak gösteriliyor — Dating ve
+Profile UI'larında Noblara'ya cross-read bağımlılık var. Bu mimari
+seçim Dalga 11 öncesi yapıldı; "Profile'da kullanıcının son Nob'ları
+görünsün" kararı Dating + Noblara entegrasyonu sayıldı.
+
+**Tespit tarihi:** 2026-05-08 (PR-1 UserProfileScreen relocate envanteri).
+
+**Tekrar sayısı:** 1 (envanter sırasında keşif).
+
+**Etki:** PR-3'te Noblara sökme sırasında karar gerekecek.
+`posts_provider.dart`, `post.dart` model, `lastNobsProvider` `noblora feed/`
+klasörüne taşınırsa Dating swipe card ve Profile "Recent Nobs"
+section'ları kırılır.
+
+**Çözüm seçenekleri (PR-3'te kararlaştırılacak):**
+- **(a) Recent Nobs section'larını Dating + Profile'dan kaldır** — V1 = pure
+  Dating + BFF, Noblara'ya bağımlılık sıfırlanır, en temiz çözüm.
+- **(b)** `lastNobsProvider` + `Post` model'ini `lib/shared/`'a taşı — Noblara
+  DB tabloları (posts, post_reactions) DB'de kalıyor zaten; client read
+  access shared'da kalabilir. UI bütünlüğü korunur, V2'de Noblara
+  geri açılınca extra iş gerekmez.
+- **(c) Stub provider** — `noblora feed/` taşıma sonrası
+  `lib/providers/posts_provider.dart`'da `lastNobsProvider` boş List döner;
+  Recent Nobs empty state gösterir, UI bütünlüğü korunur ama içerik yok.
+
+**Status:** CANDIDATE — PR-3 envanterinde kesinleşecek. PR-1 saf
+refactor olduğu için scope dışı.
+
+**Audit yanılgısı bağı (R7) — iki kez çürüdü:**
+
+**1. iddia (PR-α öncesi quick-grep):** "swipe_card_widget + profile_screen +
+main_tab_navigator dead `posts_provider` import." Detaylı sembol grep
+(`Post|posts_provider|postsProvider|postRepositoryProvider|userPostsProvider|lastNobsProvider|PostsState|PostsNotifier`)
+çürüttü: swipe_card ve profile_screen `lastNobsProvider` GERÇEK
+kullanım. **Sadece** main_tab_navigator gerçek dead göründü.
+
+**2. iddia (PR-1 apply sonrası):** "main_tab_navigator gerçek dead
+import." flutter analyze çürüttü:
+```
+error - Undefined name 'isAdminProvider' - main_tab_navigator.dart:243
+error - Undefined name 'NobTier' - main_tab_navigator.dart:289
+```
+- `isAdminProvider` `posts_provider.dart:662`'de tanımlı (aynı dosya
+  `lastNobsProvider` line 640 + `isAdminProvider` line 662 + `postsProvider`
+  line 634 — 3 ayrı export)
+- `NobTier` enum `data/models/post.dart:3`'te tanımlı; main_tab_navigator
+  line 289 `NobTier.fromString(newTier)` çağırıyor
+
+main_tab_navigator iki import da GERÇEK kullanım. **Hiç dead import
+yokmuş** — PR-1 sadece UserProfileScreen relocate yaptı.
+
+**Dersler (R7 disiplin pekiştirme):**
+- Bir dosya `import 'X.dart'` yaparsa, X'in TÜM exported sembollerini
+  kontrol et — sadece beklediğin 4-5 sembol değil.
+- `posts_provider.dart` 3 farklı public provider içeriyor
+  (postsProvider, lastNobsProvider, isAdminProvider) — ayrı isimler,
+  ayrı kullanım kalıpları.
+- `data/models/post.dart` `Post` class + `NobTier` enum içeriyor — bir
+  dosya iki ayrı tip export edebilir.
+- "Quick-grep yetmez" → Apply ÖNCESİ flutter analyze çalıştırılarak
+  pre-validation yapılmalı (PR-1'de yapılmadı, post-apply yakalandı).
+  R10 disiplini buna ek: "static analysis ÖN-koşul, sadece post-check
+  değil."
+
+---
+
 ## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |
