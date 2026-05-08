@@ -10,7 +10,7 @@ import '../../data/models/post_comment.dart';
 import '../../data/models/post_revision.dart';
 import '../../providers/auth_provider.dart';
 import 'my_nobs_screen.dart';
-import 'user_profile_screen.dart';
+import '../profile/user_profile_screen.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/posts_provider.dart';
 

@@ -12,7 +12,7 @@ import '../../data/models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/posts_provider.dart';
 import 'mood_map_screen.dart';
-import 'user_profile_screen.dart';
+import '../profile/user_profile_screen.dart';
 import 'my_nobs_screen.dart';
 import 'nob_compose_screen.dart';
 import 'nob_detail_screen.dart';
