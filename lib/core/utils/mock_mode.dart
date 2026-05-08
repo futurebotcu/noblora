@@ -15,7 +15,7 @@ bool get isMockMode {
 ///   • Notifications of type room_*/circle_invite are stripped.
 ///
 /// Events were removed in Dalga 13. Rooms/circles code lives in
-/// lib/features/social/ and related providers, but is inert at runtime.
+/// noblora feed/lib/features/social/ and related providers, but is inert at runtime.
 /// Flip to true to re-enable.
 const bool kSocialEnabled = false;
 

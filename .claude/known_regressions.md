@@ -1294,3 +1294,37 @@ Audit raporu (5 Mayıs full app audit) bazı iddiaları kanıt-dayalı doğrulan
 **Audit Yanılgılarından Çıkarılan Genel Ders:**
 
 > "Audit iddiası ≠ kanıt." Her audit maddesi git/aapt/dumpsys/grep ile bağımsız doğrulanmalı. R10 ("apply success ≠ effective fix") kuralının kuzeni: **"audit claim ≠ git/runtime reality"**. Korkutucu iddialar (force-push, history rewrite) özellikle kanıt-dayalı sorgulanmalı — kanıtsız aksiyon geri dönüşsüz hasar verebilir.
+
+---
+
+## [2026-05-08] — R17 candidate: post.dart Post class V1'de ölü kod
+
+**Belirti:** PR-3b'de Noblara wholesale move sonrası `lib/data/models/post.dart`
+`lib/data/models/`'de KALDI çünkü `NobTier` enum profile.dart, profile_screen.dart,
+status_screen.dart, tier_badge.dart, tier_promotion_screen.dart, user_profile_screen.dart,
+profile_repository.dart, main_tab_navigator.dart — 8 KAL dosyada kullanılıyor.
+`Post` class'ı PR-3b sonrası kullanılmıyor (ölü kod) ama derleme için zarar yok.
+
+**Kanıt (PR-3b mikro-adım 1 envanter, 2026-05-08):**
+- grep `NobTier` lib/ → 13 KAL + 4 TAŞIN dosya hit
+- grep `\bPost\b` KAL dosyalarda → SIFIR (Post class kullanımı yok, sadece NobTier)
+- post_repository.dart (Post class'ını üreten tek kaynak) → noblora feed/'e taşındı
+- post.dart line 25-238 `Post` + `PostReaction` class'ları → V1'de hiç çağrılmaz
+
+**Etki:** post.dart ~200 satır ölü kod barındırır (Post class + PostReaction class
++ fromJson/toJson). NobTier enum (~20 satır) aktif kullanımda. V2'de Noblara
+reaktive edildiğinde orijinal davranış kendiliğinden döner — Post class
+silinmeden.
+
+**Çözüm seçenekleri (V2 zamanında değerlendirilecek):**
+- (a) Mevcut: ölü kod kalsın (V1 launch için seçildi)
+- (b) NobTier'ı ayrı `lib/data/models/nob_tier.dart` dosyasına çıkar; post.dart'ı
+  `noblora feed/data/models/`'e taşı; 8 KAL dosyada `import 'post.dart' show NobTier`
+  → `import 'nob_tier.dart'` güncelle. Yaklaşık 30 dk refactor.
+
+**Aciliyet:** low. V1 launch'ı bloke etmiyor, derleme sağlam, runtime davranış
+değişmiyor. CLAUDE.md §4 banned patterns'a girmeyen kabul edilebilir teknik borç.
+
+**Karar:** PR-3b mikro-adım 1'de (a) seçildi (kullanıcı onayı 2026-05-08). V2
+reaktivasyon kararı verildiğinde (b)'ye geçiş `git revert` + bu PR'ın
+takipçisi bir refactor PR ile yapılabilir.

@@ -16,7 +16,7 @@ import '../features/entry_gate/entry_gate_screen.dart';
 import '../data/models/post.dart';
 import '../providers/messages_provider.dart';
 import '../providers/notification_provider.dart';
-import '../providers/posts_provider.dart';
+import '../providers/admin_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/verification_provider.dart';
 import '../providers/gating_provider.dart';

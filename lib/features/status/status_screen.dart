@@ -15,7 +15,7 @@ import '../../providers/profile_provider.dart';
 import '../../providers/status_provider.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../services/gemini_service.dart';
-import '../noblara_feed/note_inbox_screen.dart';
+import '../notes/note_inbox_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Status Hub — 5-tab private master panel
