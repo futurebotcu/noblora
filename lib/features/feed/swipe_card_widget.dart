@@ -7,9 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
-import '../../data/models/post.dart';
 import '../../data/models/profile_card.dart';
-import '../../providers/posts_provider.dart';
 import '../profile/user_profile_screen.dart';
 
 class SwipeCardWidget extends StatefulWidget {
@@ -343,8 +341,6 @@ class _CardInfo extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Load last 3 Nobs for this user
-    final nobsAsync = ref.watch(lastNobsProvider(card.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -458,118 +454,9 @@ class _CardInfo extends ConsumerWidget {
             ),
           ),
         ],
-        // Last 3 Nobs
-        ...nobsAsync.when(
-          data: (nobs) {
-            if (nobs.isEmpty) return <Widget>[];
-            return [
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: nobs.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
-                  itemBuilder: (_, i) => GestureDetector(
-                    onTap: () => _showNobDetail(context, nobs[i]),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      constraints: const BoxConstraints(maxWidth: 160),
-                      decoration: const BoxDecoration(
-                        color: Color(0x1AFFFFFF),
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(6),
-                          bottomRight: Radius.circular(6),
-                        ),
-                        border: Border(
-                          left: BorderSide(color: AppColors.emerald600, width: 2),
-                        ),
-                      ),
-                      child: Text(
-                        nobs[i].content.isNotEmpty ? nobs[i].content : (nobs[i].caption ?? ''),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          height: 1.3,
-                        ),
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ];
-          },
-          loading: () => <Widget>[],
-          error: (_, __) => <Widget>[],
-        ),
       ],
     );
   }
-}
-
-void _showNobDetail(BuildContext context, Post nob) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: context.surfaceColor,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(width: 40, height: 4,
-                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999))),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.emerald600.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(nob.isThought ? 'Thought' : 'Moment',
-                    style: TextStyle(color: AppColors.emerald600, fontSize: 10, fontWeight: FontWeight.w600)),
-              ),
-              const Spacer(),
-              Text(nob.authorName ?? '',
-                  style: TextStyle(color: context.textMuted, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (nob.isMoment && nob.photoUrl != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              child: CachedNetworkImage(
-                imageUrl: nob.photoUrl!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                memCacheWidth: 1080,
-                errorWidget: (_, __, ___) => Container(
-                  height: 200,
-                  color: AppColors.surfaceAlt,
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported_outlined, size: 28),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          Text(
-            nob.content.isNotEmpty ? nob.content : (nob.caption ?? ''),
-            style: TextStyle(color: context.textPrimary, fontSize: 16, height: 1.5),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-        ],
-      ),
-    ),
-  );
 }
 
 class _SwipeLabel extends StatelessWidget {

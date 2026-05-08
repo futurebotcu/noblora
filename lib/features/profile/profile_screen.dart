@@ -6,12 +6,11 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../data/models/post.dart';
+import '../../data/models/post.dart' show NobTier;
 import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/active_modes_provider.dart';
-import '../../providers/posts_provider.dart';
 import '../settings/settings_screen.dart';
 import 'edit/edit_profile_main_screen.dart';
 
@@ -315,7 +314,6 @@ bool isPromptVisible(PromptAnswer p) {
 //   6. CONNECTION STYLE   → _ConnectionStyleSection
 //   7. PERSONAS / MODES   → _PersonaSection
 //   8. PROOF LAYER        → _EarnedBadgesSection
-//   9. NOBS / THOUGHTS    → _LastNobsSection
 //
 // EVERY widget must read from _CuratedProfile, never from Profile directly.
 // Sections that have no curated content must render SizedBox.shrink() — never
@@ -437,16 +435,8 @@ class ProfileScreen extends ConsumerWidget {
           // ── 8. PROOF LAYER ───────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(top: 32),
+              padding: const EdgeInsets.only(top: 32, bottom: 48),
               child: _EarnedBadgesSection(profile: curated.raw),
-            ),
-          ),
-
-          // ── 9. NOBS / THOUGHTS ───────────────────────────────────────────
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 32, bottom: 48),
-              child: _LastNobsSection(),
             ),
           ),
         ],
@@ -1582,91 +1572,4 @@ class _BadgeChip extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Last 3 Nobs section — minimal, low-opacity character signal
-// ---------------------------------------------------------------------------
-
-class _LastNobsSection extends ConsumerWidget {
-  const _LastNobsSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userId = ref.watch(authProvider).userId;
-    if (userId == null) return const SizedBox.shrink();
-
-    final nobsAsync = ref.watch(lastNobsProvider(userId));
-
-    return nobsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (nobs) {
-        if (nobs.isEmpty) return const SizedBox.shrink();
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'N O B S',
-                style: TextStyle(
-                  color: context.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 3,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ...nobs.map((nob) {
-                final text = nob.isThought ? nob.content : (nob.caption ?? '');
-                return Opacity(
-                  opacity: 0.6,
-                  child: Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: _profileCard,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusMd),
-                      border: Border.all(
-                        color: nob.isPinned
-                            ? AppColors.emerald600.withValues(alpha: 0.3)
-                            : _profileBorder.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        if (nob.isPinned)
-                          const Padding(
-                            padding: EdgeInsets.only(right: AppSpacing.xs),
-                            child: Icon(Icons.push_pin_rounded,
-                                color: AppColors.emerald600, size: 10),
-                          ),
-                        Expanded(
-                          child: Text(
-                            text.isEmpty ? '(Moment Nob)' : text,
-                            style: TextStyle(
-                              color: context.textMuted,
-                              fontSize: 12,
-                              height: 1.45,
-                              fontStyle: FontStyle.italic,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
 
