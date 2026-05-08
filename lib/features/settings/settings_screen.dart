@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
+import '../../core/utils/legal_urls.dart';
 import '../../core/utils/mock_mode.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -329,11 +330,14 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => _showContent(context, 'Community Guidelines',
                     'Be real. Be respectful. No spam, no ads, no fake profiles. Noblara is built for genuine connections.')),
             _Row(Icons.privacy_tip_outlined, 'Privacy Policy',
-                onTap: () => _showContent(context, 'Privacy Policy',
-                    'Your privacy matters. We collect only what\'s needed. We never sell data. Full policy at noblara.com/privacy.')),
-            _Row(Icons.article_outlined, 'Terms of Service',
-                onTap: () => _showContent(context, 'Terms of Service',
-                    'By using Noblara you agree to our community standards. Full terms at noblara.com/terms.')),
+                onTap: () async {
+                  final ok = await launchLegalUrl(kPrivacyPolicyUrl);
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open Privacy Policy')),
+                    );
+                  }
+                }),
           ]),
           // Version
           Padding(
