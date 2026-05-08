@@ -15,7 +15,6 @@ import '../../providers/profile_provider.dart';
 import '../../providers/status_provider.dart';
 import '../../shared/widgets/tier_badge.dart';
 import '../../services/gemini_service.dart';
-import '../noblara_feed/nob_compose_screen.dart';
 import '../noblara_feed/note_inbox_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -250,7 +249,6 @@ class _OverviewTab extends StatelessWidget {
       // Quick Actions
       _Sec('Quick Actions'),
       SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
-        _QA(Icons.edit_rounded, 'Add Nob', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NobComposeScreen()))),
         _QA(Icons.mail_outline_rounded, 'Notes', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoteInboxScreen()))),
       ])),
       const SizedBox(height: AppSpacing.xxxxl),

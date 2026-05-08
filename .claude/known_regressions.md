@@ -1183,6 +1183,54 @@ yokmuş** — PR-1 sadece UserProfileScreen relocate yaptı.
 
 ---
 
+## R16 (CANDIDATE): Status "Liked You" feature half-implemented
+
+**Belirti:** `super_like_repository.dart` `WhoLikedItem` class +
+`fetchWhoLikedMe` / `fetchILiked` / `fetchSuperLikesReceived` metodları var.
+`StatusData.likedMe` / `iLiked` / `superLikesReceived` alanları doluyor
+(`StatusNotifier._fetchData` line 181-183). Ama `status_screen.dart` 521
+satırda bu sembollerin HİÇBİRİ yok — UI surface'a bağlanmamış.
+
+**Kanıt (R7, 2026-05-08):**
+```
+grep "WhoLikedItem|likedMe|iLiked|superLikesReceived"
+  lib/features/status/status_screen.dart
+→ No matches found
+```
+
+**Kök neden:** Bumble Liked You pattern niyet edilmiş, data layer hazırlanmış
+(SuperLikeRepository + StatusData state alanları), ama Tab 2 "Interest"
+sadece counter (sayı) gösteriyor — list-based "kim sana like attı" UI'sı
+yapılmamış. Yarım kalmış feature.
+
+**Tespit tarihi:** 2026-05-08 (PR-2 envanter sırasında, kullanıcı "Status =
+Bumble Liked You" hipotezi verince).
+
+**Tekrar sayısı:** 1 (envanter keşfi).
+
+**Etki:** "Liked You" feature kullanıcıya gösterilmiyor. Data layer her
+istekte `fetchWhoLikedMe` / `fetchILiked` / `fetchSuperLikesReceived`
+çağırıyor (StatusNotifier başlatıldığında) → boş listeler hiç tüketilmiyor,
+gereksiz query.
+
+**Status:** OPEN — V1 launch sonrası aktive edilebilir (V2 candidate).
+PR-2 scope dışı.
+
+**Çözüm:** Tab 2 (Interest) içinde list-based "Liked You" widget ekle.
+`StatusNotifier` zaten verileri topluyor — sadece widget eklemesi (1 PR
+tahmini, mevcut counter'ların yanına horizontal scroll list).
+
+**Aciliyet:** low (V1 launch'ı bloke etmez; data layer overhead
+yarım `fetchWhoLikedMe` çağrılarıyla zaten ödeniyor — UI ekleme net pozitif).
+
+**Audit yanılgısı bağı (R7):** PR-2 öncesi user "Status = Bumble Liked
+You" hipotezi verdi. Envanter ne çürüttü ne doğruladı: niyet kanıtlandı
+(data layer var) ama uygulama yarım. R7 disiplini bir kez daha — kullanıcı
+bilgisi de hipotez kategorisinde, kanıtla doğrulanmalı. Bu sefer kanıt:
+data layer mevcut + UI grep no match.
+
+---
+
 ## Dalga Durum Özeti (2026-05-03)
 
 | Dalga | Hedef | Status | Kalan |

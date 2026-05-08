@@ -8,7 +8,6 @@ import '../services/push_notification_service.dart';
 import '../features/admin/admin_screen.dart';
 import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
-import '../features/noblara_feed/noblara_feed_screen.dart';
 import '../features/status/status_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/tier_promotion_screen.dart';
@@ -39,8 +38,8 @@ class MainTabNavigator extends ConsumerStatefulWidget {
 
 class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   // Tabs that require verification + entry-gate approval before access.
-  // Noblara (1), Status (3), Profile (4) are always open.
-  static const _secureTabs = {0, 2}; // Discover, Chats
+  // Status (2), Profile (3) are always open.
+  static const _secureTabs = {0, 1}; // Discover, Chats
 
   int _currentIndex = 0;
   // Tracks which tab indices have been visited — unvisited tabs are not built
@@ -50,16 +49,15 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   @override
   void initState() {
     super.initState();
-    // If verification or entry-gate is still pending, land on Noblara (the
-    // open expression layer) instead of Discover. User can still tap secure
-    // tabs and will be shown the gate prompt.
+    // If verification or entry-gate is still pending, default to Discover —
+    // the secure-tab modal triggers on tap and prompts verification.
     final verif = ref.read(verificationProvider);
     final gating = ref.read(gatingProvider);
     if (_needsSecureGate(verif, gating)) {
-      _currentIndex = 1;
+      _currentIndex = 0;
       _visitedTabs
         ..clear()
-        ..add(1);
+        ..add(0);
     }
 
     // Push notification tap routing
@@ -71,17 +69,17 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
     switch (type) {
       case 'new_message':
       case 'chat_opened':
-        _switchTo(2); // Chats tab
+        _switchTo(1); // Chats tab
       case 'video_proposed':
       case 'video_confirmed':
-        _switchTo(2); // Chats tab (scheduling is inside chat)
+        _switchTo(1); // Chats tab (scheduling is inside chat)
       case 'note_received':
       case 'signal_received':
-        _switchTo(2); // Requests tab inside Chats
+        _switchTo(1); // Requests tab inside Chats
       case 'tier_promoted':
-        _switchTo(4); // Profile tab
+        _switchTo(3); // Profile tab
       default:
-        _switchTo(2); // Default to Chats
+        _switchTo(1); // Default to Chats
     }
   }
 
@@ -213,7 +211,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
 
   static const _baseTabs = [
     _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_rounded),
-    _TabItem(label: 'Noblara', icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome_rounded),
     _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded),
     _TabItem(label: 'Status', icon: Icons.bar_chart_rounded, activeIcon: Icons.bar_chart_rounded),
     _TabItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded),
@@ -227,7 +224,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
 
   static const _baseScreens = [
     FeedScreen(),
-    NoblaraFeedScreen(),
     MatchesScreen(),
     StatusScreen(),
     ProfileScreen(),
@@ -382,7 +378,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    setState(() => _currentIndex = 2); // Go to Chats tab
+                    setState(() => _currentIndex = 1); // Go to Chats tab
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.emerald500,
@@ -445,7 +441,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           type: BottomNavigationBarType.fixed,
           onTap: (i) {
             // Secure tabs (Discover, Chats) require verification + entry-gate.
-            // Noblara, Status, Profile, Admin are always reachable.
+            // Status, Profile, Admin are always reachable.
             if (_secureTabs.contains(i)) {
               final verif = ref.read(verificationProvider);
               final gating = ref.read(gatingProvider);
@@ -462,8 +458,8 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           items: tabs.asMap().entries.map((entry) {
             final i = entry.key;
             final t = entry.value;
-            // Show badge only on "Chats" tab (index 2)
-            final showBadge = i == 2 && unreadCount > 0;
+            // Show badge only on "Chats" tab (index 1)
+            final showBadge = i == 1 && unreadCount > 0;
             return BottomNavigationBarItem(
               icon: showBadge
                   ? Badge(
