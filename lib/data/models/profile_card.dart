@@ -20,7 +20,6 @@ class ProfileCard {
   final String? connectionGoal; // e.g. 'Looking for a Tennis Partner'
 
   // Privacy display settings (from target user)
-  final bool showCityOnly;
   final bool showStatusBadge;
   final bool showLastActive;
   final DateTime? lastActiveAt;
@@ -41,7 +40,6 @@ class ProfileCard {
     this.industry,
     this.expertise,
     this.connectionGoal,
-    this.showCityOnly = false,
     this.showStatusBadge = true,
     this.showLastActive = true,
     this.lastActiveAt,
@@ -86,7 +84,6 @@ class ProfileCard {
           (row['languages'] as List<dynamic>?)?.cast<String>() ?? [],
       isVerified: (row['is_verified'] as bool?) ?? false,
       mode: mode,
-      showCityOnly: (row['show_city_only'] as bool?) ?? false,
       showStatusBadge: (row['show_status_badge'] as bool?) ?? true,
       showLastActive: (row['show_last_active'] as bool?) ?? true,
       lastActiveAt: row['last_active_at'] != null

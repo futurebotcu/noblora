@@ -13,6 +13,27 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-09 — Dalga R8b: phantom privacy settings cleanup (R8 PARTIAL → MOSTLY CLOSED)
+
+- [x] Kod path:
+  - `lib/features/onboarding/onboarding_flow_screen.dart:155-156` — `'show_city_only': false,` + `'hide_exact_distance': false,` onboarding default insert satırları kaldırıldı
+  - `lib/data/models/profile_card.dart:23,44,89` — `final bool showCityOnly` field tanımı + constructor default param + `fromDb` factory satırı kaldırıldı (3 referansın hepsi)
+  - **DB kolonları DOKUNULMADI** (`profiles.show_city_only` + `profiles.hide_exact_distance`) — V2'de feature implement edilirse hazır kalsın, schema migration overhead engellensin
+- [x] Backend kanıtı: N/A — UI hiç gönderilmedi, sadece onboarding default + dead model field temizliği. R7 envanter (`grep -rn "showCityOnly|hideExactDistance|show_city_only|hide_exact_distance" lib/`): 5 hit hepsi temizlendiği 2 dosyada; 0 UI consumer (`card.showCityOnly` çağrısı yok), `copyWith`/`toJson` profile_card.dart'ta zaten yok, `fromJson` zaten kullanmıyordu (R1 copyWith drift riski yok).
+- [x] UI kanıtı: N/A — UI hiç eklenmemiş feature'ların temizliği. Settings screen'de toggle yok, swipe_card'da render yok, hiçbir consumer yok. Emülatör smoke gereksiz.
+- [x] Regresyon kontrolü:
+  - R1 (copyWith drift): profile_card.dart'ta `copyWith` yok → riski yok
+  - R2 (draft asenkron): profile_draft bu field'ı yazmıyordu → riski yok
+  - R6 (phantom feature): Bu temizlik tam olarak R6'nın önlemi — UI olmayan ayarın "shipped" görünmesi engellenmiş
+  - R7 disiplin: her edit kanıt-dayalı (grep ile 5/5 referans tespit ve kaldırıldı, hiçbir consumer yok)
+  - R8: PARTIAL CLOSED → MOSTLY CLOSED (phantom drop sayılır, 0 OPEN kaldı, sadece 2 KISMEN: calm_mode + notification_preferences yeni type map güncellemeleri)
+- [x] Guardrail testi:
+  - `flutter analyze --fatal-infos`: `No issues found! (ran in 12.6s)` ✅
+  - `flutter test`: 266/266 pass ✅ (baseline korundu, regresyon yok)
+- Branch: `dalga-r8b-phantom-privacy-cleanup`
+
+---
+
 ## 2026-05-09 — Dalga R8a: notification_preferences enforce on send-push edge function (R8 PARTIAL CLOSED)
 
 - [x] Kod path:

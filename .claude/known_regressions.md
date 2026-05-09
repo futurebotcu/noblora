@@ -351,8 +351,8 @@ değişir, davranış DEĞİŞMEZ. "Ayar uygulandı" illüzyonu.
 | show_status_badge | settings_screen.dart:193 ✅ | swipe_card:287, swipe_card:685, bff_screen:347 ✅ (Dalga 11 ile 3/3 site gated) | **FULLY CLOSED** ✅ |
 | message_preview | settings_screen.dart:267 ✅ | matches_screen `_messagePreviewProvider` ✅; chat-push trigger henüz yok (N/A) | **FULLY CLOSED** ✅ |
 | calm_mode | settings_screen.dart:186 ✅ | can_reach_user RPC (signal/note/reach) ✅ KISMEN — feed/notification context'te değil | **KISMEN** |
-| hide_exact_distance | YOK ❌ | feed render ❌ (mesafe ProfileCard'da hiç yok, infra eksik) | OPEN — altyapı gerek |
-| show_city_only | YOK ❌ | render ❌ (DB'de city/travel_city zaten city-level; daha granular location yok → **phantom setting**, drop adayı) | OPEN — phantom |
+| hide_exact_distance | YOK ❌ | feed render ❌ — UI hiç yapılmadı, mesafe ProfileCard'da render edilmiyordu | **PHANTOM DROP** — R8b (onboarding default kaldırıldı; DB col V2 için kaldı) |
+| show_city_only | YOK ❌ | render ❌ — UI hiç yapılmadı, granular location DB'de yok (city-level only) | **PHANTOM DROP** — R8b (onboarding default + dead model field kaldırıldı; DB col V2 için kaldı) |
 | notification_preferences | settings_screen ✅ | send-push edge HYBRID enforce ✅ — mapped: `new_match`/`bff_connected` (R8a smoke 4/4); diğer type'lar (chat trigger yok, comment/signal vs. unmapped) HYBRID default-ON ile geçer | **PARTIAL CLOSED** — R8a |
 
 **Kök neden hipotezi:** Özellikler iteratif yazıldı, "önce DB kolonu + UI
@@ -364,11 +364,12 @@ RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
 
 **Tekrar sayısı:** 1 (toplu envanter) — 8 setting altında.
 
-**Status:** KISMEN CLOSED (2026-05-09, Dalga R8a sonrası — kanıt-dayalı revize)
+**Status:** MOSTLY CLOSED (2026-05-09, Dalga R8b sonrası — kanıt-dayalı revize)
 - **4 FULLY CLOSED:** incognito_mode (Dalga 6 + 11), show_last_active (zaten gated, Dalga 11 kanıtladı), show_status_badge (Dalga 11 ile 3 site), message_preview (matches gated; push N/A)
+- **2 PHANTOM DROP (R8b):** hide_exact_distance (UI hiç yapılmadı, onboarding default kaldırıldı), show_city_only (UI hiç yapılmadı, dead model field + onboarding default kaldırıldı). DB kolonları V2'de feature implement edilirse hazır kalsın diye DROP edilmedi (schema migration overhead engellendi). Play Store Data Safety formunda "kullanıcı bunu yapabilir" beyan edilmeyecek (yalan beyan riski engellendi).
 - **2 KISMEN:** calm_mode (can_reach_user only, feed/notif değil); notification_preferences (Dalga R8a — mapped types `new_match` + `bff_connected` send-push'da enforce, HYBRID default-ON unmapped'i geçirir; chat-push trigger yok, yeni type eklendiğinde map güncellenmeli — bkz. R-NEW-CANDIDATE: mapping drift)
-- **2 OPEN:** hide_exact_distance (altyapı yok), show_city_only (phantom)
-- Önceki "7 OPEN setting" iddiası kanıtsızdı (R7 disiplini): kanıtlama 4 setting'in zaten kapalı olduğunu, 3 gerçek leak (Dalga 11'de kapatıldı), 1 phantom setting'i ve 1 setting'in (notification_preferences) Dalga R8a'da kısmen kapatılabildiğini ortaya çıkardı.
+- **0 OPEN**
+- Önceki "7 OPEN setting" iddiası kanıtsızdı (R7 disiplini): nihai sayım 4 FULLY CLOSED + 2 PHANTOM DROP + 2 KISMEN + 0 OPEN. R8 envanteri V1 launch öncesi kod hijyeni açısından temizlendi.
 
 **Kanıt (incognito_mode, 2026-04-23 ~12:35 UTC):**
 - Migration: `supabase/migrations/20260423122907_filter_discoverable_ids_batch.sql`
@@ -1283,8 +1284,9 @@ data layer mevcut + UI grep no match.
 | 9 | public_bucket_allows_listing 2 → 0 | CLOSED | — |
 | 11 | R8 leak fixes (show_status_badge ×2 + incognito BFF) | CLOSED | calm_mode KISMEN, hide_exact_distance OPEN, show_city_only phantom, notification_preferences OPEN |
 | R8a | notification_preferences send-push HYBRID enforce (mapped: new_match + bff_connected, smoke 4/4) | PARTIAL CLOSED | mapping drift watch (R-NEW-CANDIDATE) |
+| R8b | hide_exact_distance + show_city_only phantom drop (onboarding default + dead model field; DB col kaldı) | CLOSED | DB cols V2 için kaldı |
 | 12 (aday) | security_definer kalan 110 | NOT STARTED | — |
-| R8 kalan | calm_mode tam enforce + hide_exact_distance altyapı + show_city_only drop + notification_preferences yeni type'lar map güncellemesi | KISMEN (R8a 2026-05-09) | — |
+| R8 kalan | calm_mode tam enforce + notification_preferences yeni type'lar map güncellemesi | KISMEN (R8a + R8b 2026-05-09) | — |
 
 ---
 
