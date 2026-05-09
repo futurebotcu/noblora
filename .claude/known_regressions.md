@@ -1368,3 +1368,40 @@ değişmiyor. CLAUDE.md §4 banned patterns'a girmeyen kabul edilebilir teknik b
 **Karar:** PR-3b mikro-adım 1'de (a) seçildi (kullanıcı onayı 2026-05-08). V2
 reaktivasyon kararı verildiğinde (b)'ye geçiş `git revert` + bu PR'ın
 takipçisi bir refactor PR ile yapılabilir.
+
+---
+
+## R-NEW — Video Call System V2 Reactivation Reference
+
+**Status:** REMOVED V1 (Dalga R10 söküm; PR-R11 backend cleanup pending), reactivation roadmap mevcut
+
+**Sebep:** Browser-based Jitsi pattern V1 için yetersiz UX (kullanıcı tarayıcıya
+yönleniyor, premium feel kırılıyor, in-app callback yok → call lifecycle
+sinyali alınamıyor). Native Jitsi entegrasyonu V1 launch'ı 2-3 hafta
+geciktirir + yüksek risk. Bumble/Hinge bile chat-first pattern'le başladı,
+video sonradan eklendi. R10 ile sade Bumble pattern'ine geçildi:
+match → MiniIntro (AI opener Gemini) → first message → chat.
+
+**V2 Reactivation Plan:**
+- Yeni table: `video_calls` (eski `video_sessions` schema referans, R10/R11 commit SHA'ları rollback için)
+- Yeni state: `matches.status='video_pending'` veya ayrı `call_invites` tablosu
+- Mapping: video_* event'ler için yeni `video_schedule` notification kategorisi (R8 HYBRID strategy genişletmesi). R-NEW-CANDIDATE (notification_preferences mapping drift) aktif kalır — V2'de yeni type'lar eklenince mapping güncellenmeli.
+- pubspec: `flutter_webrtc` veya `jitsi_meet_flutter_sdk` (URL launcher pattern bırakılır)
+- UI rewrite: native call screen (browser redirect yerine, in-app lifecycle callback'leriyle)
+- iOS native config + `Info.plist` permission (`NSCameraUsageDescription`, `NSMicrophoneUsageDescription`)
+- Crashlytics ile call lifecycle monitoring (start/end/error)
+
+**Rollback referansı (R10 öncesi son video commit):**
+- main HEAD before R10: `d4257b4` (R8b phantom privacy cleanup)
+- Söküm dosyaları: video_call_screen, video_scheduling_screen, post_call_decision_screen, short_intro_rules_screen, video_service, video_session_repository, video_session model, video_provider, mini_intro_repository, mini_intro model, mini_intro_provider — `git show <R10-SHA>:<path>` ile geri okunabilir
+- R10 commit (Flutter söküm): bu PR — `dalga-r10-video-removal-flutter`
+- R11 commit (Backend cleanup): pending (`video_sessions` + `call_decisions` DROP, `process_call_decision` + `safe_advance_to_video` DROP, `expire-video-sessions` cron unschedule, `matches.status` CHECK rebuild, `check_and_create_match` rewrite)
+
+**R10/R11 köprü riski:**
+- `match.conversation_id` şu an SADECE `process_call_decision` SECDEF'inde set ediliyor (video flow)
+- R11'de `check_and_create_match` rewrite ile match yaratımında `conversation_id` set edilecek
+- R10 merge sonrası R11 öncesi: yeni match'lerde `conversation_id` NULL → `mini_intro_screen._sendIntro` snackbar fallback ("Chat not ready yet. Try again in a moment.") gösterir
+- Strateji: R10 merge → hemen R11 → 2-3 saat ara durum kabul (test ortamında match data zaten yok)
+- Production'a R10 + R11 birlikte deploy edilmeli (atomic rollout)
+
+---

@@ -23,7 +23,6 @@ import '../../services/gemini_service.dart';
 import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
 import '../match/real_meeting_screen.dart';
-import '../match/video_scheduling_screen.dart';
 import '../profile/user_profile_screen.dart';
 import 'end_connection_screen.dart';
 
@@ -567,9 +566,6 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
 
   void _showQuickIntroSheet(BuildContext context, List<NobleMatch> matches) {
     final name = _item.name;
-    final match = widget.matchId != null
-        ? matches.where((m) => m.id == widget.matchId).firstOrNull
-        : null;
     showModalBottomSheet(
       context: context,
       backgroundColor: context.surfaceColor,
@@ -613,20 +609,14 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   child: _IntroOption(
                     icon: Icons.videocam_rounded,
                     label: 'Video',
-                    subtitle: match != null ? 'Schedule call' : 'Coming soon',
-                    color: match != null ? _accent : context.textDisabled,
-                    onTap: match != null
-                        ? () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    VideoSchedulingScreen(match: match),
-                              ),
-                            );
-                          }
-                        : null,
+                    subtitle: 'Available soon',
+                    color: context.textDisabled,
+                    onTap: () {
+                      Navigator.pop(context);
+                      ToastService.show(context,
+                          message: 'Video intro will be available in the next update',
+                          type: ToastType.system);
+                    },
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -808,7 +798,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
               tooltip: _isBff ? 'Make a plan' : 'Plan Meeting',
             ),
           IconButton(
-            icon: Icon(Icons.video_call_rounded, color: accent),
+            icon: Icon(Icons.bolt_rounded, color: accent),
             onPressed: () =>
                 _showQuickIntroSheet(context, matchState.matches),
             tooltip: 'Quick Intro',

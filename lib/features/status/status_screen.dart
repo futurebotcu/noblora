@@ -228,14 +228,6 @@ class _OverviewTab extends StatelessWidget {
         const SizedBox(height: AppSpacing.xxl),
       ],
 
-      // Upcoming
-      if (matchState.matches.any((m) => m.status == 'video_scheduled')) ...[
-        _Sec('Coming up'),
-        ...matchState.matches.where((m) => m.status == 'video_scheduled').take(2).map((m) =>
-            _Upcoming(Icons.videocam_rounded, 'Intro with ${m.otherUserName ?? "match"}', 'Scheduled', AppColors.emerald500)),
-        const SizedBox(height: AppSpacing.xxl),
-      ],
-
       // AI Guide
       _Card(borderColor: AppColors.emerald600.withValues(alpha: 0.25), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [Icon(Icons.auto_awesome_rounded, color: tc, size: 16), const SizedBox(width: 6),
@@ -269,7 +261,7 @@ class _InterestTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pending = matchState.matches.where((m) => m.mode == 'date' && (m.status == 'pending_intro' || m.status == 'pending_video')).length;
+    final pending = matchState.matches.where((m) => m.mode == 'date' && (m.status == 'pending_intro' || m.status == 'pending_first_message')).length;
     final chatting = matchState.matches.where((m) => m.mode == 'date' && m.status == 'chatting').length;
 
     final hasAny = signalsReceived + notesReceived + pending + signalsSent + notesSent + connections + chatting > 0;
@@ -469,35 +461,6 @@ class _Stat extends StatelessWidget {
     child: Row(children: [Icon(icon, color: context.textMuted, size: 16), const SizedBox(width: AppSpacing.md),
       Expanded(child: Text(label, style: TextStyle(color: context.textSecondary, fontSize: 13))),
       Text(value, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w600))]));
-}
-
-class _Upcoming extends StatelessWidget {
-  final IconData icon; final String title; final String sub; final Color color;
-  const _Upcoming(this.icon, this.title, this.sub, this.color);
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-    padding: const EdgeInsets.all(AppSpacing.md),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.04),
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      border: Border.all(color: color.withValues(alpha: 0.10), width: 0.5),
-      boxShadow: Premium.shadowSm,
-    ),
-    child: Row(children: [
-      Container(
-        width: 32, height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color.withValues(alpha: 0.08),
-        ),
-        child: Icon(icon, color: color, size: 16),
-      ),
-      const SizedBox(width: AppSpacing.md),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(color: context.textPrimary, fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-        Text(sub, style: TextStyle(color: context.textMuted, fontSize: 11))]))]),
-  );
 }
 
 class _QA extends StatelessWidget {

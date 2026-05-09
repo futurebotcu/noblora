@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
@@ -11,13 +10,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/user_report_provider.dart';
-import '../../providers/video_provider.dart';
 import '../../data/models/inbox_item.dart';
 import '../../core/enums/noble_mode.dart';
 import '../matches/individual_chat_screen.dart';
 import 'mini_intro_screen.dart';
-import 'video_scheduling_screen.dart';
-import 'video_call_screen.dart';
 
 class MatchDetailScreen extends ConsumerWidget {
   final NobleMatch match;
@@ -28,7 +24,6 @@ class MatchDetailScreen extends ConsumerWidget {
     // Watch matchProvider for live updates instead of using stale passed object
     final liveMatch = ref.watch(matchProvider).matches
         .where((m) => m.id == match.id).firstOrNull ?? match;
-    final videoState = ref.watch(videoProvider(liveMatch.id));
     final userId = ref.watch(authProvider).userId ?? '';
 
     return Scaffold(
@@ -77,24 +72,16 @@ class MatchDetailScreen extends ConsumerWidget {
             _StatusCard(match: liveMatch),
             const SizedBox(height: AppSpacing.xxl),
 
-            // Deadline counter
-            if (liveMatch.isPendingVideo && liveMatch.videoDeadlineAt != null)
+            // First-message deadline hint
+            if ((liveMatch.isPendingFirstMessage || liveMatch.isPendingIntro)
+                && liveMatch.videoDeadlineAt != null)
               _DeadlineCard(deadline: liveMatch.videoDeadlineAt!),
-
-            // Pending intro hint
-            if (liveMatch.isPendingIntro && liveMatch.videoDeadlineAt != null)
-              _DeadlineCard(deadline: liveMatch.videoDeadlineAt!),
-
-            // Video session info
-            if (videoState.session != null && !liveMatch.isChatting)
-              _SessionCard(session: videoState.session!),
 
             const Spacer(),
 
             // Action button
             _ActionButton(
               match: liveMatch,
-              videoState: videoState,
               userId: userId,
             ),
           ],
@@ -216,12 +203,8 @@ class _StatusCard extends StatelessWidget {
     switch (match.status) {
       case 'pending_intro':
         return 'Send a Mini Intro';
-      case 'pending_video':
-        return 'Schedule a Short Intro Call';
-      case 'video_scheduled':
-        return 'Short Intro Scheduled';
-      case 'video_completed':
-        return 'Awaiting Decision';
+      case 'pending_first_message':
+        return 'Send first message';
       case 'chatting':
         return 'Chat is Open';
       case 'meeting_scheduled':
@@ -241,7 +224,7 @@ class _StatusCard extends StatelessWidget {
         return AppColors.emerald600;
       case 'expired':
         return AppColors.error;
-      case 'pending_video':
+      case 'pending_first_message':
         return AppColors.emerald500;
       default:
         return AppColors.emerald600;
@@ -304,51 +287,19 @@ class _DeadlineCard extends StatelessWidget {
 }
 
 
-class _SessionCard extends StatelessWidget {
-  final dynamic session;
-  const _SessionCard({required this.session});
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = DateFormat('d MMM · HH:mm');
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.10), width: 0.5),
-        boxShadow: Premium.shadowSm,
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.videocam_rounded, color: AppColors.emerald600, size: 18),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            'Video: ${fmt.format(session.scheduledAt.toLocal())} · ${session.status}',
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ActionButton extends ConsumerWidget {
   final NobleMatch match;
-  final dynamic videoState;
   final String userId;
 
   const _ActionButton({
     required this.match,
-    required this.videoState,
     required this.userId,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mini Intro (new connection, before video)
-    if (match.isPendingIntro) {
+    // Send first message (new connection)
+    if (match.isPendingFirstMessage || match.isPendingIntro) {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -363,49 +314,6 @@ class _ActionButton extends ConsumerWidget {
             context,
             MaterialPageRoute(
               builder: (_) => MiniIntroScreen(match: match),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (match.isPendingVideo || match.isVideoScheduled) {
-      final session = videoState.session;
-      if (session != null && session.isAccepted) {
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.videocam_rounded),
-            label: const Text('Join Video Call'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.emerald600,
-              foregroundColor: AppColors.bg,
-              minimumSize: const Size.fromHeight(52),
-            ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => VideoCallScreen(
-                    match: match, session: session),
-              ),
-            ),
-          ),
-        );
-      }
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          icon: const Icon(Icons.schedule_rounded),
-          label: const Text('Schedule Video Call'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.emerald600,
-            foregroundColor: AppColors.bg,
-            minimumSize: const Size.fromHeight(52),
-          ),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => VideoSchedulingScreen(match: match),
             ),
           ),
         ),
