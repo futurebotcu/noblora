@@ -13,6 +13,64 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — Dalga R11: Video call backend cleanup + Bumble first-message gate
+
+- [x] Kod path:
+  - **3 migration uygulandı:**
+    - `supabase/migrations/20260510000001_drop_video_call_system.sql`:
+      - `UPDATE matches SET status='expired' WHERE status IN (...)` (defansif, pre-check 0 row)
+      - `ALTER TABLE matches` CHECK rebuild: 8 değer → 5 değer (`pending_first_message,chatting,meeting_scheduled,expired,closed`); default `pending_video` → `pending_first_message`
+      - `DROP FUNCTION process_call_decision(uuid,uuid,boolean)` + `safe_advance_to_video(uuid,uuid)`
+      - `DROP TABLE call_decisions, video_sessions, mini_intros CASCADE`
+      - `cron.unschedule('expire-video-sessions')` + `cron.unschedule('expire-stale-matches')` + reschedule (yeni state'e göre)
+    - `supabase/migrations/20260510000002_rewrite_check_and_create_match.sql`:
+      - `CREATE OR REPLACE FUNCTION check_and_create_match` — conversation + conversation_participants önce INSERT, sonra match `pending_first_message` + `conversation_id` set + 24h `video_deadline_at` (semantic genişletilmiş first-message deadline)
+      - Notification mesajı güncellendi: "Send the first message to start chatting." (eski: "Send a mini intro!")
+      - `matches_ordered` CHECK için ordered user1/user2 logic eklendi
+    - `supabase/migrations/20260510000003_first_message_trigger.sql`:
+      - `CREATE FUNCTION first_message_advance_match()` SECURITY DEFINER + `is_system` bypass + idempotent UPDATE
+      - `CREATE TRIGGER trg_first_message_advance_match AFTER INSERT ON messages`
+
+- [x] Backend kanıtı (R8a pattern, 5 senaryo yeşil):
+  - **Pre-check** (R7 disiplini): `SELECT status, count(*) FROM matches WHERE status IN ('pending_intro','pending_video','video_scheduled','video_completed') GROUP BY status` → **0 row** ✅ (UPDATE no-op kabul edildi)
+  - **S1 — check_and_create_match RPC (testfeed1 ↔ testfeed10, mode='date'):**
+    - Mutual swipes setup (2 INSERT)
+    - RPC sonucu: `match_id=7064b89b...`, `conversation_id=d3e558eb...` (NOT NULL ✅), `status='pending_first_message'` ✅, `video_deadline_at=NOW()+24h` ✅
+    - Side-effects: `conversation_participants` count=2 ✅, `notifications type='new_match'` count=2 ✅ (her iki kullanıcı bildirim aldı)
+  - **S2 — first_message trigger:** Non-system message INSERT → `matches.status='chatting'` ✅
+  - **S3 — Idempotent (no-op):** 2. mesaj INSERT sonrası status hâlâ `chatting`, msgs=2 ✅
+  - **S4 — System message bypass (testfeed11 ↔ testfeed12, ayrı match):** `is_system=true` mesaj INSERT sonrası status hâlâ `pending_first_message` ✅
+  - **S5 — DROP doğrulama (M1 sonrası):** `to_regclass('public.video_sessions')`=NULL, `call_decisions`=NULL, `mini_intros`=NULL; `process_call_decision` + `safe_advance_to_video` count=0; `expire-video-sessions` cron silindi
+  - Cleanup smoke data: 0 leftover match, 0 leftover conversation
+  - **CLAUDE.md §6 advisor diff:**
+    - Pre (file `1778367021265.txt`): 1 ERROR + 1 INFO + 107 WARN (5 video-related)
+    - Post (file `1778369915328.txt`): 1 ERROR + 1 INFO + 104 WARN (0 video-related)
+    - Δ: -3 WARN, hedeflenen 5 finding (video_update_own RLS + 4 SECDEF/search_path entry) tamamen kayboldu, **0 yeni issue** ✅
+
+- [x] UI kanıtı:
+  - `flutter analyze --fatal-infos`: **No issues found!** (8.4s) ✅ (R10 sonrası kod hâlâ temiz, R11 backend değişikliği UI'ı etkilemedi)
+  - `flutter test`: **266 / 266 pass** (2s) ✅
+  - mini_intro_screen rewrite (R10) `conversationId` null guard artık defansif fallback rolünde — R11 sonrası `check_and_create_match` her match için `conversation_id` set ediyor → guard prod'da nadiren tetiklenir
+
+- [x] Regresyon kontrolü:
+  - **R5 (bypass-disguised-as-fix):** Migration tüm video function'ları DROP etti, eski permissive `video_update_own` policy CASCADE ile gitti (sadece "yeni policy ekle" yapılmadı, eski drop edildi) ✅
+  - **R6 (phantom feature):** R10/R11 kombinasyonu tüm video kod yolunu sildi (UI + backend); kullanıcıya gösterilen "Available soon" toast'lar gerçek (gelecek backlog), sahte değil ✅
+  - **R7 disiplin:** Pre-check SELECT (0 row) + 5/5 smoke senaryo + advisor diff (yan yana) — her edit kanıt-dayalı ✅
+  - **R8 mapping drift watch:** R-NEW-CANDIDATE aktif kalır — V2 reactivation'da yeni `video_*` type'lar eklenince `send-push/index.ts` mapping güncellenmeli (mevcut send-push mapping'de video referansı YOK, R10'da abandon edildi)
+
+- [x] Guardrail testi:
+  - flutter analyze: **green** ✅
+  - flutter test: **266/266** ✅
+  - Branch: `dalga-r11-video-backend-cleanup`
+
+- [x] V2 reactivation doc: R-NEW güncellendi (`known_regressions.md`):
+  - R10 commit SHA: `f4bea78` (merged PR #45)
+  - R11 commit: bu PR
+  - R10/R11 köprüsü "ÇÖZÜLDÜ 2026-05-10" notu eklendi
+  - Advisor diff side-by-side eklendi
+
+---
+
 ## 2026-05-10 — Dalga R10: Flutter video sistemi söküm (Bumble pattern'e geçiş)
 
 - [x] Kod path:

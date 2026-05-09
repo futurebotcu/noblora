@@ -1391,17 +1391,23 @@ match → MiniIntro (AI opener Gemini) → first message → chat.
 - iOS native config + `Info.plist` permission (`NSCameraUsageDescription`, `NSMicrophoneUsageDescription`)
 - Crashlytics ile call lifecycle monitoring (start/end/error)
 
-**Rollback referansı (R10 öncesi son video commit):**
+**Rollback referansı:**
 - main HEAD before R10: `d4257b4` (R8b phantom privacy cleanup)
-- Söküm dosyaları: video_call_screen, video_scheduling_screen, post_call_decision_screen, short_intro_rules_screen, video_service, video_session_repository, video_session model, video_provider, mini_intro_repository, mini_intro model, mini_intro_provider — `git show <R10-SHA>:<path>` ile geri okunabilir
-- R10 commit (Flutter söküm): bu PR — `dalga-r10-video-removal-flutter`
-- R11 commit (Backend cleanup): pending (`video_sessions` + `call_decisions` DROP, `process_call_decision` + `safe_advance_to_video` DROP, `expire-video-sessions` cron unschedule, `matches.status` CHECK rebuild, `check_and_create_match` rewrite)
+- R10 commit (Flutter söküm, merged): `f4bea78` (PR #45, branch `dalga-r10-video-removal-flutter`) — 21 files, +185 / -3390
+- R11 commit (Backend cleanup, merged): bu PR (branch `dalga-r11-video-backend-cleanup`) — 3 migration + 2 doc
+- Söküm dosyaları (Flutter): `git show f4bea78~1:lib/features/match/video_call_screen.dart` vb. ile geri okunabilir
+- Backend gövdeleri (process_call_decision v3, safe_advance_to_video, video_sessions schema): `supabase/migrations/20260331000003_faz3_overhaul.sql:228-314` + `20260330000002_video_sessions_scheduling.sql` referans
 
-**R10/R11 köprü riski:**
-- `match.conversation_id` şu an SADECE `process_call_decision` SECDEF'inde set ediliyor (video flow)
-- R11'de `check_and_create_match` rewrite ile match yaratımında `conversation_id` set edilecek
-- R10 merge sonrası R11 öncesi: yeni match'lerde `conversation_id` NULL → `mini_intro_screen._sendIntro` snackbar fallback ("Chat not ready yet. Try again in a moment.") gösterir
-- Strateji: R10 merge → hemen R11 → 2-3 saat ara durum kabul (test ortamında match data zaten yok)
-- Production'a R10 + R11 birlikte deploy edilmeli (atomic rollout)
+**R10/R11 köprü (ÇÖZÜLDÜ 2026-05-10):**
+- R10 sonrası R11 öncesi geçici sorun: yeni match'lerde `match.conversation_id` NULL kalıyordu (sadece eski `process_call_decision` SECDEF set ediyordu)
+- R11 M2 (`rewrite_check_and_create_match`) ile çözüldü: match yaratımında conversation + conversation_participants + match.conversation_id atomik INSERT
+- R11 M3 (`first_message_trigger`) ile state machine flip: `pending_first_message` → `chatting` ilk user mesajında
+- mini_intro_screen.dart conversationId null guard (R10) artık defansif fallback rolünde — R11 sonrası null gelmemeli
+- Smoke kanıt (R8a pattern): S1-S4 5/5 yeşil — match RPC + first_message trigger + idempotent + system bypass
+
+**R11 advisor diff (CLAUDE.md §6):**
+- Pre: 1 ERROR + 1 INFO + 107 WARN (5 video-related: rls_policy_always_true + 4 SECDEF/search_path)
+- Post: 1 ERROR + 1 INFO + 104 WARN (0 video-related)
+- Δ: -3 WARN net, 0 yeni issue, hedeflenen 5 finding tamamen kayboldu
 
 ---
