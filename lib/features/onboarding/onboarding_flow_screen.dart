@@ -152,8 +152,6 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
           // Privacy defaults (explicit, not null)
           'incognito_mode': false,
           'calm_mode': false,
-          'show_city_only': false,
-          'hide_exact_distance': false,
           'show_last_active': true,
           'show_status_badge': true,
           'reach_permission': 'everyone',
