@@ -353,7 +353,7 @@ değişir, davranış DEĞİŞMEZ. "Ayar uygulandı" illüzyonu.
 | calm_mode | settings_screen.dart:186 ✅ | can_reach_user RPC (signal/note/reach) ✅ KISMEN — feed/notification context'te değil | **KISMEN** |
 | hide_exact_distance | YOK ❌ | feed render ❌ (mesafe ProfileCard'da hiç yok, infra eksik) | OPEN — altyapı gerek |
 | show_city_only | YOK ❌ | render ❌ (DB'de city/travel_city zaten city-level; daha granular location yok → **phantom setting**, drop adayı) | OPEN — phantom |
-| notification_preferences | settings_screen ✅ | push system: chat için trigger yok; new_match/comment/etc. trigger'ları preference filter yapmıyor | OPEN — büyük iş |
+| notification_preferences | settings_screen ✅ | send-push edge HYBRID enforce ✅ — mapped: `new_match`/`bff_connected` (R8a smoke 4/4); diğer type'lar (chat trigger yok, comment/signal vs. unmapped) HYBRID default-ON ile geçer | **PARTIAL CLOSED** — R8a |
 
 **Kök neden hipotezi:** Özellikler iteratif yazıldı, "önce DB kolonu + UI
 toggle, enforce sonra" planı bazı özelliklerde gerçekleşmedi. Backend
@@ -364,11 +364,11 @@ RPC'leri mevcut), ama Flutter client tarafı bu RPC'leri çağırmadı.
 
 **Tekrar sayısı:** 1 (toplu envanter) — 8 setting altında.
 
-**Status:** KISMEN CLOSED (2026-05-03, Dalga 11 sonrası — kanıt-dayalı revize)
+**Status:** KISMEN CLOSED (2026-05-09, Dalga R8a sonrası — kanıt-dayalı revize)
 - **4 FULLY CLOSED:** incognito_mode (Dalga 6 + 11), show_last_active (zaten gated, Dalga 11 kanıtladı), show_status_badge (Dalga 11 ile 3 site), message_preview (matches gated; push N/A)
-- **1 KISMEN:** calm_mode (can_reach_user only, feed/notif değil)
-- **3 OPEN:** hide_exact_distance (altyapı yok), show_city_only (phantom), notification_preferences (push system)
-- Önceki "7 OPEN setting" iddiası kanıtsızdı (R7 disiplini): kanıtlama 4 setting'in zaten kapalı olduğunu, 3 gerçek leak (Dalga 11'de kapatıldı) ve 1 phantom setting'i ortaya çıkardı.
+- **2 KISMEN:** calm_mode (can_reach_user only, feed/notif değil); notification_preferences (Dalga R8a — mapped types `new_match` + `bff_connected` send-push'da enforce, HYBRID default-ON unmapped'i geçirir; chat-push trigger yok, yeni type eklendiğinde map güncellenmeli — bkz. R-NEW-CANDIDATE: mapping drift)
+- **2 OPEN:** hide_exact_distance (altyapı yok), show_city_only (phantom)
+- Önceki "7 OPEN setting" iddiası kanıtsızdı (R7 disiplini): kanıtlama 4 setting'in zaten kapalı olduğunu, 3 gerçek leak (Dalga 11'de kapatıldı), 1 phantom setting'i ve 1 setting'in (notification_preferences) Dalga R8a'da kısmen kapatılabildiğini ortaya çıkardı.
 
 **Kanıt (incognito_mode, 2026-04-23 ~12:35 UTC):**
 - Migration: `supabase/migrations/20260423122907_filter_discoverable_ids_batch.sql`
@@ -406,6 +406,43 @@ Migration (`20260503063000_bff_incognito_filter.sql`):
 - `flutter analyze --fatal-infos`: `No issues found!`
 - `flutter test`: 285/0 baseline korundu
 - Rollback: `.claude/dalga-11-rollback.sql` (eski body, is_discoverable satırı yok)
+
+**Kanıt (Dalga R8a — `notification_preferences` send-push enforce, 2026-05-09):**
+
+Code path:
+- `supabase/functions/send-push/index.ts:39-65` — opt-out check (HYBRID strategy)
+- `supabase/functions/send-push/index.ts:211-222` — `mapTypeToPrefKey` (evidence-based: only 2 type mapped → only 2 toggle wired)
+- HYBRID strateji: mapped type'lar pref'e bakar; unmapped type'lar default-ON geçer (KVKK §11 — implicit consent yasak değil; ileride kullanıcı yeni özellik için ayrı toggle bekler)
+
+Smoke (testfeed1 `858a0f3d-2da6-4133-ba2c-65f35c7d71c2`, MCP execute_sql + `net._http_response`, 2026-05-09 07:50–07:51 UTC):
+
+| # | Time UTC | Pref state | INSERT type | Edge response body | Beklenen | Sonuç |
+|---|---|---|---|---|---|---|
+| S1 | 07:50:27 | `new_match=false` | `new_match` | `{"sent":0,"reason":"opted_out","preference":"new_match","type":"new_match"}` | opted_out new_match | ✅ |
+| S2 | 07:51:12 | `new_match=true` | `new_match` | `{"sent":0,"reason":"no_tokens"}` | pass-through (pref kontrolü geçildi, push_tokens=0) | ✅ |
+| S3 | 07:51:31 | (irrelevant) | `chat_opened` (unmapped) | `{"sent":0,"reason":"no_tokens"}` | HYBRID pass-through (mapTypeToPrefKey=null) | ✅ |
+| S4 | 07:51:47 | `bff_suggestion=false` | `bff_connected` | `{"sent":0,"reason":"opted_out","preference":"bff_suggestion","type":"bff_connected"}` | opted_out bff_suggestion (mapping doğru) | ✅ |
+
+Cleanup: 8 pref → all-true, doğrulandı (`SELECT notification_preferences` after = baseline).
+
+Race avoidance: 4 senaryo aynı DO bloğunda toplandığında pg_net dispatcher cleanup-after-commit visibility nedeniyle hep güncel state'i okur → race kırılır. Fix: her senaryo ayrı `execute_sql` txn + arada `pg_sleep(3)` ile dispatch'in tamamlanması beklendi. Bu pattern gelecek smoke'lar için referans.
+
+- `flutter analyze --fatal-infos`: `No issues found!`
+- `flutter test`: 266/266 pass (delta: +9 yeni test send-push smoke harici eklendi başka sprintlerde değil — baseline)
+- Edge function deploy: `supabase functions deploy send-push` (xgkkslbeuydbbcvlhsli, 2026-05-09 ~07:48 UTC, version 5)
+
+**R-NEW-CANDIDATE: `mapTypeToPrefKey` mapping drift (R8a doğal kalıntısı, 2026-05-09):**
+
+Risk: Yeni `notifications.type` değeri eklendiğinde (örn. `comment_reply`, `signal_received`, `match_revoked`) `send-push/index.ts:217` map'i güncellenmediği takdirde:
+- Type unmapped → HYBRID default-ON ile geçer
+- İlgili settings toggle'ı UI'da var olsa bile push'u kapatmaz → R6 phantom-feature trap'in tekrarı
+
+Sözleşme:
+1. Yeni `notifications.type` değeri INSERT'leyen migration/repository PR'ında `send-push/index.ts:217` map'i de güncellenmeli (zorunlu eşleşme).
+2. Yeni notification settings toggle'ı UI'a eklerken: prefKey adı + type adı + map satırı + smoke testi 4'lü zorunlu.
+3. CI guardrail adayı: `notifications.type` enum'larını grep'le, `mapTypeToPrefKey` map'iyle karşılaştır, eksik anahtar varsa fail (Dalga R8b adayı, NOT STARTED).
+
+Tetikleyici tarih: yeni notification türü eklenir eklenmez. `R-NEW-CANDIDATE` etiketi promosyon (R14, R15...) — ilk drift olayı kayda geçince numaralanır.
 
 **R7 disiplin zaferi (Dalga 11 keşfi):**
 "7 OPEN setting" varsayımı kanıt sorgulanınca:
@@ -1245,8 +1282,9 @@ data layer mevcut + UI grep no match.
 | 8 + 8b | security_definer batch REVOKE | KISMEN (-40) | 110 advisor lint (51 frontend RPC) |
 | 9 | public_bucket_allows_listing 2 → 0 | CLOSED | — |
 | 11 | R8 leak fixes (show_status_badge ×2 + incognito BFF) | CLOSED | calm_mode KISMEN, hide_exact_distance OPEN, show_city_only phantom, notification_preferences OPEN |
+| R8a | notification_preferences send-push HYBRID enforce (mapped: new_match + bff_connected, smoke 4/4) | PARTIAL CLOSED | mapping drift watch (R-NEW-CANDIDATE) |
 | 12 (aday) | security_definer kalan 110 | NOT STARTED | — |
-| R8 kalan | calm_mode tam enforce + hide_exact_distance altyapı + show_city_only drop + notification_preferences | NOT STARTED | — |
+| R8 kalan | calm_mode tam enforce + hide_exact_distance altyapı + show_city_only drop + notification_preferences yeni type'lar map güncellemesi | KISMEN (R8a 2026-05-09) | — |
 
 ---
 
