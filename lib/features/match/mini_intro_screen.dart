@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/enums/noble_mode.dart';
+import '../../core/services/toast_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
+import '../../data/models/inbox_item.dart';
 import '../../data/models/match.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/mini_intro_provider.dart';
+import '../../providers/messages_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../services/gemini_service.dart';
-import 'video_scheduling_screen.dart';
+import '../matches/individual_chat_screen.dart';
 
 /// Mini Intro screen — shown after a Connection is made.
 /// User sends a short intro (max 280 chars), optionally AI-assisted.
@@ -72,25 +75,69 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
 
     setState(() => _isSending = true);
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      setState(() => _isSending = false);
+      return;
+    }
 
-    final notifier = ref.read(miniIntroProvider(widget.match.id).notifier);
-    await notifier.sendIntro(
-      matchId: widget.match.id,
-      senderId: userId,
-      message: text,
-    );
+    // R10/R11 bridge: conversation_id is set on match creation by R11
+    // (check_and_create_match rewrite). If null, R11 not deployed yet.
+    final convId = widget.match.conversationId;
+    if (convId == null) {
+      if (mounted) {
+        ToastService.show(context,
+            message: 'Chat not ready yet. Try again in a moment.',
+            type: ToastType.error);
+        setState(() => _isSending = false);
+      }
+      return;
+    }
 
-    // Advance to pending_video (authorized + state-checked)
-    await notifier.advanceToVideo(widget.match.id, userId);
+    // Send first message; first_message trigger (PR-R11) flips
+    // matches.status from pending_first_message → chatting.
+    final senderName =
+        ref.read(profileProvider).profile?.displayName ?? 'You';
+    try {
+      await ref.read(messagesRepositoryProvider).sendMessage(
+            conversationId: convId,
+            senderId: userId,
+            senderDisplayName: senderName,
+            content: text,
+            mode: widget.match.mode,
+            matchId: widget.match.id,
+          );
+    } catch (e, st) {
+      debugPrint('[intro] sendMessage failed: $e\n$st');
+      if (mounted) {
+        ToastService.show(context,
+            message: 'Could not send intro. Try again.',
+            type: ToastType.error);
+        setState(() => _isSending = false);
+      }
+      return;
+    }
 
     if (!mounted) return;
     setState(() => _isSending = false);
 
-    // Navigate to video scheduling
+    final mode = _mode;
+    final item = InboxItem(
+      id: widget.match.id,
+      name: widget.match.otherUserName ?? 'Match',
+      avatarSeed: widget.match.otherUserId ?? widget.match.id,
+      lastMessage: text,
+      ago: DateTime.now().difference(widget.match.matchedAt),
+      mode: mode,
+      type: ConversationType.alliance,
+    );
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => VideoSchedulingScreen(match: widget.match),
+        builder: (_) => IndividualChatScreen(
+          item: item,
+          conversationId: convId,
+          matchId: widget.match.id,
+        ),
       ),
     );
   }
@@ -102,10 +149,6 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
   @override
   Widget build(BuildContext context) {
     final mode = _mode;
-    final introState = ref.watch(miniIntroProvider(widget.match.id));
-    final otherIntro = introState.intros
-        .where((i) => i.senderId != ref.read(authProvider).userId)
-        .firstOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -148,41 +191,6 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-
-              // Other user's intro (if received)
-              if (otherIntro != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: mode.accentColor.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    border: Border.all(color: mode.accentColor.withValues(alpha: 0.12), width: 0.5),
-                    boxShadow: Premium.shadowSm,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$_otherName says:',
-                        style: TextStyle(
-                          color: mode.accentColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        otherIntro.message,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
 
               // Intro text field
               TextField(

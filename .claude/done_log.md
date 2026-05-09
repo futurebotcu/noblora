@@ -13,6 +13,71 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — Dalga R10: Flutter video sistemi söküm (Bumble pattern'e geçiş)
+
+- [x] Kod path:
+  - **11 dosya silindi** (8 video + 3 mini_intro):
+    - `lib/features/match/video_call_screen.dart` (489 satır)
+    - `lib/features/match/video_scheduling_screen.dart` (1211 satır)
+    - `lib/features/match/post_call_decision_screen.dart` (359 satır)
+    - `lib/features/match/short_intro_rules_screen.dart` (236 satır)
+    - `lib/services/video_service.dart` (54 satır — Jitsi URL builder)
+    - `lib/data/repositories/video_session_repository.dart` (~280 satır)
+    - `lib/data/models/video_session.dart` (~80 satır)
+    - `lib/providers/video_provider.dart` (~230 satır)
+    - `lib/data/repositories/mini_intro_repository.dart`
+    - `lib/data/models/mini_intro.dart`
+    - `lib/providers/mini_intro_provider.dart`
+  - **9 dosya düzenlendi**:
+    - `lib/data/models/match.dart`: 3 getter sil (isPendingVideo/Scheduled/Completed) + isPendingFirstMessage ekle + default 'pending_video' → 'pending_first_message'
+    - `lib/features/match/match_detail_screen.dart`: 8 edit (3 import sil, videoState watch sil, countdown widget birleşti, _SessionCard usage sil + sınıf tamamen sil, _ActionButton videoState parametresi sil, video CTA blokları "Join/Schedule Video Call" sil, _StatusCard switch'lerinden 3 video case sil + pending_first_message ekle, intl import sil)
+    - `lib/features/match/mini_intro_screen.dart`: REWRITE _sendIntro (sendIntro+advanceToVideo SİL → messages.insert + IndividualChatScreen push + conversationId null guard snackbar) + 6 import değişikliği + introState/otherIntro UI bloğu sil
+    - `lib/features/matches/matches_screen.dart`: filter (3 video state → pending_intro+pending_first_message) + label switch (3 video case → pending_first_message)
+    - `lib/features/matches/individual_chat_screen.dart`: Icons.video_call_rounded → Icons.bolt_rounded + Quick Intro Video option "Available soon" disabled (toast fallback) + video_scheduling_screen import sil + match local var temizlik
+    - `lib/features/status/status_screen.dart`: "Coming up" video_scheduled widget bloğu sil + _Upcoming class sil + pending filter pending_video → pending_first_message
+    - `lib/data/repositories/admin_repository.dart`: status filter ('pending_video','video_scheduled','chatting' → 'pending_first_message','chatting')
+    - `lib/navigation/main_tab_navigator.dart`: 4 edit (push routing 2 case sil, typeToCategory map 1 satır sil, isVideoProposed flag sil, banner "View" buton bloğu sil)
+    - `lib/features/feed/feed_screen.dart`: NO-OP (mini_intro_provider import zaten yoktu)
+
+- [x] Backend etkisi: YOK (R10 sadece UI söküm)
+  - `video_sessions` tablosu hâlâ ayakta (PR-R11'de DROP)
+  - `matches.status` hâlâ eski enum: 'pending_intro','pending_video','video_scheduled','video_completed','chatting','meeting_scheduled','expired','closed' (PR-R11'de rebuild → 'pending_first_message','chatting','meeting_scheduled','expired','closed')
+  - `process_call_decision` + `safe_advance_to_video` SECDEF function'ları hâlâ ayakta (PR-R11'de DROP)
+  - `expire-video-sessions` pg_cron job hâlâ aktif (PR-R11'de unschedule)
+  - UI artık bu state'lere/function'lara dokunmuyor (silinmiş kod referansı kalmadı)
+
+- [x] UI kanıtı:
+  - `flutter analyze --fatal-infos`: **No issues found!** (5.8s) ✅
+  - `flutter test`: **266 / 266 pass** (test count değişmiyor, video için test yoktu)
+  - Iterative analyze fix (3 issue → 1 warning → 0):
+    1. `individual_chat_screen.dart:26` orphan import `video_scheduling_screen.dart` sil
+    2. `individual_chat_screen.dart:625` Quick Intro Video option `VideoSchedulingScreen` push → "Available soon" disabled + toast
+    3. `status_screen.dart:466` `_Upcoming` class unused → tamamen sil
+    4. `individual_chat_screen.dart:569` `match` local var unused (Video option simplify sonrası) → kaldır
+  - Match akışı yeniden tasarlandı:
+    - Eski: Match → propose video → call → enjoyed? → chat
+    - Yeni: Match → MiniIntro (AI opener Gemini KEEP) → first message (PR-R11 first_message trigger ile state geçişi) → chat
+
+- [x] Korunan özellikler (V1 differentiator):
+  - `mini_intro_screen.dart`: AI opener (Gemini) feature, _sendIntro REWRITE (messages.insert + IndividualChatScreen + InboxItem köprü matches_screen pattern'inden)
+  - `match_found_screen.dart`: 'It's a Match!' brand moment dokunulmadı (K2-A onayı, mode-aware Date/BFF korundu)
+  - `individual_chat_screen.dart` Quick Intro: Voice "Available soon" + Video "Available soon" placeholder simetri (toast fallback)
+
+- [x] Regresyon kontrolü:
+  - **R1 (copyWith drift):** `match.dart` 3 getter sil + 1 ekle — caller'lar tüm güncellendi (match_detail_screen, matches_screen, status_screen, admin_repository); analyze sıfır undefined identifier
+  - **R6 (phantom feature):** Video CTA tamamen kaldırıldı, "Available soon" toast user'a açık beyan (sahte feature gösterilmiyor)
+  - **R7 disiplin:** 12 ana edit + 4 iterative analyze fix — hepsi kanıt-dayalı (her hata grep+view ile yakalandı, sırayla çözüldü)
+  - **R10/R11 köprüsü:** `mini_intro_screen` rewrite'da `widget.match.conversationId` null guard eklendi → snackbar "Chat not ready yet. Try again in a moment." (R11 öncesi defansif behavior)
+
+- [x] Guardrail testi:
+  - `flutter analyze`: **green** ✅
+  - `flutter test`: **266/266 pass** ✅
+  - Branch: `dalga-r10-video-removal-flutter` (main d4257b4 üstüne)
+
+- [x] V2 reactivation doc: R-NEW eklendi (`known_regressions.md`)
+
+---
+
 ## 2026-05-09 — Dalga R8b: phantom privacy settings cleanup (R8 PARTIAL → MOSTLY CLOSED)
 
 - [x] Kod path:

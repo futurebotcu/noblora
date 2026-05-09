@@ -35,7 +35,7 @@ class NobleMatch {
       user1Id: json['user1_id'] as String,
       user2Id: json['user2_id'] as String,
       mode: json['mode'] as String? ?? 'date',
-      status: json['status'] as String? ?? 'pending_video',
+      status: json['status'] as String? ?? 'pending_first_message',
       matchedAt: DateTime.parse(json['matched_at'] as String),
       videoDeadlineAt: json['video_deadline_at'] != null
           ? DateTime.parse(json['video_deadline_at'] as String)
@@ -72,9 +72,7 @@ class NobleMatch {
   }
 
   bool get isPendingIntro => status == 'pending_intro';
-  bool get isPendingVideo => status == 'pending_video';
-  bool get isVideoScheduled => status == 'video_scheduled';
-  bool get isVideoCompleted => status == 'video_completed';
+  bool get isPendingFirstMessage => status == 'pending_first_message';
   bool get isChatting => status == 'chatting';
   bool get isExpired => status == 'expired';
   bool get isClosed => status == 'closed';

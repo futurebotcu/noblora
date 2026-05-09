@@ -30,7 +30,7 @@ class AdminRepository {
       db.from('profiles').select('id'),
       db.from('photo_verifications').select('id').eq('status', 'pending'),
       db.from('matches').select('id').inFilter(
-          'status', ['pending_video', 'video_scheduled', 'chatting']),
+          'status', ['pending_first_message', 'chatting']),
       db.from('posts').select('id').gte(
           'created_at',
           DateTime.now()

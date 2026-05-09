@@ -70,9 +70,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       case 'new_message':
       case 'chat_opened':
         _switchTo(1); // Chats tab
-      case 'video_proposed':
-      case 'video_confirmed':
-        _switchTo(1); // Chats tab (scheduling is inside chat)
       case 'note_received':
       case 'signal_received':
         _switchTo(1); // Requests tab inside Chats
@@ -268,7 +265,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 'new_message': 'new_message', 'chat_opened': 'new_message',
                 'signal_received': 'signals', 'note_received': 'notes',
                 'bff_reach_out': 'bff_suggestion',
-                'video_proposed': 'new_match', 'video_confirmed': 'new_match',
               };
               final category = typeToCategory[latest.type];
               if (category != null && prefs[category] == false) return; // Suppressed by user
@@ -291,9 +287,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
           return;
         }
       }
-
-      final isVideoProposed = latest.type == 'video_proposed' ||
-          latest.type == 'video_confirmed';
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -374,19 +367,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                   ],
                 ),
               ),
-              if (isVideoProposed)
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    setState(() => _currentIndex = 1); // Go to Chats tab
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.emerald500,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                  child: const Text('View',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
             ],
           ),
           ), // Container

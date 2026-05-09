@@ -60,16 +60,13 @@ InboxItem _matchToInboxItem(NobleMatch match) {
     mode: mode,
     type: ConversationType.alliance,
     isUnread: match.status == 'pending_intro' ||
-        match.status == 'pending_video' ||
-        match.status == 'video_completed',
+        match.status == 'pending_first_message',
   );
 }
 
 String _statusLabel(NobleMatch match) => switch (match.status) {
   'pending_intro' => 'Send a mini intro to get started',
-  'pending_video' => 'Ready for a Short Intro?',
-  'video_scheduled' => 'Short Intro is on the calendar',
-  'video_completed' => 'How did it go?',
+  'pending_first_message' => 'Send first message',
   'chatting' => 'Conversation is open',
   'expired' => 'Connection expired',
   'closed' => 'Connection ended',
