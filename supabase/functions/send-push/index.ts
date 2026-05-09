@@ -36,6 +36,34 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    // R8: notification_preferences enforce — opt-out check before sending.
+    // HYBRID strategy: only mapped types check preference; unknown types fall
+    // through to send (default ON, KVKK §11 — no implicit consent assumed).
+    const prefKey = mapTypeToPrefKey(type);
+    if (prefKey) {
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("notification_preferences")
+        .eq("id", user_id)
+        .maybeSingle();
+
+      if (profErr) {
+        // R4: don't swallow — but don't block send either; better to deliver
+        // than silently drop on a transient profile read failure.
+        console.error("[send-push] profile fetch error:", profErr);
+      }
+
+      if (prof?.notification_preferences?.[prefKey] === false) {
+        console.log(
+          `[send-push] User ${user_id} opted out of ${prefKey} (type=${type}), skipping`
+        );
+        return new Response(
+          JSON.stringify({ sent: 0, reason: "opted_out", preference: prefKey, type }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { data: tokens, error: tokenError } = await supabase
       .from("push_tokens")
       .select("token")
@@ -178,4 +206,17 @@ async function getFirebaseAccessToken(
 
   const tokenData = await tokenRes.json();
   return tokenData.access_token;
+}
+
+// R8: notifications.type → notification_preferences key mapping.
+// Evidence-based: only types confirmed via INSERT INTO public.notifications
+// grep across migrations/ + supabase_schema.sql are mapped. When a new
+// notifications.type is introduced, this map MUST be updated — otherwise
+// the matching settings toggle will silently no-op (R6 phantom-feature trap).
+function mapTypeToPrefKey(type: string): string | null {
+  const map: Record<string, string> = {
+    "new_match": "new_match",
+    "bff_connected": "bff_suggestion",
+  };
+  return map[type] ?? null;
 }

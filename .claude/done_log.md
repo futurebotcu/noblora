@@ -13,6 +13,35 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-09 — Dalga R8a: notification_preferences enforce on send-push edge function (R8 PARTIAL CLOSED)
+
+- [x] Kod path:
+  - `supabase/functions/send-push/index.ts:39-65` — opt-out check (HYBRID strategy: mapped types check pref, unmapped fall through default-ON)
+  - `supabase/functions/send-push/index.ts:211-222` — `mapTypeToPrefKey` (evidence-based mapping: `new_match → new_match`, `bff_connected → bff_suggestion`)
+  - Deploy: `supabase functions deploy send-push` (xgkkslbeuydbbcvlhsli, version 5, 2026-05-09 ~07:48 UTC)
+- [x] Backend kanıtı: 4-senaryo smoke (testfeed1 `858a0f3d-2da6-4133-ba2c-65f35c7d71c2`, MCP execute_sql + `net._http_response`):
+
+  | # | Time UTC | Pref state | INSERT type | Edge response | Beklenen | Sonuç |
+  |---|---|---|---|---|---|---|
+  | S1 | 07:50:27 | `new_match=false` | `new_match` | `{"sent":0,"reason":"opted_out","preference":"new_match","type":"new_match"}` | opted_out new_match | ✅ |
+  | S2 | 07:51:12 | `new_match=true` | `new_match` | `{"sent":0,"reason":"no_tokens"}` | pass-through | ✅ |
+  | S3 | 07:51:31 | (irrelevant) | `chat_opened` (unmapped) | `{"sent":0,"reason":"no_tokens"}` | HYBRID pass-through | ✅ |
+  | S4 | 07:51:47 | `bff_suggestion=false` | `bff_connected` | `{"sent":0,"reason":"opted_out","preference":"bff_suggestion","type":"bff_connected"}` | opted_out bff_suggestion | ✅ |
+
+  Cleanup: 8 pref → all-true doğrulandı. Edge logs 4 invocation 200 OK (`mcp__supabase__get_logs`).
+- [x] UI kanıtı: backend-only smoke (UI toggle zaten settings_screen'de var ve DB'ye yazıyordu, eksik olan enforce backend'di). Push token gerektirmediği için emülatör smoke gerek yok — `net._http_response` body inspection ground truth.
+- [x] Regresyon kontrolü:
+  - R4 (`catch (_)`): yeni eklenmedi; profileErr için `console.error` + don't block (R4 disiplini: silent yutma yok, ama transient profile read hatası push'u engellemesin — KVKK §11 default-ON gereği).
+  - R6 (phantom feature trap): mapTypeToPrefKey evidence-based — yalnızca migration grep ile bulunan type'lar map'lendi. R-NEW-CANDIDATE: yeni type eklendiğinde map güncelleme zorunlu (known_regressions.md R8 §R-NEW-CANDIDATE).
+  - R8: notification_preferences "OPEN — büyük iş" → "PARTIAL CLOSED" (mapped 2 type enforce çalışıyor; chat-push trigger yok, diğer notification type'ları map'e eklendikçe enforce'a girer).
+  - R7 disiplin: 4/4 smoke direct evidence (response body), advisory log değil — net._http_response.content tablosu hard-truth.
+- [x] Guardrail testi:
+  - `flutter analyze --fatal-infos`: `No issues found!` ✅ (smoke öncesi yeşil idi, smoke kod değişikliği yapmadı; doc-only edit known_regressions + done_log)
+  - `flutter test`: 266/266 pass baseline korundu (smoke öncesi yeşil idi).
+- Branch: `dalga-r8a-notification-preferences-enforce`
+
+---
+
 ## 2026-04-28 — Dalga 5d7: Karışık Kalanlar (R9 KISMEN, 22 → 13)
 
 - [x] Kod path:
