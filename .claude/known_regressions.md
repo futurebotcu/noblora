@@ -1478,7 +1478,7 @@ edildi, V1 sprint freeze'i bozmaz.
 
 ---
 
-## R14 (PENDING) — SignInScreen 200-as-error bug
+## R14 (FIX APPLIED, AWAITING VALIDATION) — SignInScreen 200-as-error bug
 
 **Tespit:** R13 UI smoke (2026-05-10) sırasında.
 
@@ -1518,5 +1518,12 @@ mevcut user'lar bile yeniden sign-in olamayabilir (token expire sonrası).
 **R13 ile ilişki:** YOK. SignInScreen + AuthRepository hiç değiştirilmedi R13'te.
 R13 PR'ı bu bug ile bloklanmıyor (backend %100 + code path %100 doğrulandı), ama
 V1 launch için R14 şart.
+
+**Status (2026-05-10 16:00):**
+- Fix applied: `lib/main.dart` PlatformDispatcher.onError `return true` → `return false`
+- Branch: `dalga-r14-signin-200-error-fix` (commit `7a042fb`, push pending)
+- Smoke (kod-side): `flutter analyze --fatal-infos` green; `flutter test` 286/286 pass
+- Validation: Skipped emulator runtime test — emulator NAT bridge transient broken (only 10.0.2.2 gateway and 10.0.2.3 DNS reachable, all external IPs 100% packet loss). Will validate in **Play Store Internal Test track on physical device** post-AAB upload.
+- Rollback: Single-line revert if Internal Test fails sign-in (`return false` → `return true`).
 
 ---
