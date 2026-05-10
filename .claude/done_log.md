@@ -13,6 +13,61 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — V1 Launch Prep: Final AAB after R15 merge
+
+- [x] R15 merged: commit `9f5e593` via PR #51 (release smoke bugfix sprint)
+  - 4 fix commits squashed: `8f1b086` default accent emerald, `25296b5` location permission states, `30eca61` profile save propagation, `ff19ef5` Colors.orange→AppColors.warning, `129d124` R15 report
+  - Net: +536 / -81 lines across 5 files (+ 265-line `R15_RELEASE_SMOKE_BUGFIX_REPORT.md`)
+- [x] Post-merge `git pull origin main`: ✓ clean fast-forward, HEAD `9f5e593`
+- [x] Post-merge smoke:
+  - `flutter analyze --fatal-infos`: **No issues found! (ran in 14.3s)**
+  - `flutter test`: **286/286 pass**
+- [x] Final AAB build:
+  - Path: `build/app/outputs/bundle/release/app-release.aab`
+  - Size: 47.6MB (47,607,693 bytes; Gradle reported 45.4MB binary unit)
+  - Date: 2026-05-10 18:53
+  - Version: `1.0.0+1` (`pubspec.yaml`)
+  - Build duration: 128.1s (`Gradle task 'bundleRelease'`)
+  - Signing: release `signingConfig` from `android/key.properties` → `upload-keystore.jks` (gitignored)
+- [x] Backup chain (5 entries kept for rollback / diff):
+  - `app-release-pre-R14.aab.bak` — 2026-05-10 10:40
+  - `app-release-pre-cleanup.aab.bak` — 2026-05-10 17:14
+  - `app-release-pre-cleanup-merge.aab.bak` — 2026-05-10 17:38
+  - `app-release-pre-R15-location-onboarding-fix.aab.bak` — 2026-05-10 17:51
+  - `app-release-pre-R15-merge.aab.bak` — 2026-05-10 18:35
+  - `app-release.aab` — 2026-05-10 18:53 (final, post-R15-merge — current)
+
+- [x] R15 fixes shipped:
+  - Default accent `'gold'` → `'emerald'` (3 sites in `appearance_provider.dart`) — fixes Bumble-yellow leak on every fresh install
+  - `LocationService.getLocationFromGPS()` returns typed `LocationStatus` enum (success/denied/deniedForever/serviceDisabled/positionUnavailable) — surfaces why no permission popup
+  - `_LocationPage._useGPS` branches per status; "Open Settings" button on `deniedForever` + `serviceDisabled`; manual fallback always available
+  - `_complete()` throws on save/refresh failures instead of silent cascade — prevents "You're all set" stuck spinner
+  - `_CompletePage` resets `_loading` on both success + error paths (defensive); error messages branched by exception type
+  - `_city` no longer sent to DB when empty (manual fallback can leave it unset)
+  - `Colors.orange` → `AppColors.warning` in TravelMode warning row (only remaining raw Material yellow leak)
+
+- [ ] **Pending — manual user actions:**
+  - Play Console Internal Test track upload (manual, Console UI)
+  - Physical-device R15 retest checklist (19 items, see `R15_RELEASE_SMOKE_BUGFIX_REPORT.md`):
+    - [ ] Welcome "Sign In" button is emerald (not yellow)
+    - [ ] All primary CTAs across screens are emerald
+    - [ ] Fresh sign-up → lands on Welcome step (1/8)
+    - [ ] "Use my location" → OS permission popup appears
+    - [ ] Allow → city/country resolves; Don't allow → in-app retry message
+    - [ ] deniedForever / serviceDisabled → "Open Settings" button works
+    - [ ] Manual city search always works (fallback)
+    - [ ] "You're all set" → "Enter Noblara" → spinner → Discover (no infinite stuck)
+    - [ ] Save fail → toast: "We couldn't save your profile..." + button re-enabled
+    - [ ] TravelMode warning icon is muted amber (not orange/yellow)
+    - [ ] R13/R14/cleanup regression checks still pass (sign-in, first-message gate, travel mode, settings 2 toggles, Help Center "first message → meet")
+  - On green retest → promote to Production track
+  - On red → capture screenshot + steps + report; deeper fix sprint if needed
+
+- [ ] **Open follow-up (R15 known limitation):**
+  - Bug 6 ("ilk ekranda beklenen onboarding görünmüyor") — could not reproduce from source. If retest still hits it, investigation moves to `SignUpScreen` email-confirmation flow.
+
+---
+
 ## 2026-05-10 — V1 Launch Prep: Final AAB after Play Store cleanup merge
 
 - [x] Cleanup PR merged: commit `ddfb88e` via PR #50 (settings cull + Help Center video/call rewrite + "Explore Nob Feed" button removal + AI output guard)
