@@ -3,6 +3,16 @@
 android/app/google-services.json
 service-account*.json
 
+# Android signing - NEVER commit these (10-year Play Store keystore)
+android/key.properties
+android/*.jks
+android/*.keystore
+android/app/*.jks
+android/app/*.keystore
+*.jks
+*.keystore
+key.properties
+
 # Local config
 .claude/settings.local.json
 
