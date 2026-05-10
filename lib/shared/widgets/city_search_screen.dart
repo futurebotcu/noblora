@@ -8,7 +8,25 @@ import '../../providers/location_provider.dart';
 
 class CitySearchScreen extends ConsumerStatefulWidget {
   final String? initialValue;
-  final void Function(String city, String country, double? lat, double? lng) onSelected;
+  /// Called when the user picks a city from the autocomplete list.
+  ///
+  /// [countryCode] is the ISO 2-letter country short_name returned by the
+  /// places-proxy edge function (R13). It can be null if the proxy could
+  /// not resolve country (legacy response, network fallback, etc.) — callers
+  /// should treat null as "unknown" rather than blocking the flow.
+  ///
+  /// [placeId] is Google's stable place identifier. Useful for caching and
+  /// for exact city re-resolution later (e.g. travel mode recall). Always
+  /// available on the autocomplete prediction; only null if the autocomplete
+  /// step itself failed.
+  final void Function(
+    String city,
+    String country,
+    double? lat,
+    double? lng,
+    String? countryCode,
+    String? placeId,
+  ) onSelected;
 
   const CitySearchScreen({super.key, this.initialValue, required this.onSelected});
 
@@ -85,8 +103,20 @@ class _CitySearchScreenState extends ConsumerState<CitySearchScreen> {
         }
       }
 
+      // R13 — places-proxy enriches `result` with ISO 2-letter countryCode
+      // (short_name of type=country address component). Used for geo-awareness
+      // gating (TH/VN/PH check) without re-parsing address_components.
+      final countryCode = result?['countryCode'] as String?;
+
       if (mounted) {
-        widget.onSelected(prediction.mainText, country, lat, lng);
+        widget.onSelected(
+          prediction.mainText,
+          country,
+          lat,
+          lng,
+          countryCode,
+          prediction.placeId,
+        );
         Navigator.pop(context);
       }
       return;
@@ -94,9 +124,18 @@ class _CitySearchScreenState extends ConsumerState<CitySearchScreen> {
       debugPrint('Place details error: $e');
     }
 
-    // Fallback without coordinates
+    // Fallback without coordinates — placeId is still valid (it came from
+    // the autocomplete step that already succeeded), so we keep it for
+    // downstream callers (travel mode, future re-resolution).
     if (mounted) {
-      widget.onSelected(prediction.mainText, prediction.secondaryText, null, null);
+      widget.onSelected(
+        prediction.mainText,
+        prediction.secondaryText,
+        null,
+        null,
+        null,
+        prediction.placeId,
+      );
       Navigator.pop(context);
     }
   }

@@ -27,6 +27,12 @@ class Profile {
   final String? bio;
   final int? age;
   final String? city;
+  final String? country;          // Home country, ISO 2-letter (R13)
+  final String? travelCountry;    // Travel destination ISO 2-letter (R13)
+  final String? travelCity;
+  final bool travelMode;
+  final String? placeId;          // Google Places place_id of home city (R13)
+  final String? travelPlaceId;    // Google Places place_id of travel city (R13)
   final String? occupation;
   final int? height;
   final String? philosophy;
@@ -102,6 +108,12 @@ class Profile {
     this.bio,
     this.age,
     this.city,
+    this.country,
+    this.travelCountry,
+    this.travelCity,
+    this.travelMode = false,
+    this.placeId,
+    this.travelPlaceId,
     this.occupation,
     this.height,
     this.philosophy,
@@ -156,6 +168,10 @@ class Profile {
   String get fullName => displayName;
   String? get currentMode => mode;
 
+  /// Semantic alias for `travelMode` — true when user is currently travelling
+  /// (R13 geo-awareness layer). Used by swipe gate + Discover banner.
+  bool get isTraveling => travelMode;
+
   String get strengthLabel {
     final score = maturityScore.round();
     if (score >= 80) return 'Complete';
@@ -207,6 +223,12 @@ class Profile {
       bio: json['bio'] as String?,
       age: json['age'] as int?,
       city: json['city'] as String?,
+      country: json['country'] as String?,
+      travelCountry: json['travel_country'] as String?,
+      travelCity: json['travel_city'] as String?,
+      travelMode: json['travel_mode'] as bool? ?? false,
+      placeId: json['place_id'] as String?,
+      travelPlaceId: json['travel_place_id'] as String?,
       occupation: json['occupation'] as String?,
       height: json['height'] as int?,
       philosophy: json['philosophy'] as String?,
@@ -289,6 +311,12 @@ class Profile {
       'bio': bio,
       'age': age,
       'city': city,
+      'country': country,
+      'travel_country': travelCountry,
+      'travel_city': travelCity,
+      'travel_mode': travelMode,
+      'place_id': placeId,
+      'travel_place_id': travelPlaceId,
       'occupation': occupation,
       'height': height,
       'philosophy': philosophy,
@@ -364,6 +392,12 @@ class Profile {
     String? bio,
     int? age,
     String? city,
+    String? country,
+    String? travelCountry,
+    String? travelCity,
+    bool? travelMode,
+    String? placeId,
+    String? travelPlaceId,
     String? occupation,
     int? height,
     String? philosophy,
@@ -437,6 +471,12 @@ class Profile {
       bio: bio ?? this.bio,
       age: age ?? this.age,
       city: city ?? this.city,
+      country: country ?? this.country,
+      travelCountry: travelCountry ?? this.travelCountry,
+      travelCity: travelCity ?? this.travelCity,
+      travelMode: travelMode ?? this.travelMode,
+      placeId: placeId ?? this.placeId,
+      travelPlaceId: travelPlaceId ?? this.travelPlaceId,
       occupation: occupation ?? this.occupation,
       height: height ?? this.height,
       philosophy: philosophy ?? this.philosophy,
