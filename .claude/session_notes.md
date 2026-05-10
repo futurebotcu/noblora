@@ -5,6 +5,37 @@ Her oturum açılışında bu dosyaya bir kayıt açılır. İlk 3 adım CLAUDE.
 
 ---
 
+## 2026-05-10 — R10 + R11 UI Smoke (Bumble first-message gate)
+
+### Hedef
+R10 (video call UI removal) + R11 (backend cleanup + first-message gate)
+merge edildi (commits f4bea78 + 8a8c63d). Şimdi end-to-end UI smoke:
+testfeed1 ↔ testfeed10 mutual swipe → match → Mini Intro → AI opener →
+mesaj → first_message trigger flip → chat geçişi.
+
+### Risk alanı (R-kodları)
+- **R10/R11**: Bumble gate yeni — `pending_first_message → chatting`
+  trigger akışı UI tarafında köprüye bağlı mı?
+- **R12**: testfeed* auth NULL kolonları — bu oturumda **yeni hesap seed
+  edilmiyor**, mevcut testfeed1+10 kullanılacak; risk düşük.
+- **R13**: photo_verifications eksikliği — testfeed1+10 daha önce manual
+  fix edildiyse Discover'da görünür olmalı.
+- **R7**: "muhtemelen çalışıyor" yasak — her adım için DB kanıtı +
+  emülatör screenshot.
+
+### Scope (3 madde sınırı)
+1. Pre-state DB cleanup (eski match/conv/swipe sil)
+2. Emülatör smoke (login → swipe → match → mini intro → mesaj)
+3. Backend doğrulama (matches.status, messages.count, trigger flip)
+
+> 3'ü aştığımda DURUP kullanıcıya onay isteyeceğim. Yeni feature/refactor
+> bu oturumda yasak — sadece smoke + raporlama.
+
+### Branch
+`main` (R10 + R11 merge edildi, smoke main üstünde)
+
+---
+
 ## 2026-04-27 12:00 Bangkok — Dalga 5d3: Edge Functions
 
 ### Hedef

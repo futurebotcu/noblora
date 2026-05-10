@@ -71,6 +71,86 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — R10 + R11 UI Smoke (uçtan uca emülatör doğrulama)
+
+R10 (Flutter UI removal) + R11 (backend cleanup + Bumble first-message gate)
+merge edildikten sonra (`8a8c63d` main üstünde) Pixel emülatöründe (Android
+17 API 37, emulator-5554) tam akış elden geçti. Backend simulate (mutual
+swipe + RPC) yolu A seçildi; Fatih (`fe35aa23-f2b5-4150-852e-b94db5739848`,
+fatihkartal75@gmail.com) ↔ FeedTest 10 (`d7575a34-0557-49e7-8756-d5f1fb43c0e5`)
+match path test edildi.
+
+- [x] Kod path: yok (smoke; kod değişikliği yapılmadı, R10/R11 entry'lerindeki
+      kod kanıtı tabanı üzerine UI doğrulama)
+
+- [x] Backend kanıtı (CLAUDE.md §1 + R7 disiplini):
+  - **Pre-state cleanup:** swipes/matches/messages/notifications 0/0/0/0
+    (ADIM 1, 8 stale notification 2026-05-09 R11 test artığı silindi)
+  - **APK timestamp uyuşmazlığı (kök neden):** Emülatör APK lastUpdateTime
+    `2026-05-09 08:25:41`; R10/R11 merge `2026-05-09 22:41/23:48 UTC` —
+    eski APK `pending_first_message` tanımıyordu → Inbox boş.
+    **Çözüm:** `flutter run -d emulator-5554 --debug` (~1 dk Gradle build),
+    APK reinstalled, lastUpdateTime → `2026-05-10 07:02:08`. ✅
+  - **Mutual swipe + RPC (Fatih ↔ FeedTest 10, mode='date'):**
+    - Setup: testfeed10 → Fatih right swipe INSERT (Fatih → testfeed10
+      swipe zaten 2026-04-09'dan vardı `8b8fb2b3-461b-496f-804a-ba8553a9f980`)
+    - `check_and_create_match` RPC sonucu: match_id=`fa4367cf-a167-40c6-9f37-ef2a208b9591`,
+      conversation_id=`295a8bd0-a8f2-4bd9-ad88-1de754014b11` (NOT NULL ✅),
+      status=`pending_first_message` ✅, video_deadline_at=NOW()+24h ✅,
+      chat_expires_at=null ✅
+    - Side-effects: conversation_participants count=2 ✅, notifications
+      type='new_match' count=2 ✅
+  - **first_message trigger flip (S2 of R11 backend smoke, this time on
+    real client message):** AI opener "Hey! How's your day treating you?"
+    INSERT (sender=Fatih) → matches.status `pending_first_message` →
+    **`chatting`** ✅, msg_count=1 ✅, message id=`9226f063-da28-4fe0-aa03-02bfc3d16489`,
+    created_at=2026-05-10 07:16:33 UTC ✅
+
+- [x] UI kanıtı (8 screenshot, `.claude/r11_smoke_*.png`):
+  - **ADIM 5 — Inbox kart:** "1 new" header badge, "Alliances 2", "FeedTest 10 /
+    Send first message / 0m / yeşil unread dot / avatar foto"
+    (`r11_smoke_inbox_refresh.png`)
+  - **ADIM 5 — MatchDetailScreen:** Header "FeedTest 10", status pill "Send
+    first message" (yeşil), schedule pill "Schedule within 23h 55m"
+    (turuncu, R11 24h video_deadline countdown), CTA "Send Mini Intro"
+    (`r11_smoke_after_tap3.png`)
+  - **ADIM 6 — MiniIntroScreen + Gemini AI:** "Mini Intro" title, "Write a
+    short intro... 0/280", "Need an opener?" buton tap → ~8s Gemini API
+    call → 3 öneri yüklendi (Hey/Glad we connected/Hi there)
+    (`r11_smoke_mini_intro.png`)
+  - **ADIM 6 — Opener seçim:** 1. öneri tap → text area dolar (33/280
+    char counter) (`r11_smoke_after_pick_opener.png`)
+  - **ADIM 7 — IndividualChatScreen:** Header "FeedTest 10 / Noble Date"
+    yeşil dot, mesaj baloncuğu yeşil "Hey! How's your day treating you?"
+    07:16 ✓ delivered, "ENCRYPTED CONNECTION" footer
+    (`r11_smoke_after_send.png`)
+  - **R10 köprü doğrulaması:** "Chat not ready yet" snackbar **çıkmadı**
+    (mini_intro_screen.dart conversationId null guard tetiklenmedi —
+    R11 RPC her match için conversation_id set ediyor)
+
+- [x] Regresyon kontrolü:
+  - **R7 (uydurma iddia):** Her adım için DB kanıtı + screenshot. İlk
+    Inbox'ta "Elena Vance" görünce "yeni match işlemiyor" demek yerine
+    SQL'le test edildi → emülatörde Fatih login (testfeed1 değil) tespit
+    edildi, R7 disiplinine uyuldu. ✅
+  - **R6 (phantom feature):** R10 sonrası video CTA "Available soon" toast
+    yerine R11 sonrası gerçek 24h "Schedule within 23h 55m" deadline
+    countdown gösterildi — feature gerçek, sahte değil. ✅
+  - **R12 (auth NULL kolonlar):** testfeed1 login denemedik, mevcut Fatih
+    session ile devam ettik — R12 risk path tetiklenmedi. ✅
+  - **R13 (photo_verifications eksik):** Discover'da "All caught up"
+    göründü çünkü Fatih hesabı zaten swipe geçmişine sahip; photo_verif
+    bloğu Fatih için tetiklenmedi. ✅
+
+- [x] Guardrail testi: kod değişikliği yok → R10/R11 entry'lerindeki
+      `flutter analyze` (No issues found!) + `flutter test` (266/266)
+      kanıtları geçerli kalır.
+
+- [x] AAB önceki blocker: R10 + R11 + UI smoke yeşil → V1 launch için
+      Crashlytics + AAB hazırlığı sıraya girdi.
+
+---
+
 ## 2026-05-10 — Dalga R10: Flutter video sistemi söküm (Bumble pattern'e geçiş)
 
 - [x] Kod path:
