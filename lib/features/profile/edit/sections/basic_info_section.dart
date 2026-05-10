@@ -41,7 +41,7 @@ class _State extends ConsumerState<BasicInfoSection> {
     _heightCtrl.text = d.height?.toString() ?? '';
     _cityCtrl.text = d.city ?? '';
     _hometownCtrl.text = d.hometown ?? '';
-    _countryCtrl.text = d.country ?? '';
+    _countryCtrl.text = d.fromCountry ?? '';
     _zodiac = d.zodiac;
     _education = d.educationLevel;
   }
@@ -53,7 +53,7 @@ class _State extends ConsumerState<BasicInfoSection> {
       d.height = int.tryParse(_heightCtrl.text.trim());
       d.city = _cityCtrl.text.trim().isEmpty ? null : _cityCtrl.text.trim();
       d.hometown = _hometownCtrl.text.trim().isEmpty ? null : _hometownCtrl.text.trim();
-      d.country = _countryCtrl.text.trim().isEmpty ? null : _countryCtrl.text.trim();
+      d.fromCountry = _countryCtrl.text.trim().isEmpty ? null : _countryCtrl.text.trim();
       d.zodiac = _zodiac;
       d.educationLevel = _education;
       return d;

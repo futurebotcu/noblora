@@ -42,7 +42,13 @@ class ProfileDraft {
   int? age;
   int? height;
   String? city;
-  String? country;
+  String? fromCountry;      // R13 — memleket (writes to row.from_country / pd.country)
+  String? currentCountry;   // R13 — yaşadığın yer ISO 2-letter (writes to row.country)
+  bool travelMode;          // R13 — currently-traveling toggle
+  String? travelCity;       // R13
+  String? travelCountry;    // R13
+  String? placeId;          // R13 — Google place_id of home city
+  String? travelPlaceId;    // R13
   String? hometown;
   List<LanguageEntry> languages;
   String? zodiac;
@@ -139,7 +145,13 @@ class ProfileDraft {
     this.age,
     this.height,
     this.city,
-    this.country,
+    this.fromCountry,
+    this.currentCountry,
+    this.travelMode = false,
+    this.travelCity,
+    this.travelCountry,
+    this.placeId,
+    this.travelPlaceId,
     this.hometown,
     this.languages = const [],
     this.zodiac,
@@ -241,7 +253,7 @@ class ProfileDraft {
     if (height != null) c++;
     if (city != null && city!.isNotEmpty) c++;
     if (hometown != null && hometown!.isNotEmpty) c++;
-    if (country != null && country!.isNotEmpty) c++;
+    if (fromCountry != null && fromCountry!.isNotEmpty) c++;
     if (languages.isNotEmpty) c++;
     if (zodiac != null) c++;
     if (educationLevel != null) c++;
@@ -380,7 +392,13 @@ class ProfileDraft {
       age: row['age'] as int?,
       height: row['height'] as int?,
       city: row['city'] as String?,
-      country: row['from_country'] as String? ?? pd['country'] as String?,
+      fromCountry: row['from_country'] as String? ?? pd['country'] as String?,
+      currentCountry: row['country'] as String?,
+      travelMode: row['travel_mode'] as bool? ?? false,
+      travelCity: row['travel_city'] as String?,
+      travelCountry: row['travel_country'] as String?,
+      placeId: row['place_id'] as String?,
+      travelPlaceId: row['travel_place_id'] as String?,
       hometown: pd['hometown'] as String?,
       languages: (pd['languages'] as List?)?.map((e) => LanguageEntry.fromJson(e as Map<String, dynamic>)).toList() ?? [],
       zodiac: row['zodiac'] as String? ?? pd['zodiac'] as String?,
@@ -456,7 +474,7 @@ class ProfileDraft {
       'video_intro_url': videoIntroUrl,
       'voice_intro_url': voiceIntroUrl,
       'birth_date': birthDate,
-      'country': country,
+      'country': fromCountry,
       'languages': languages.map((l) => l.toJson()).toList(),
       'education_level': educationLevel,
       'zodiac': zodiac,
@@ -528,7 +546,13 @@ class ProfileDraft {
       'looking_for': lookingFor.isNotEmpty ? lookingFor.first : null,
       'interests': interests,
       'zodiac': zodiac,
-      'from_country': country,
+      'from_country': fromCountry,
+      'country': currentCountry,
+      'travel_mode': travelMode,
+      'travel_city': travelCity,
+      'travel_country': travelCountry,
+      'place_id': placeId,
+      'travel_place_id': travelPlaceId,
       'occupation': primaryRole,
       'countries_visited': visitedCountries,
       'photo_urls': photoUrls,

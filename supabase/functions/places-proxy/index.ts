@@ -7,13 +7,19 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Sanity-check the apikey header is present and length-plausible.
+// Real auth is enforced at the gateway via verify_jwt=true; the strict
+// `key !== anonKey` equality check used to live here was removing
+// legitimate Flutter SDK invokes (returned 401 because Supabase
+// platform injects SUPABASE_ANON_KEY as a publishable_key whose
+// shape differs from the legacy JWT the client sends, even though
+// the gateway's JWT verification accepts both). Synced with the
+// gemini-text v9 deployed pattern.
+// See supabase/config.toml comment on nob-quality-check for the
+// documented regression this avoids.
 function validateApiKey(req: Request): boolean {
   const key = req.headers.get("apikey") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  if (!key || (anonKey && key !== anonKey) || key.length < 20) {
-    return false;
-  }
-  return true;
+  return key.length > 20;
 }
 
 serve(async (req) => {
@@ -69,8 +75,28 @@ serve(async (req) => {
       const resp = await fetch(url);
       const data = await resp.json();
 
+      // Enrich result with ISO 2-letter country code (short_name of type=country
+      // address component). Used by R13 geo-awareness layer for swipe gating
+      // (TH/VN/PH check). Long-name `country` already lives in
+      // address_components and remains untouched for backward compat.
+      let countryCode: string | null = null;
+      const components = (data.result?.address_components ?? []) as Array<{
+        types?: string[];
+        short_name?: string;
+      }>;
+      for (const c of components) {
+        if (c.types?.includes("country")) {
+          countryCode = c.short_name ?? null;
+          break;
+        }
+      }
+
+      const enrichedResult = data.result
+        ? { ...data.result, countryCode }
+        : null;
+
       return new Response(
-        JSON.stringify({ result: data.result ?? null }),
+        JSON.stringify({ result: enrichedResult }),
         { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
       );
     }

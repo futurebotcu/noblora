@@ -12,6 +12,7 @@ import 'sections/identity_life_section.dart';
 import 'sections/relationship_section.dart';
 import 'sections/interests_section.dart';
 import 'sections/culture_social_section.dart';
+import 'sections/travel_mode_section.dart';
 import 'sections/travel_section.dart';
 import 'sections/career_section.dart';
 import 'sections/digital_life_section.dart';
@@ -232,6 +233,22 @@ class _EditProfileMainScreenState extends ConsumerState<EditProfileMainScreen> {
                     previewChips: d.promptsPreview() != null ? [d.promptsPreview()!] : [],
                     boostHint: '+10 → spark real conversations',
                     onTap: () => _push(context, const PromptsSection()),
+                  ),
+                  // R13 — Travel Mode (functional gate, not a preference)
+                  ProfileSectionCard(
+                    staggerIndex: idx++,
+                    icon: Icons.flight_takeoff_rounded,
+                    title: 'Travel Mode',
+                    subtitle: d.travelMode
+                        ? (d.travelCity != null
+                            ? 'Active in ${d.travelCity}'
+                            : 'Active — pick a destination')
+                        : 'Match outside your home country',
+                    progress: !d.travelMode
+                        ? 0.0
+                        : (d.travelCity != null ? 1.0 : 0.5),
+                    isEmpty: !d.travelMode,
+                    onTap: () => _push(context, const TravelModeSection()),
                   ),
                   ProfileSectionCard(
                     staggerIndex: idx++,

@@ -29,7 +29,13 @@ void main() {
     _testRoundtrip('age', original.age, () => restored.age);
     _testRoundtrip('height', original.height, () => restored.height);
     _testRoundtrip('city', original.city, () => restored.city);
-    _testRoundtrip('country', original.country, () => restored.country);
+    _testRoundtrip('fromCountry', original.fromCountry, () => restored.fromCountry);
+    _testRoundtrip('currentCountry', original.currentCountry, () => restored.currentCountry);
+    _testRoundtrip('travelMode', original.travelMode, () => restored.travelMode);
+    _testRoundtrip('travelCity', original.travelCity, () => restored.travelCity);
+    _testRoundtrip('travelCountry', original.travelCountry, () => restored.travelCountry);
+    _testRoundtrip('placeId', original.placeId, () => restored.placeId);
+    _testRoundtrip('travelPlaceId', original.travelPlaceId, () => restored.travelPlaceId);
     _testRoundtrip('hometown', original.hometown, () => restored.hometown);
     _testRoundtrip(
       'languages',
@@ -149,7 +155,13 @@ ProfileDraft _buildFullDraft() {
     age: 30,
     height: 180,
     city: 'Istanbul',
-    country: 'TR',
+    fromCountry: 'TR',           // R13 — memleket
+    currentCountry: 'TH',        // R13 — yaşadığın yer
+    travelMode: true,            // R13
+    travelCity: 'Chiang Mai',    // R13
+    travelCountry: 'TH',         // R13
+    placeId: 'ChIJ02HFA1nQzS4RqAQClMXClkU',         // R13 (mock Bangkok-ish)
+    travelPlaceId: 'ChIJrRy_qz452jARmBh5naIRptw',   // R13 (mock Chiang Mai-ish)
     hometown: 'Izmir',
     languages: const [
       LanguageEntry(code: 'en', label: 'English', level: 'Fluent'),

@@ -1456,3 +1456,67 @@ V1 launch'ında Android-first plana göre ertelendi.
   alana kadar canlı doğrulama için (V1 sonrası ekle)
 
 ---
+
+## V1.x Follow-up Notes (regresyon değil, hatırlatma)
+
+### gemini-text deployed/source drift (R13 PR'da çözülmedi)
+
+R13 places-proxy 401 fix'i sırasında fark edildi: `supabase/functions/gemini-text/index.ts`
+**deployed v9** ile **local source** arasında drift var. places-proxy v5 fix'i
+gemini-text **deployed v9**'un `validateApiKey` pattern'ine senkronlandı, ama
+gemini-text local source henüz deploy edilmemiş eski şekli içerebilir.
+
+**Yapılacak (V1.x sonrası — R13 scope dışı):**
+1. `mcp__supabase__get_edge_function('gemini-text')` ile deployed v9'u indir
+2. Local `supabase/functions/gemini-text/index.ts` ile diff'le
+3. Drift varsa: ya local'i deployed'a hizala ve commit'le, ya local'i redeploy et
+4. Aynı kontrol diğer edge function'lar (`send-push`, `places-proxy`, …) için de yapılmalı
+
+**Neden V1 değil:** Şu an hiçbir kullanıcı-bozan davranış yok (deployed çalışıyor),
+sadece kaynak-prod aynı sayfada değil. R7 disiplini gereği "doğrulanmadı" not
+edildi, V1 sprint freeze'i bozmaz.
+
+---
+
+## R14 (PENDING) — SignInScreen 200-as-error bug
+
+**Tespit:** R13 UI smoke (2026-05-10) sırasında.
+
+**Gözlem (R7 disiplin, kanıtlanmış):**
+- Supabase auth log (mcp__supabase__get_logs service=auth):
+  - 11:47:55 → POST /token grant_type=password → status 200, user_id 858a0f3d (testfeed1)
+  - 11:49:50 → POST /token grant_type=password → status 200, user_id 858a0f3d (testfeed1)
+- REST API curl (anon key + email + "noblara2026"):
+  - HTTP 200 + valid `access_token` + `refresh_token` döndü
+- Flutter app (release APK, com.noblara.noblara_flutter):
+  - SignInScreen "Email or password is incorrect" mesajı persiste etti
+  - Force-stop + relaunch sonrası secure_storage'dan session restore yok → tekrar WelcomeScreen
+  - Time gap: 11:49:50 (Supabase 200) → 11:50:?? (UI hâlâ Sign In ekranında, 70+ saniye geçti)
+
+**Hipotez (kanıtlanmadı, debug build gerek):**
+SignInScreen veya `lib/providers/auth_provider.dart:179 signIn()` flow'u Supabase
+`signInWithPassword` 200 response'unu Dart SDK içinde exception olarak handle
+ediyor → `catch` bloğu `_friendlyError(e)` (auth_provider.dart:62) tetikleniyor →
+"invalid login" raw match → "Email or password is incorrect" UI mesajı.
+State `userId` set edilmiyor → secure_storage'a session yazılmıyor → relaunch'ta
+session restore yok.
+
+**Etki:** Production user'lar app'i indirip giriş yapamıyor olabilir. V1 launch'ta
+mevcut user'lar bile yeniden sign-in olamayabilir (token expire sonrası).
+
+**Aciliyet:** V1 launch ÖNCESI ŞART. Ayrı PR-R14 sprint.
+
+**Plan:**
+1. Debug build: `flutter run --debug` (release APK debugPrint sessiz)
+2. SignIn dene: testfeed1@test.noblara.com / noblara2026 (R13 smoke creds)
+3. logcat exception trace yakala
+4. _friendlyError(e) tetikleyen exception'ı tespit et
+5. Fix (muhtemelen 1-2 satır — response parsing, userId fetch race, ya da AuthState propagation)
+6. Smoke: clear app data → sign-in → MainTabNavigator açılmalı
+7. PR-R14 description: "fix(auth): SignIn 200-as-error parse bug + V1 launch blocker"
+
+**R13 ile ilişki:** YOK. SignInScreen + AuthRepository hiç değiştirilmedi R13'te.
+R13 PR'ı bu bug ile bloklanmıyor (backend %100 + code path %100 doğrulandı), ama
+V1 launch için R14 şart.
+
+---

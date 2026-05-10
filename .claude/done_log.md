@@ -13,6 +13,56 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — Dalga R13: Geo-awareness + Locked swipe + Travel mode
+
+- [x] Kod path:
+  - Migration: `supabase/migrations/20260510000004_geo_awareness_locked_swipe.sql` (ALTER profiles + 4 kolon + `create_swipe_with_gate` RPC)
+  - Migration: `supabase/migrations/20260510000005_fix_create_swipe_with_gate_conflict.sql` (RPC ON CONFLICT 3-col fix)
+  - Edge function: `supabase/functions/places-proxy/index.ts` v5 (countryCode enrichment + validateApiKey publishable+legacy hizalama)
+  - Profile model R1 4'lü: `lib/data/models/profile.dart` (6 yeni alan + isTraveling getter)
+  - ProfileDraft semantic fix: `lib/features/profile/edit/profile_draft.dart` (country → fromCountry, +currentCountry, +5 R13 alan)
+  - CitySearchScreen 5→6 tuple: `lib/shared/widgets/city_search_screen.dart` (placeId expose)
+  - OnboardingInfoStep (yeni mandatory bilgi ekranı, Step 1/8): `lib/features/onboarding/info_step.dart`
+  - Onboarding entegrasyon: `lib/features/onboarding/onboarding_flow_screen.dart` (7→8 step + countryCode + travel popup)
+  - country_support utility: `lib/core/utils/country_support.dart` (TH/VN/PH whitelist + isUserActiveInRegion)
+  - LockedSwipeBanner: `lib/widgets/locked_swipe_banner.dart`
+  - Feed gate: `lib/features/feed/feed_screen.dart` (canRegion compute + banner conditional + gate snackbar + onActivate)
+  - Swipe RPC wrapper: `lib/data/repositories/swipe_repository.dart`
+  - TravelModeSection: `lib/features/profile/edit/sections/travel_mode_section.dart` (yeni Profile Edit section)
+  - Edit Profile entegrasyon: `lib/features/profile/edit/edit_profile_main_screen.dart` (Travel Mode card before Privacy)
+  - basic_info_section country → fromCountry rename: `lib/features/profile/edit/sections/basic_info_section.dart`
+  - Tests: `test/core/utils/country_support_test.dart` (14 unit) + `test/guardrails/profile_draft_roundtrip_guardrail_test.dart` (R13 alanları)
+
+- [x] Backend kanıtı:
+  - 4 senaryo yeşil (önceki smoke): TR fail, TH success, TR+travel→TH success, left always success
+  - C1 direct UPDATE: 6 R13 alanın hepsi DB'ye yazıldı (id 858a0f3d, RETURNING tüm alanları doğruladı)
+  - C2 RPC `create_swipe_with_gate('858a0f3d', '6a2e54b0', 'right', 'date')` → `{"success": true}` (TR home + travel rescue→TH gate'i geçti, swipe insert)
+  - Edge function `places-proxy` v5 deploy → curl `Bangkok` autocomplete → 200 + 3 prediction
+  - Auth log: `POST /token grant_type=password` 200 OK (REST API direct sign-in)
+
+- [x] UI kanıtı:
+  - Senaryo C kısmen: TravelModeSection toggle + Bangkok seçim flow'u UI'da çalıştı (`r13_smoke_09_bangkok_selected.png`)
+  - Save → DB persist UI flow: SignInScreen 200-as-error bug nedeniyle bloklandı (R13 dışı, V1.x)
+  - CitySearchScreen autocomplete dropdown render Flutter SDK'da görüldü (`r13_smoke_08_bangkok_after_fix.png`) — places-proxy v5 fix runtime'da etkili
+
+- [x] Bilinen sınırlama:
+  - **PR-R14 (PENDING)** — SignInScreen 200-as-error bug. Supabase auth log 200 dönüyor, REST curl 200, ama Flutter UI "Email or password is incorrect" mesajı gösteriyor. R13 ile ilgisiz, V1 launch ÖNCESI çözülmesi şart.
+
+- [x] Regresyon kontrolü:
+  - R1 (Profile copyWith drift): 6 yeni alan + `copyWith` + `fromJson` + `toJson` + draft 4-tuple eksiksiz güncellendi
+  - R2 (profile_draft fromJson asenkron): `fromDbRow` + `toUpdateMap` simetrik, hepsi roundtrip testle korunuyor
+  - R5 (bypass-disguised-as-fix): RPC `create_swipe_with_gate` SECURITY DEFINER + search_path = public, pg_temp; ON CONFLICT 3-col constraint'e tam eşleşme
+  - R7 (uydurma iddia): her iddia kanıtla (curl çıktı, RPC dönüş, advisor sonucu)
+
+- [x] Guardrail testi:
+  - flutter analyze --fatal-infos: green (önceki commit smoke'unda)
+  - flutter test: 286/286 pass
+  - Backend RPC smoke: 4/4 green
+  - Branch: `dalga-r13-geo-awareness-locked-swipe`
+  - Commits: 7 (gitignore, migrations, country_support utility, UI, places-proxy enrichment, smoke gitignore, validateApiKey fix, drift notu)
+
+---
+
 ## 2026-05-10 — Dalga R11: Video call backend cleanup + Bumble first-message gate
 
 - [x] Kod path:

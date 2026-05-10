@@ -33,6 +33,14 @@ screenshots/
 screen_broken.png
 screen_editprofile.png
 
+# R-prefixed PR smoke artifacts (Rxx_smoke_*.png + Rxx_ui_dump_*.xml).
+# Wildcard catches future R14, R15, ... so we don't need a new
+# gitignore commit per PR. Existing commits that already shipped
+# specific smoke .pngs (e.g. R11 docs(R11) UI smoke verification)
+# are not retroactively affected — git tracks them once they're in.
+.claude/r*_smoke_*.png
+.claude/r*_ui_dump_*.xml
+
 # Miscellaneous
 *.class
 *.log

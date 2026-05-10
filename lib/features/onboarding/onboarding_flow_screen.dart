@@ -15,10 +15,11 @@ import '../../providers/storage_provider.dart';
 import '../../shared/widgets/drum_date_picker.dart';
 import '../../shared/widgets/avatar_picker.dart';
 import '../../shared/widgets/city_search_screen.dart';
+import 'info_step.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Onboarding Flow — step-based premium setup
-// Steps: Welcome → Basics → Occupation → City → Photo → Bio → Privacy → Preferences → Complete
+// Steps: Welcome → Info (R13) → Basics → Occupation → Location → Photo → Privacy → Complete
 // ═══════════════════════════════════════════════════════════════════
 
 String? _detectImageType(List<int> bytes) {
@@ -41,7 +42,7 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
-  static const _totalSteps = 7;
+  static const _totalSteps = 8;  // R13 — added Info step after Welcome
 
   // Data collected
   final _nameCtrl = TextEditingController();
@@ -53,6 +54,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _occupation = '';
   String _city = '';
   String _country = '';
+  String? _countryCode;     // R13 — ISO 2-letter (TH/VN/PH or other) from GPS/search
   double? _locationLat;
   double? _locationLng;
   String? _photoUrl;
@@ -211,6 +213,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _WelcomePage(onNext: _next),
+                  OnboardingInfoStep(onNext: _next),  // R13 — V1 regional scope ack
                   _BasicsPage(
                       nameCtrl: _nameCtrl,
                       birthDay: _birthDay, birthMonth: _birthMonth, birthYear: _birthYear,
@@ -225,10 +228,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                   _LocationPage(
                       city: _city,
                       country: _country,
+                      countryCode: _countryCode,
                       onLocationSet: (city, country, lat, lng) => setState(() {
                         _city = city; _country = country;
                         _locationLat = lat; _locationLng = lng;
                       }),
+                      onCountryCodeSet: (code) => setState(() => _countryCode = code),
                       onNext: _next),
                   _PhotoPage(
                       photoUrl: _photoUrl,
@@ -626,9 +631,18 @@ class _OccupationSheetState extends State<_OccupationSheet> {
 class _LocationPage extends StatefulWidget {
   final String city;
   final String country;
+  final String? countryCode;                                          // R13
   final void Function(String city, String country, double? lat, double? lng) onLocationSet;
+  final ValueChanged<String?>? onCountryCodeSet;                      // R13
   final VoidCallback onNext;
-  const _LocationPage({required this.city, required this.country, required this.onLocationSet, required this.onNext});
+  const _LocationPage({
+    required this.city,
+    required this.country,
+    required this.countryCode,
+    required this.onLocationSet,
+    required this.onCountryCodeSet,
+    required this.onNext,
+  });
   @override
   State<_LocationPage> createState() => _LocationPageState();
 }
@@ -651,6 +665,8 @@ class _LocationPageState extends State<_LocationPage> {
         result['lat'] as double?,
         result['lng'] as double?,
       );
+      // R13 — propagate ISO 2-letter country code for swipe-gate decision.
+      widget.onCountryCodeSet?.call(result['countryCode'] as String?);
     } catch (e) {
       debugPrint('[onboard] GPS location failed: $e');
       setState(() => _error = 'Location access failed. Try searching manually.');
@@ -662,8 +678,12 @@ class _LocationPageState extends State<_LocationPage> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => CitySearchScreen(
         initialValue: widget.city.isNotEmpty ? widget.city : null,
-        onSelected: (city, country, lat, lng) {
+        onSelected: (city, country, lat, lng, countryCode, placeId) {
           widget.onLocationSet(city, country, lat, lng);
+          widget.onCountryCodeSet?.call(countryCode);   // R13
+          // placeId currently unused in onboarding; ADIM 12 wires it for
+          // travel mode. Home placeId can be propagated to the profile in
+          // a follow-up (Profile.placeId field already exists from R13).
         },
       ),
     ));
@@ -750,13 +770,52 @@ class _LocationPageState extends State<_LocationPage> {
 
         const Spacer(),
         ElevatedButton(
-          onPressed: hasLocation ? widget.onNext : null,
+          onPressed: hasLocation ? _onContinue : null,
           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           child: const Text('Continue'),
         ),
         const SizedBox(height: AppSpacing.xxl),
       ],
     ));
+  }
+
+  /// R13 — Country gate at the location step. If the resolved ISO 2-letter
+  /// `countryCode` is one of TH/VN/PH the user proceeds straight to the next
+  /// step. Otherwise we surface a Travel-Mode-suggestion dialog so the user
+  /// understands the gate they'll hit later in Discover, and can choose to
+  /// continue (account creation is allowed; only matching is gated) or
+  /// cancel back to the city picker.
+  Future<void> _onContinue() async {
+    const supported = {'TH', 'VN', 'PH'};
+    final code = widget.countryCode;
+    if (code != null && supported.contains(code)) {
+      widget.onNext();
+      return;
+    }
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Travel Mode Suggestion'),
+        content: const Text(
+          'Noblara is currently available in Thailand, Vietnam, and the Philippines. '
+          "You can still continue, but to match with people you'll need to activate "
+          'Travel Mode in Settings and select a city in one of these regions.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (proceed == true && mounted) {
+      widget.onNext();
+    }
   }
 }
 

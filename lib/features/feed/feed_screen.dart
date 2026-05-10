@@ -5,14 +5,18 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
+import '../../core/utils/country_support.dart';
 import '../../providers/feed_provider.dart';
 import '../../providers/interaction_gate_provider.dart';
 import '../../providers/note_provider.dart';
 import '../../providers/filter_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../core/services/toast_service.dart';
 import '../../providers/mode_provider.dart';
 import '../../shared/widgets/mode_switcher.dart';
 import '../../shared/widgets/premium_skeleton.dart';
+import '../../widgets/locked_swipe_banner.dart';
+import '../profile/edit/sections/travel_mode_section.dart';
 import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
@@ -71,12 +75,36 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return const BffScreen();
     }
 
+    // R13 — country gate state for the locked-swipe banner. The same
+    // predicate is mirrored on the backend in `create_swipe_with_gate`
+    // (migration 20260510000004); changes to one must be reflected in
+    // the other (drift = silent UX desync).
+    final profile = ref.watch(profileProvider).profile;
+    final canRegion = CountrySupport.isUserActiveInRegion(
+      country: profile?.country,
+      travelMode: profile?.travelMode ?? false,
+      travelCountry: profile?.travelCountry,
+    );
+
     return Scaffold(
       backgroundColor: context.bgColor,
       body: SafeArea(
         child: Column(
           children: [
             _Header(mode: mode, filterCount: filterCount),
+            if (!canRegion)
+              LockedSwipeBanner(
+                onActivate: () {
+                  // R13 — open the Travel Mode section directly so the
+                  // user can flip the toggle + pick a TH/VN/PH city
+                  // without hunting through Edit Profile sections.
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const TravelModeSection(),
+                    ),
+                  );
+                },
+              ),
             Expanded(
               child: _FeedBody(
                 feed: feed,
@@ -84,6 +112,18 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 onSwipeRight: (id) {
                   final gate = ref.read(interactionGateProvider).valueOrNull ?? InteractionGate.loading;
                   if (!gate.canInteract(mode.name)) return;
+                  // R13 — country gate (right-swipe only; left-swipe is
+                  // a pass and unaffected). Mirrors backend RPC logic.
+                  if (!canRegion) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Activate travel mode to like profiles',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
                   ref.read(feedProvider.notifier).swipeRight(id);
                 },
                 onSwipeLeft: (id) =>

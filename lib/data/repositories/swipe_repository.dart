@@ -44,13 +44,25 @@ class SwipeRepository {
     // Increment swipe counter
     await _supabase.rpc('increment_swipe_count', params: {'p_user_id': swiperId});
 
-    // Insert swipe record
-    await _supabase.from('swipes').upsert({
-      'swiper_id': swiperId,
-      'swiped_id': targetId,
-      'direction': direction,
-      'mode': mode,
+    // R13 — country-gated swipe insert. The RPC mirrors the predicate in
+    // `CountrySupport.isUserActiveInRegion` (lib/core/utils/country_support.dart)
+    // and the Discover banner in feed_screen.dart. On gate failure we exit
+    // early; the UI layer (feed_screen onSwipeRight handler) has already
+    // shown the snackbar — this is just a defense-in-depth check that runs
+    // even if a future caller bypasses the UI gate.
+    final gateResp = await _supabase.rpc('create_swipe_with_gate', params: {
+      'p_swiper_id': swiperId,
+      'p_target_id': targetId,
+      'p_direction': direction,
+      'p_mode': mode,
     });
+    if (gateResp is Map && gateResp['success'] != true) {
+      debugPrint(
+        '[swipe] Backend gate rejected: '
+        '${gateResp['error']} — ${gateResp['message']}',
+      );
+      return null;
+    }
 
     if (direction == 'left') return null;
 
