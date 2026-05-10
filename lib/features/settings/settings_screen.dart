@@ -207,24 +207,18 @@ class SettingsScreen extends ConsumerWidget {
           ]),
 
           // ── 5. NOTIFICATIONS ────────────────────────────────────
+          // Only types whose preference key is enforced server-side in
+          // supabase/functions/send-push/index.ts mapTypeToPrefKey() are
+          // surfaced here. Adding a toggle without a server mapping creates
+          // a phantom feature (R6) — the user thinks they've opted out but
+          // pushes still arrive. When a new notification type ships, extend
+          // the server map first, then add the toggle.
           const _Section('Notifications'),
           _Card(children: [
-            _Toggle(Icons.chat_bubble_outline, 'Messages',
-                n.notif('new_message'), (_) => n.toggleNotif('new_message')),
             _Toggle(Icons.favorite_outline, 'Connections',
                 n.notif('new_match'), (_) => n.toggleNotif('new_match')),
-            _Toggle(Icons.bolt_outlined, 'Signals',
-                n.notif('signals'), (_) => n.toggleNotif('signals')),
-            _Toggle(Icons.mail_outline, 'Notes',
-                n.notif('notes'), (_) => n.toggleNotif('notes')),
             _Toggle(Icons.people_outline, 'BFF Suggestions',
                 n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-            _Toggle(Icons.verified_outlined, 'Verification',
-                n.notif('verification'), (_) => n.toggleNotif('verification')),
-            _Toggle(Icons.shield_outlined, 'Safety Alerts',
-                n.notif('safety'), (_) => n.toggleNotif('safety')),
-            _Toggle(Icons.system_update_outlined, 'Product Updates',
-                n.notif('updates'), (_) => n.toggleNotif('updates')),
           ]),
 
           // ── 6. SAFETY & VERIFICATION ────────────────────────────
@@ -234,8 +228,6 @@ class SettingsScreen extends ConsumerWidget {
                 value: (s['photos_verified'] as bool? ?? false) ? 'Verified' : _verifLabel(s)),
             _Row(Icons.face_rounded, 'Selfie Verification',
                 value: (s['selfie_verified'] as bool? ?? false) ? 'Verified' : 'Not verified'),
-            _Row(Icons.badge_outlined, 'ID Verification',
-                value: 'Not yet available', disabled: true),
           ]),
           const SizedBox(height: AppSpacing.xs),
           _Card(children: [
@@ -245,17 +237,6 @@ class SettingsScreen extends ConsumerWidget {
             _Row(Icons.visibility_off_outlined, 'Hidden Users',
                 value: '${(s['hidden_users'] as List<dynamic>?)?.length ?? 0}',
                 onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?, ref, 'hidden_users')),
-          ]),
-          const SizedBox(height: AppSpacing.xs),
-          _Card(children: [
-            _Row(Icons.security_rounded, 'Safety Tips',
-                onTap: () => _showContent(context, 'Safety Tips',
-                    'Trust your instincts. Meet in public places. Tell someone where you\'re going. '
-                    'Don\'t share personal info too early. Report any suspicious behavior.')),
-            _Row(Icons.rule_rounded, 'Community Rules',
-                onTap: () => _showContent(context, 'Community Rules',
-                    'Be respectful. No harassment. No spam. No fake profiles. No commercial content. '
-                    'Noblara is a space for genuine human connections.')),
           ]),
 
           // ── 7. CHATS ────────────────────────────────────────────
@@ -310,25 +291,16 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          // ── 9. SUPPORT & LEGAL ──────────────────────────────────
-          const _Section('Support'),
+          // ── 9. HELP & LEGAL ─────────────────────────────────────
+          // Help Center contains the searchable in-app docs (community
+          // guidelines, safety tips, contact email, data request flow).
+          // Standalone rows for the same content were removed pre-V1 —
+          // they were static-modal placeholders that duplicated the Help
+          // Center anyway.
+          const _Section('Help & Legal'),
           _Card(children: [
             _Row(Icons.help_outline_rounded, 'Help Center',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen()))),
-            _Row(Icons.email_outlined, 'Contact Support',
-                onTap: () => _showContent(context, 'Contact Support',
-                    'Email us at support@noblara.com with your account email and a description of the issue. We typically respond within 24 hours.')),
-            _Row(Icons.bug_report_outlined, 'Report a Bug',
-                onTap: () => _showBugReport(context, ref)),
-            _Row(Icons.download_outlined, 'Request My Data',
-                onTap: () => _showContent(context, 'Data Request',
-                    'Under GDPR/KVKK, you have the right to request your data. Send an email to privacy@noblara.com with your account email.')),
-          ]),
-          const SizedBox(height: AppSpacing.xs),
-          _Card(children: [
-            _Row(Icons.rule_rounded, 'Community Guidelines',
-                onTap: () => _showContent(context, 'Community Guidelines',
-                    'Be real. Be respectful. No spam, no ads, no fake profiles. Noblara is built for genuine connections.')),
             _Row(Icons.privacy_tip_outlined, 'Privacy Policy',
                 onTap: () async {
                   final ok = await launchLegalUrl(kPrivacyPolicyUrl);
@@ -420,38 +392,6 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _showContent(BuildContext context, String title, String body) {
-    showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.55, expand: false,
-        builder: (ctx, scroll) => Container(
-          decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
-          ),
-          child: ListView(controller: scroll, padding: const EdgeInsets.all(AppSpacing.xxl), children: [
-            _sheetHandle(context),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(title,
-                style: TextStyle(
-                    color: context.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3)),
-            const SizedBox(height: AppSpacing.lg),
-            Text(body,
-                style: TextStyle(
-                    color: context.textMuted,
-                    fontSize: 14,
-                    height: 1.6)),
-          ]),
-        ),
-      ),
-    );
-  }
-
   void _showListSheet(BuildContext context, String title, List<dynamic>? items, WidgetRef ref, String column) {
     showModalBottomSheet(
       context: context,
@@ -459,32 +399,6 @@ class SettingsScreen extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) => _BlockedListSheet(title: title, items: items, ref: ref, column: column),
     );
-  }
-
-  void _showBugReport(BuildContext context, WidgetRef ref) {
-    final ctrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.surfaceColor,
-        shape: Premium.dialogShape(),
-        title: Text('Report a Bug', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-        content: TextField(controller: ctrl, maxLines: 4, style: TextStyle(color: context.textPrimary),
-            decoration: InputDecoration(hintText: 'Describe the issue...',
-                hintStyle: TextStyle(color: context.textDisabled),
-                filled: true, fillColor: context.bgColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXs)))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-          TextButton(onPressed: () {
-            Navigator.pop(ctx);
-            Clipboard.setData(ClipboardData(text: 'Bug report: ${ctrl.text.trim()}'));
-            ToastService.show(context, message: 'Bug report copied to clipboard', type: ToastType.success);
-          }, child: const Text('Copy & Send', style: TextStyle(color: AppColors.emerald500))),
-        ],
-      ),
-    ).then((_) => ctrl.dispose());
   }
 
   void _confirmPause(BuildContext context, WidgetRef ref) {
@@ -726,7 +640,6 @@ class _Row extends StatelessWidget {
   final String? value;
   final Color? iconColor;
   final Color? titleColor;
-  final bool disabled;
   final bool showChevron;
   final VoidCallback? onTap;
 
@@ -735,20 +648,19 @@ class _Row extends StatelessWidget {
     this.value,
     this.iconColor,
     this.titleColor,
-    this.disabled = false,
     this.showChevron = true,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final tc = disabled ? context.textDisabled : (titleColor ?? context.textPrimary);
-    final ic = disabled ? context.textDisabled : (iconColor ?? context.textMuted);
+    final tc = titleColor ?? context.textPrimary;
+    final ic = iconColor ?? context.textMuted;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: disabled ? null : onTap,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.lg, vertical: 13),

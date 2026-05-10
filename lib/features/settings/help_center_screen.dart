@@ -329,15 +329,14 @@ const _categories = [
     items: [
       _HelpItem(
         title: 'What is Noblara?',
-        body: 'Noblara is a connection platform with three modes:\n\n'
-            '• Noble Date — find romantic matches through a guided flow: mutual like → mini intro → video call → real meeting.\n\n'
-            '• Noble BFF — discover potential friends based on shared interests and compatibility. Accept suggestions to start planning activities.\n\n'
-            '• Noblara Feed — share thoughts, moments, and photos with the community. No matching required. Open to all users based on their tier.',
+        body: 'Noblara is a connection platform with two core modes:\n\n'
+            '• Noble Date — find romantic matches through a guided flow: mutual like → first message → chat → meet in person.\n\n'
+            '• Noble BFF — discover potential friends based on shared interests and compatibility. Accept suggestions to start planning activities.',
       ),
       _HelpItem(
         title: 'How does matching work?',
         body: 'In Noble Date, you see one profile at a time. Swipe right to like, left to pass.\n\n'
-            'When two people like each other, a match is created. You then have a limited window to schedule a video call. After the call, both sides decide whether to continue.\n\n'
+            'When two people like each other, a match is created. The match opens with a "send first message" state — once you (or they) send the opener, the chat unlocks for both sides.\n\n'
             'In Noble BFF, the app suggests compatible people. You can accept or skip suggestions.',
       ),
       _HelpItem(
@@ -345,11 +344,11 @@ const _categories = [
         body: '1. Complete your profile — add at least one photo and fill in the basics.\n'
             '2. Choose your modes — enable Dating, BFF, or both in your profile settings.\n'
             '3. Start discovering — swipe through profiles or check your BFF suggestions.\n'
-            '4. Post on Noblara Feed — share a thought or moment to engage with the community.',
+            '4. When you match, send the first message — that\'s how the chat opens.',
       ),
       _HelpItem(
-        title: 'Do I need to use all modes?',
-        body: 'No. You can enable or disable Dating and BFF modes independently. You can even turn off both and use only the Noblara Feed. Your choice is saved and persists across sessions.',
+        title: 'Do I need to use both modes?',
+        body: 'No. You can enable or disable Dating and BFF modes independently. Your choice is saved and persists across sessions.',
       ),
     ],
   ),
@@ -396,7 +395,7 @@ const _categories = [
   _HelpCategory(
     icon: Icons.favorite_outlined,
     title: 'Matching & Conversations',
-    subtitle: 'Likes, matches, chat, and video calls',
+    subtitle: 'Likes, matches, chat, and meeting in person',
     items: [
       _HelpItem(
         title: 'How do I match with someone?',
@@ -405,17 +404,17 @@ const _categories = [
       ),
       _HelpItem(
         title: 'How does chat work?',
-        body: 'Once matched, a conversation opens. Messages are delivered in real-time. You can:\n\n'
+        body: 'After a match, the conversation starts in a "send first message" state. As soon as one of you sends the opener, the chat unlocks for both sides. Messages are delivered in real-time.\n\n'
+            'You can:\n'
             '• Send text messages\n'
             '• Share images\n'
             '• React to messages with emojis\n'
-            '• See read receipts and typing indicators\n\n'
-            'Conversations have a time window tied to the match flow. If neither side schedules a video call within the deadline, the conversation expires.',
+            '• See read receipts',
       ),
       _HelpItem(
-        title: 'What happens when a conversation expires?',
-        body: 'Expired conversations are locked — you can no longer send messages. The chat history remains visible but the input is disabled.\n\n'
-            'This is by design: Noblara encourages moving from text to real interaction (video calls and meetings) rather than endless texting.',
+        title: 'Why do I have to send the first message?',
+        body: 'After a match, one of you sends the opener — the chat does not unlock until that first message is sent. This keeps conversations intentional and gives both sides a clear starting point.\n\n'
+            'If neither side sends a first message within the match window, the match expires.',
       ),
       _HelpItem(
         title: 'Why can\'t I interact with some users?',
@@ -540,7 +539,7 @@ const _categories = [
             '• Meet in public places for first meetings.\n'
             '• Tell a friend where you\'re going and who you\'re meeting.\n'
             '• Don\'t share personal information (address, financial details) early on.\n'
-            '• Use the in-app video call before meeting in person.\n'
+            '• Take time to chat before meeting in person — get a feel for the other person first.\n'
             '• Report any suspicious or inappropriate behavior immediately.',
       ),
       _HelpItem(
