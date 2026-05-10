@@ -29,7 +29,7 @@ Future<void> main() async {
         FirebaseCrashlytics.instance.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
+      return false;  // R14 — let Flutter normal handler bubble up; previous true swallowed async errors that broke release-mode signIn flow
     };
   } catch (e) {
     debugPrint('[main] Firebase init skipped: $e');
