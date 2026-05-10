@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,6 +86,16 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
     return null;
   }
 
+  /// Persist the onboarding draft to Supabase, then refresh the local
+  /// profile provider so AppRouter can re-evaluate and advance to
+  /// MainTabNavigator.
+  ///
+  /// Throws when the DB save retries are exhausted — the caller's
+  /// CompletePage catch shows a retryable error and resets the loading
+  /// state. Previously the function swallowed save failures, then went
+  /// on to call createProfile/updateGender (which also failed silently
+  /// because there was no row to refresh from), leaving the user stuck
+  /// on the "You're all set" spinner with no path forward.
   Future<void> _complete() async {
     // Final validation
     final error = _validateCompletion();
@@ -91,11 +103,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
       if (mounted) {
         ToastService.show(context, message: error, type: ToastType.error);
       }
-      return;
+      throw Exception(error);
     }
 
     final uid = ref.read(authProvider).userId;
-    if (uid == null) return;
+    if (uid == null) {
+      throw Exception('Not signed in. Please sign in again to finish setup.');
+    }
 
     if (!isMockMode) {
       // Upload photo to Supabase Storage if local path exists
@@ -127,61 +141,72 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         }
       }
 
-      // Retry DB save up to 2 times
+      // Retry DB save up to 2 times — abort the whole flow if exhausted
+      // (caller's catch surfaces a retryable error). Previously the loop
+      // silently fell through and the cascading createProfile call
+      // covered up the real problem.
+      Object? lastError;
       var saved = false;
       for (var attempt = 0; attempt < 2 && !saved; attempt++) {
         try {
           await ref.read(profileRepositoryProvider).updateProfile(uid, {
-          'full_name': _nameCtrl.text.trim(),
-          'display_name': _nameCtrl.text.trim(),
-          'age': _age,
-          'gender': _gender,
-          'city': _city,
-          if (_country.isNotEmpty) 'country': _country,
-          if (_locationLat != null) 'location_lat': _locationLat,
-          if (_locationLng != null) 'location_lng': _locationLng,
-          'bio': '',
-          'date_avatar_url': remotePhotoUrl,
-          'bff_avatar_url': remotePhotoUrl,
-          'dating_active': true,
-          'dating_visible': true,
-          'bff_active': true,
-          'bff_visible': true,
-          'looking_for': 'Serious relationship',
-          if (_occupation.isNotEmpty) 'profession': _occupation,
-          if (_avatarId != null) 'avatar_id': _avatarId,
-          'is_onboarded': true,
-          // Privacy defaults (explicit, not null)
-          'incognito_mode': false,
-          'calm_mode': false,
-          'show_last_active': true,
-          'show_status_badge': true,
-          'reach_permission': 'everyone',
-          'signal_permission': 'everyone',
-          'note_permission': 'everyone',
-          'message_preview': true,
-          'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
-        });
+            'full_name': _nameCtrl.text.trim(),
+            'display_name': _nameCtrl.text.trim(),
+            'age': _age,
+            'gender': _gender,
+            // Onboarding location is optional — manual city fallback may
+            // leave _city empty. Send null instead of '' so a NOT NULL
+            // column doesn't blow up and an empty NOT NULL string doesn't
+            // get persisted; the user can fill it from Profile Edit later.
+            if (_city.isNotEmpty) 'city': _city,
+            if (_country.isNotEmpty) 'country': _country,
+            if (_locationLat != null) 'location_lat': _locationLat,
+            if (_locationLng != null) 'location_lng': _locationLng,
+            'bio': '',
+            'date_avatar_url': remotePhotoUrl,
+            'bff_avatar_url': remotePhotoUrl,
+            'dating_active': true,
+            'dating_visible': true,
+            'bff_active': true,
+            'bff_visible': true,
+            'looking_for': 'Serious relationship',
+            if (_occupation.isNotEmpty) 'profession': _occupation,
+            if (_avatarId != null) 'avatar_id': _avatarId,
+            'is_onboarded': true,
+            // Privacy defaults (explicit, not null)
+            'incognito_mode': false,
+            'calm_mode': false,
+            'show_last_active': true,
+            'show_status_badge': true,
+            'reach_permission': 'everyone',
+            'signal_permission': 'everyone',
+            'note_permission': 'everyone',
+            'message_preview': true,
+            'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
+          });
           saved = true;
         } catch (e) {
+          lastError = e;
           debugPrint('Onboarding DB update error (attempt ${attempt + 1}): $e');
-          if (attempt == 1 && mounted) {
-            ToastService.show(context, message: 'Profile save failed. Please check your profile later.', type: ToastType.error);
-          }
         }
+      }
+
+      if (!saved) {
+        throw Exception(
+          'Profile save failed: ${lastError ?? 'unknown'}',
+        );
       }
     }
 
-    // Refresh profile to trigger router re-evaluation
-    try {
-      await ref.read(profileProvider.notifier).createProfile(
-        fullName: _nameCtrl.text.trim(),
-        currentMode: 'date',
-      );
-      await ref.read(profileProvider.notifier).updateGender(_gender);
-    } catch (e) {
-      debugPrint('Onboarding profile refresh error: $e');
-    }
+    // Refresh profile to trigger router re-evaluation. After a successful
+    // save these calls should succeed — if they don't, surface the error
+    // instead of proceeding with a partial state that would leave the
+    // user stuck on the spinner.
+    await ref.read(profileProvider.notifier).createProfile(
+      fullName: _nameCtrl.text.trim(),
+      currentMode: 'date',
+    );
+    await ref.read(profileProvider.notifier).updateGender(_gender);
   }
 
   @override
@@ -650,28 +675,78 @@ class _LocationPage extends StatefulWidget {
 class _LocationPageState extends State<_LocationPage> {
   bool _gpsLoading = false;
   String? _error;
+  /// True when the GPS attempt ended in `deniedForever` — the runtime
+  /// prompt won't appear again and the user must visit App Settings.
+  /// Surfaces an extra "Open Settings" button under the error message.
+  bool _showOpenSettings = false;
 
   Future<void> _useGPS() async {
-    setState(() { _gpsLoading = true; _error = null; });
-    try {
-      final result = await LocationService.getLocationFromGPS();
-      if (result.isEmpty || result['city'] == null) {
-        setState(() { _gpsLoading = false; _error = 'Could not detect location. Try searching manually.'; });
+    setState(() {
+      _gpsLoading = true;
+      _error = null;
+      _showOpenSettings = false;
+    });
+
+    final result = await LocationService.getLocationFromGPS();
+
+    if (!mounted) return;
+
+    switch (result.status) {
+      case LocationStatus.success:
+        widget.onLocationSet(
+          result.city ?? '',
+          result.country ?? '',
+          result.lat,
+          result.lng,
+        );
+        // R13 — propagate ISO 2-letter country code for swipe-gate decision.
+        widget.onCountryCodeSet?.call(result.countryCode);
+        setState(() => _gpsLoading = false);
         return;
-      }
-      widget.onLocationSet(
-        result['city'] as String,
-        result['country'] as String? ?? '',
-        result['lat'] as double?,
-        result['lng'] as double?,
-      );
-      // R13 — propagate ISO 2-letter country code for swipe-gate decision.
-      widget.onCountryCodeSet?.call(result['countryCode'] as String?);
-    } catch (e) {
-      debugPrint('[onboard] GPS location failed: $e');
-      setState(() => _error = 'Location access failed. Try searching manually.');
+
+      case LocationStatus.denied:
+        setState(() {
+          _gpsLoading = false;
+          _error = 'Location permission denied. Tap "Use my location" again to retry, '
+                   'or pick your city below.';
+        });
+        return;
+
+      case LocationStatus.deniedForever:
+        setState(() {
+          _gpsLoading = false;
+          _showOpenSettings = true;
+          _error = 'Location access is blocked for Noblara. Open Settings to allow it, '
+                   'or pick your city manually below.';
+        });
+        return;
+
+      case LocationStatus.serviceDisabled:
+        setState(() {
+          _gpsLoading = false;
+          _showOpenSettings = true;
+          _error = 'Location services are turned off. Turn them on in your device '
+                   'Settings, or pick your city manually below.';
+        });
+        return;
+
+      case LocationStatus.positionUnavailable:
+        setState(() {
+          _gpsLoading = false;
+          _error = 'Couldn\'t read your location right now. Try again or pick '
+                   'your city manually below.';
+        });
+        return;
     }
-    setState(() => _gpsLoading = false);
+  }
+
+  Future<void> _openSettingsForLocation() async {
+    // Try app-specific settings first (deniedForever case); fall back to the
+    // OS-level location toggle when the issue is the master switch.
+    final ok = await LocationService.openAppSettingsPage();
+    if (!ok) {
+      await LocationService.openLocationSettings();
+    }
   }
 
   void _openSearch() {
@@ -729,6 +804,20 @@ class _LocationPageState extends State<_LocationPage> {
         if (_error != null) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+          if (_showOpenSettings) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _openSettingsForLocation,
+                icon: Icon(Icons.settings_outlined, size: 16, color: context.accent),
+                label: Text('Open Settings',
+                    style: TextStyle(color: context.accent, fontWeight: FontWeight.w600)),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              ),
+            ),
+          ],
         ],
 
         // Location result
@@ -1005,10 +1094,24 @@ class _CompletePageState extends State<_CompletePage> {
               setState(() => _loading = true);
               try {
                 await widget.onComplete().timeout(const Duration(seconds: 15));
+                // Success: AppRouter listens to profileProvider and will
+                // unmount this screen on the next frame. Reset _loading
+                // defensively in case the router rebuild is delayed —
+                // otherwise the spinner could keep spinning after a
+                // successful save (the R15 "you're all set, stuck"
+                // symptom).
+                if (!mounted) return;
+                setState(() => _loading = false);
               } catch (e) {
                 if (!context.mounted) return;
                 setState(() => _loading = false);
-                ToastService.show(context, message: 'Something went wrong. Please try again.', type: ToastType.error);
+                // Surface the actual failure category — save vs network
+                // vs timeout — so the user has a sense of whether to
+                // check connection, location, or just retry.
+                final msg = e is TimeoutException
+                    ? 'This is taking longer than expected. Please check your connection and try again.'
+                    : "We couldn't save your profile. Please check your location or try again.";
+                ToastService.show(context, message: msg, type: ToastType.error);
               }
             },
             child: _loading
