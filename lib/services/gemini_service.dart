@@ -6,7 +6,39 @@ import '../data/repositories/ai_repository.dart';
 /// All AI text operations go through Supabase Edge Function `gemini-text`.
 /// No Gemini API key on the client side.
 class GeminiService {
+  /// Minimal client-side blocklist — defensive layer in front of Gemini's
+  /// own safety filters. Catches obvious slurs/profanity that occasionally
+  /// leak through. Not a moderation system; the goal is "never surface a
+  /// clearly toxic suggestion to the user," not policy enforcement.
+  /// Server-side moderation is the proper home for richer policy.
+  static const _outputBlocklist = <String>[
+    'fuck', 'fucked', 'fucking',
+    'shit', 'bullshit',
+    'bitch',
+    'cunt',
+    'asshole', 'arsehole',
+    'dick',
+    'pussy',
+    'whore', 'slut',
+    'nigger', 'faggot', 'retard',
+  ];
+
+  static bool _containsBlockedContent(String text) {
+    if (text.isEmpty) return false;
+    final lower = text.toLowerCase();
+    for (final term in _outputBlocklist) {
+      // Word-boundary check to avoid false positives like "scunthorpe".
+      final pattern = RegExp('\\b${RegExp.escape(term)}\\b');
+      if (pattern.hasMatch(lower)) return true;
+    }
+    return false;
+  }
+
   /// Core method — sends prompt to Edge Function, returns parsed result.
+  /// On any failure (network, parse, blocked content), returns `{'text': ''}`
+  /// so callers fall through to their static fallback strings. We never
+  /// rethrow user-facing errors here — surfacing raw "AI service error"
+  /// in the UI was previously confusing and unhelpful.
   static Future<Map<String, dynamic>> analyzeText(String prompt) async {
     if (isMockMode) {
       return {'mock': true, 'text': 'Mock response'};
@@ -17,10 +49,18 @@ class GeminiService {
       if (data == null) return {'text': ''};
 
       if (data.containsKey('error')) {
-        throw Exception(data['error']);
+        debugPrint('[gemini] edge function returned error: ${data['error']}');
+        return {'text': ''};
       }
 
       final text = data['text'] as String? ?? '';
+
+      // Defensive blocklist — drop the response entirely if it leaks an
+      // obvious slur. Caller will fall through to its fallback string.
+      if (_containsBlockedContent(text)) {
+        debugPrint('[gemini] response blocked by client-side content filter');
+        return {'text': ''};
+      }
 
       // Try to extract JSON object from response
       final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(text);
@@ -34,7 +74,8 @@ class GeminiService {
       }
       return {'text': text};
     } catch (e) {
-      throw Exception('AI service error: $e');
+      debugPrint('[gemini] AI call failed: $e');
+      return {'text': ''};
     }
   }
 
