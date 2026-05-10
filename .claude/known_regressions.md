@@ -1411,3 +1411,48 @@ match → MiniIntro (AI opener Gemini) → first message → chat.
 - Δ: -3 WARN net, 0 yeni issue, hedeflenen 5 finding tamamen kayboldu
 
 ---
+
+## R-NEW — Crashlytics Integration (V1 Launch)
+
+**Status:** ADDED (Dalga R12, branch `dalga-r12-crashlytics-integration`)
+
+> Not: branch label R12, fakat R12 numarası `known_regressions.md`'de
+> Supabase auth.users NULL kolon regresyonuna ait. Bu girdi **yeni bir
+> regresyon değil**, V1 launch için Firebase Crashlytics entegrasyonunu
+> belgeleyen reference entry'dir.
+
+**Neden eklendi:** V1 launch öncesi production crash görünürlüğü gerekli.
+R10 (Flutter UI removal) + R11 (backend cleanup) sonrası kod yüzeyi
+küçüldü ama hâlâ Supabase realtime/auth + Gemini AI + Firebase messaging
+gibi network-heavy paths var; sessiz crash'ler dashboard olmadan kaybolur.
+
+**Wiring kanıtı (CLAUDE.md §1 + R7 disiplin):**
+- `pubspec.yaml`: `firebase_crashlytics: ^4.3.10` (firebase_core 3.13 + firebase_messaging 15.2.4 ile uyumlu majör)
+- `android/settings.gradle.kts`: `id("com.google.firebase.crashlytics") version "3.0.3" apply false`
+- `android/app/build.gradle.kts` plugins: `id("com.google.firebase.crashlytics")`
+- `lib/main.dart` Firebase init try-block:
+  - `FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode)` — debug build'lerde collection KAPALI (production dashboard temiz kalır)
+  - `FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError` — Flutter framework error'ları
+  - `PlatformDispatcher.instance.onError` — uncaught zone error'ları (`return true` kabul → Crashlytics'e fatal record)
+- Firebase init zaten `try { } catch { debugPrint(...) }` graceful pattern'inde — eğer `Firebase.initializeApp()` fail olursa Crashlytics setup hiç çağrılmaz, app çalışmaya devam eder
+
+**Smoke (R12-5):**
+- `flutter analyze --fatal-infos`: **No issues found!** (4.3s)
+- `flutter test`: **266/266 pass**
+- `flutter run -d emulator-5554 --debug`: Gradle build success + APK install + launch (build kanıtı `.claude/done_log.md` 2026-05-10 R12 entry'sinde)
+
+**iOS notu:** Bu PR yalnız Android Gradle wiring içeriyor. iOS için ayrı
+adım gerekecek (`ios/Podfile` Crashlytics entegrasyonu + `Runner.xcodeproj`
+Build Phase script `${PODS_ROOT}/FirebaseCrashlytics/run`). iOS desteği
+V1 launch'ında Android-first plana göre ertelendi.
+
+**Gelecek (V1.x sonrası):**
+- Custom keys: `match_mode`, `auth_state`, `current_screen` ile crash
+  context zenginleştir
+- Non-fatal logging: `FirebaseCrashlytics.instance.recordError(..., fatal: false)`
+  ile recoverable error'ları (R4 catch(_) kalıntıları yerine kullanım)
+- iOS wiring (yukarıdaki not)
+- Test crash button (debug-only) — Crashlytics dashboard ilk kez kayıt
+  alana kadar canlı doğrulama için (V1 sonrası ekle)
+
+---

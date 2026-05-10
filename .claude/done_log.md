@@ -151,6 +151,74 @@ match path test edildi.
 
 ---
 
+## 2026-05-10 — Dalga R12: Firebase Crashlytics integration + pubspec description fix
+
+V1 launch için production crash görünürlüğü. R10/R11 sonrası kod yüzeyi
+küçüldü ama Supabase realtime/auth + Gemini AI + Firebase messaging
+network-heavy yollar duruyor; dashboard olmadan sessiz crash'ler kaybolur.
+Bu PR Android Gradle wiring + Flutter SDK init handler'ları içeriyor;
+iOS Podfile entegrasyonu V1 sonrası ayrı adım.
+
+> Branch label R12, fakat `known_regressions.md`'deki R12 numarası
+> Supabase auth.users NULL kolon regresyonuna ait — bu girdi yeni
+> regresyon değil, V1 launch feature dökümantasyonu.
+
+- [x] Kod path:
+  - `pubspec.yaml`:
+    - `description` rewrite: "Noblara — Elite Black & Gold dating app" → "Premium emerald-themed connection app"
+    - dep eklendi (Firebase grubuna): `firebase_crashlytics: ^4.3.10` (`flutter pub add` versiyon kararını verdi; firebase_core 3.13 + firebase_messaging 15.2.4 ile aynı majör Firebase BoM jenerasyonu)
+  - `android/settings.gradle.kts` plugins block: `id("com.google.firebase.crashlytics") version "3.0.3" apply false`
+  - `android/app/build.gradle.kts` plugins: `id("com.google.firebase.crashlytics")` (google-services'ın yanına)
+  - `lib/main.dart`:
+    - import: `firebase_crashlytics`, `flutter/foundation` (kDebugMode için)
+    - Firebase init try-block içine 3 satır: `setCrashlyticsCollectionEnabled(!kDebugMode)` + `FlutterError.onError` + `PlatformDispatcher.instance.onError`
+    - Graceful pattern korundu: Firebase init fail ederse Crashlytics setup hiç çağrılmaz, app çalışır
+
+- [x] Backend kanıtı: yok (client-only entegrasyon — Firebase Console'da
+      Crashlytics dashboard'unun ilk crash kaydını alması canlı build
+      sonrası beklenir; debug build collection kapalı, V1 sonrası test
+      crash button eklenecek)
+
+- [x] UI kanıtı:
+  - `flutter analyze --fatal-infos`: **No issues found!** (4.3s) ✅ — ilk denemede `dart:ui` unnecessary_import infosu çıktı, foundation.dart PlatformDispatcher'ı zaten export ediyor → import silindi → temiz
+  - `flutter test`: **266/266 pass** ✅ (R10/R11 baseline korundu)
+  - `flutter run -d emulator-5554 --debug`:
+    - `√ Built build\app\outputs\flutter-apk\app-debug.apk` ✅ (Crashlytics gradle plugin sorunsuz uygulandı)
+    - `Installing build\app\outputs\flutter-apk\app-debug.apk... 857ms` ✅
+    - `Syncing files to device sdk gphone16k x86 64... 100ms` ✅
+    - `A Dart VM Service on sdk gphone16k x86 64 is available at: http://127.0.0.1:54288/...` ✅
+    - `D/ProfileInstaller: Installing profile for com.noblara.noblara_flutter` ✅
+  - Runtime crash YOK (debug mode; Crashlytics collection kapalı, handler'lar wired ama production'da aktif olacak)
+
+- [x] Regresyon kontrolü:
+  - **R7 (uydurma iddia):** Her wiring adımı için kanıt — pubspec lock
+    update output, gradle plugin version (`3.0.3`), build success log
+    (4 monitor event), test pass count (266/266). "Çalışıyor" değil
+    "build success + handler wired + collection toggle ile debug'tan
+    izole edildi" doğrulandı. ✅
+  - **R6 (phantom feature):** Crashlytics handler'lar gerçekten kuruldu
+    (FlutterError.onError + PlatformDispatcher.instance.onError); Firebase
+    Console'da görünme canlı release build'ine bağlı (debug'ta
+    `setCrashlyticsCollectionEnabled(false)` ile kapalı, beklenen davranış).
+    Phantom değil — collection toggle bilinçli tasarım kararı. ✅
+  - **R8 mapping drift watch:** Notification mapping bu PR'a girmedi —
+    Crashlytics push notification kategorisinde değil, ayrı Firebase
+    SDK; mevcut `send-push/index.ts` mapping etkilenmedi.
+
+- [x] Guardrail testi:
+  - flutter analyze: **green** ✅
+  - flutter test: **266/266** ✅ (kod path değişmedi, sadece main.dart init)
+  - Build: APK install + launch + ProfileInstaller success ✅
+  - Branch: `dalga-r12-crashlytics-integration`
+
+- [x] iOS notu:
+  - Bu PR yalnız Android Gradle wiring içerir
+  - iOS için V1 sonrası: `ios/Podfile` Crashlytics pod + `Runner.xcodeproj`
+    Build Phase Run Script (`${PODS_ROOT}/FirebaseCrashlytics/run`)
+  - Android-first launch planına uygun
+
+---
+
 ## 2026-05-10 — Dalga R10: Flutter video sistemi söküm (Bumble pattern'e geçiş)
 
 - [x] Kod path:
