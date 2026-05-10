@@ -69,8 +69,28 @@ serve(async (req) => {
       const resp = await fetch(url);
       const data = await resp.json();
 
+      // Enrich result with ISO 2-letter country code (short_name of type=country
+      // address component). Used by R13 geo-awareness layer for swipe gating
+      // (TH/VN/PH check). Long-name `country` already lives in
+      // address_components and remains untouched for backward compat.
+      let countryCode: string | null = null;
+      const components = (data.result?.address_components ?? []) as Array<{
+        types?: string[];
+        short_name?: string;
+      }>;
+      for (const c of components) {
+        if (c.types?.includes("country")) {
+          countryCode = c.short_name ?? null;
+          break;
+        }
+      }
+
+      const enrichedResult = data.result
+        ? { ...data.result, countryCode }
+        : null;
+
       return new Response(
-        JSON.stringify({ result: data.result ?? null }),
+        JSON.stringify({ result: enrichedResult }),
         { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
       );
     }
