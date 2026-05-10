@@ -21,7 +21,6 @@ import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
 import '../bff/bff_screen.dart';
-import '../../navigation/main_tab_navigator.dart';
 import 'swipe_card_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -361,35 +360,6 @@ class _EmptyDeck extends StatelessWidget {
                   color: context.textMuted,
                   fontSize: 14,
                   height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 28),
-              PressEffect(
-                onTap: () => MainTabNavigator.switchTab(1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.emerald600.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-                    border: Border.all(
-                      color: AppColors.emerald600.withValues(alpha: 0.25),
-                      width: 0.5,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.auto_awesome_outlined,
-                          color: AppColors.emerald600, size: 16),
-                      const SizedBox(width: 8),
-                      Text('Explore Nob Feed',
-                          style: TextStyle(
-                            color: AppColors.emerald600,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          )),
-                    ],
-                  ),
                 ),
               ),
             ],
