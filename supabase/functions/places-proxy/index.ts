@@ -7,13 +7,19 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Sanity-check the apikey header is present and length-plausible.
+// Real auth is enforced at the gateway via verify_jwt=true; the strict
+// `key !== anonKey` equality check used to live here was removing
+// legitimate Flutter SDK invokes (returned 401 because Supabase
+// platform injects SUPABASE_ANON_KEY as a publishable_key whose
+// shape differs from the legacy JWT the client sends, even though
+// the gateway's JWT verification accepts both). Synced with the
+// gemini-text v9 deployed pattern.
+// See supabase/config.toml comment on nob-quality-check for the
+// documented regression this avoids.
 function validateApiKey(req: Request): boolean {
   const key = req.headers.get("apikey") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  if (!key || (anonKey && key !== anonKey) || key.length < 20) {
-    return false;
-  }
-  return true;
+  return key.length > 20;
 }
 
 serve(async (req) => {
