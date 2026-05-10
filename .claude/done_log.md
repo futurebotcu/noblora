@@ -13,6 +13,39 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — V1 Launch Prep: AAB rebuild post R13+R14 merge
+
+- [x] R13 merged: commit `2021d9f` via PR #48 (geo-awareness + locked swipe + travel mode)
+- [x] R14 merged: squash commit `71d8b9e` via PR #49 (SignIn 200-as-error fix — `PlatformDispatcher.onError` `return true → false`)
+- [x] Stale R14 local branch deleted: `dalga-r14-signin-200-error-fix` (was `7ecc4e8`, squash-merged so `-D` required)
+- [x] Smoke post-merge:
+  - `flutter analyze --fatal-infos`: **No issues found! (ran in 5.3s)**
+  - `flutter test`: **286/286 pass**
+- [x] AAB rebuild:
+  - Path: `build/app/outputs/bundle/release/app-release.aab`
+  - Size: 47.6MB (47,623,090 bytes; Gradle reported 45.4MB binary unit)
+  - Date: 2026-05-10 17:14
+  - Version: `1.0.0+1` (`pubspec.yaml`)
+  - Build duration: 99.7s (`Gradle task 'bundleRelease'`)
+  - Signing: release signingConfig from `android/key.properties` → `upload-keystore.jks` (Senario A — gitignored, R10 disipline)
+- [x] Pre-R14 AAB backup: `build/app/outputs/bundle/release/app-release-pre-R14.aab.bak` (2026-05-10 10:40, 47.6MB) — kept for diff/rollback reference
+
+- [ ] **Pending — manual user actions:**
+  - Play Console Internal Test track upload (manual, Console UI)
+  - R14 validation on physical device — testfeed1 sign-in smoke (the 6-checkbox checklist in PR #49 description)
+  - On green Internal Test → Production track promotion
+  - On red → investigate: debug build on device + logcat trace + supabase_flutter SDK version check
+
+- [ ] **Next mini-sprint (NOT a launch blocker; queued for after R14 validation):**
+  - Settings cull: 6 placeholder rows (Safety Tips, Community Rules, Contact Support, Report a Bug, Request My Data, Community Guidelines) + ID Verification disabled row
+  - Help Center video-call language: reword `help_center_screen.dart:333, 340, 399, 413, 418, 543` to current flow
+  - Phantom notification toggles: settle on either server enforcement (extend `send-push` map) or UI removal for the 6 unenforced types
+  - "Explore Nob Feed" button label/route fix (`feed_screen.dart` ~line 140)
+  - UI polish pass on Discover empty state, Onboarding InfoStep, Verification Hub
+  - Deferred to V1.x: AI moderation blocklist, gemini-text deployed/source drift, R8/obfuscation hardening, large-file refactor
+
+---
+
 ## 2026-05-10 — Dalga R13: Geo-awareness + Locked swipe + Travel mode
 
 - [x] Kod path:
