@@ -13,6 +13,43 @@ Checklist eksik maddesi olan hiçbir görev "done" sayılmaz.
 
 ---
 
+## 2026-05-10 — V1 Launch Prep: Final AAB after Play Store cleanup merge
+
+- [x] Cleanup PR merged: commit `ddfb88e` via PR #50 (settings cull + Help Center video/call rewrite + "Explore Nob Feed" button removal + AI output guard)
+  - 4 cleanup commits squashed: `fe8e478` settings, `40e957c` help center, `ecfa69c` feed, `2d5ee2f` AI guard, `5803b2e` cleanup report
+  - Net: −78 lines user-visible misleading UI; +189 lines documentation (`PLAYSTORE_PREP_CLEANUP_REPORT.md`)
+- [x] Post-merge `git pull origin main`: ✓ clean fast-forward, HEAD `ddfb88e`
+- [x] Post-merge smoke:
+  - `flutter analyze --fatal-infos`: **No issues found! (ran in 4.6s)**
+  - `flutter test`: **286/286 pass**
+- [x] Final AAB build:
+  - Path: `build/app/outputs/bundle/release/app-release.aab`
+  - Size: 47.6MB (47,614,979 bytes; Gradle reported 45.4MB binary unit)
+  - Date: 2026-05-10 17:51
+  - Version: `1.0.0+1` (`pubspec.yaml`)
+  - Build duration: 82.2s (`Gradle task 'bundleRelease'`)
+  - Signing: release `signingConfig` from `android/key.properties` → `upload-keystore.jks` (gitignored, R10 disipline)
+- [x] Backup chain (all kept for rollback / diff reference):
+  - `app-release-pre-R14.aab.bak` — 2026-05-10 10:40 (pre-R13/R14 merge)
+  - `app-release-pre-cleanup.aab.bak` — 2026-05-10 17:14 (post-R14, pre-cleanup branch build)
+  - `app-release-pre-cleanup-merge.aab.bak` — 2026-05-10 17:38 (post-cleanup branch build, pre-PR #50 merge)
+  - `app-release.aab` — 2026-05-10 17:51 (final, post-cleanup-merge — current)
+
+- [ ] **Pending — manual user actions:**
+  - Play Console Internal Test track upload (manual, Console UI)
+  - Physical device R14 + cleanup combined smoke checklist:
+    - [ ] Sign in works (R14 validation: testfeed1@test.noblara.com / `noblara2026`)
+    - [ ] Login → Discover transition (no "Email or password is incorrect" stuck state)
+    - [ ] Settings shows: Account · Privacy & Visibility · Notifications (only 2 toggles: Connections + BFF Suggestions) · Safety & Verification (no ID Verification row) · Chats · AI Preferences · Help & Legal · Danger Zone
+    - [ ] Help Center "Getting Started → What is Noblara?" mentions "first message → chat → meet in person" (no video calls)
+    - [ ] Discover empty state ("All caught up") → no "Explore Nob Feed" button
+    - [ ] Match → first-message gate works → chat unlocks (R11 server-enforced)
+    - [ ] Travel mode toggle + Bangkok pick works (R13)
+  - On green Internal Test → Production track promotion
+  - On red → debug build + logcat trace; rollback path is the `.bak` chain above
+
+---
+
 ## 2026-05-10 — V1 Launch Prep: AAB rebuild post R13+R14 merge
 
 - [x] R13 merged: commit `2021d9f` via PR #48 (geo-awareness + locked swipe + travel mode)
