@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,6 +86,16 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
     return null;
   }
 
+  /// Persist the onboarding draft to Supabase, then refresh the local
+  /// profile provider so AppRouter can re-evaluate and advance to
+  /// MainTabNavigator.
+  ///
+  /// Throws when the DB save retries are exhausted — the caller's
+  /// CompletePage catch shows a retryable error and resets the loading
+  /// state. Previously the function swallowed save failures, then went
+  /// on to call createProfile/updateGender (which also failed silently
+  /// because there was no row to refresh from), leaving the user stuck
+  /// on the "You're all set" spinner with no path forward.
   Future<void> _complete() async {
     // Final validation
     final error = _validateCompletion();
@@ -91,11 +103,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
       if (mounted) {
         ToastService.show(context, message: error, type: ToastType.error);
       }
-      return;
+      throw Exception(error);
     }
 
     final uid = ref.read(authProvider).userId;
-    if (uid == null) return;
+    if (uid == null) {
+      throw Exception('Not signed in. Please sign in again to finish setup.');
+    }
 
     if (!isMockMode) {
       // Upload photo to Supabase Storage if local path exists
@@ -127,61 +141,72 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
         }
       }
 
-      // Retry DB save up to 2 times
+      // Retry DB save up to 2 times — abort the whole flow if exhausted
+      // (caller's catch surfaces a retryable error). Previously the loop
+      // silently fell through and the cascading createProfile call
+      // covered up the real problem.
+      Object? lastError;
       var saved = false;
       for (var attempt = 0; attempt < 2 && !saved; attempt++) {
         try {
           await ref.read(profileRepositoryProvider).updateProfile(uid, {
-          'full_name': _nameCtrl.text.trim(),
-          'display_name': _nameCtrl.text.trim(),
-          'age': _age,
-          'gender': _gender,
-          'city': _city,
-          if (_country.isNotEmpty) 'country': _country,
-          if (_locationLat != null) 'location_lat': _locationLat,
-          if (_locationLng != null) 'location_lng': _locationLng,
-          'bio': '',
-          'date_avatar_url': remotePhotoUrl,
-          'bff_avatar_url': remotePhotoUrl,
-          'dating_active': true,
-          'dating_visible': true,
-          'bff_active': true,
-          'bff_visible': true,
-          'looking_for': 'Serious relationship',
-          if (_occupation.isNotEmpty) 'profession': _occupation,
-          if (_avatarId != null) 'avatar_id': _avatarId,
-          'is_onboarded': true,
-          // Privacy defaults (explicit, not null)
-          'incognito_mode': false,
-          'calm_mode': false,
-          'show_last_active': true,
-          'show_status_badge': true,
-          'reach_permission': 'everyone',
-          'signal_permission': 'everyone',
-          'note_permission': 'everyone',
-          'message_preview': true,
-          'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
-        });
+            'full_name': _nameCtrl.text.trim(),
+            'display_name': _nameCtrl.text.trim(),
+            'age': _age,
+            'gender': _gender,
+            // Onboarding location is optional — manual city fallback may
+            // leave _city empty. Send null instead of '' so a NOT NULL
+            // column doesn't blow up and an empty NOT NULL string doesn't
+            // get persisted; the user can fill it from Profile Edit later.
+            if (_city.isNotEmpty) 'city': _city,
+            if (_country.isNotEmpty) 'country': _country,
+            if (_locationLat != null) 'location_lat': _locationLat,
+            if (_locationLng != null) 'location_lng': _locationLng,
+            'bio': '',
+            'date_avatar_url': remotePhotoUrl,
+            'bff_avatar_url': remotePhotoUrl,
+            'dating_active': true,
+            'dating_visible': true,
+            'bff_active': true,
+            'bff_visible': true,
+            'looking_for': 'Serious relationship',
+            if (_occupation.isNotEmpty) 'profession': _occupation,
+            if (_avatarId != null) 'avatar_id': _avatarId,
+            'is_onboarded': true,
+            // Privacy defaults (explicit, not null)
+            'incognito_mode': false,
+            'calm_mode': false,
+            'show_last_active': true,
+            'show_status_badge': true,
+            'reach_permission': 'everyone',
+            'signal_permission': 'everyone',
+            'note_permission': 'everyone',
+            'message_preview': true,
+            'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
+          });
           saved = true;
         } catch (e) {
+          lastError = e;
           debugPrint('Onboarding DB update error (attempt ${attempt + 1}): $e');
-          if (attempt == 1 && mounted) {
-            ToastService.show(context, message: 'Profile save failed. Please check your profile later.', type: ToastType.error);
-          }
         }
+      }
+
+      if (!saved) {
+        throw Exception(
+          'Profile save failed: ${lastError ?? 'unknown'}',
+        );
       }
     }
 
-    // Refresh profile to trigger router re-evaluation
-    try {
-      await ref.read(profileProvider.notifier).createProfile(
-        fullName: _nameCtrl.text.trim(),
-        currentMode: 'date',
-      );
-      await ref.read(profileProvider.notifier).updateGender(_gender);
-    } catch (e) {
-      debugPrint('Onboarding profile refresh error: $e');
-    }
+    // Refresh profile to trigger router re-evaluation. After a successful
+    // save these calls should succeed — if they don't, surface the error
+    // instead of proceeding with a partial state that would leave the
+    // user stuck on the spinner.
+    await ref.read(profileProvider.notifier).createProfile(
+      fullName: _nameCtrl.text.trim(),
+      currentMode: 'date',
+    );
+    await ref.read(profileProvider.notifier).updateGender(_gender);
   }
 
   @override
@@ -1069,10 +1094,24 @@ class _CompletePageState extends State<_CompletePage> {
               setState(() => _loading = true);
               try {
                 await widget.onComplete().timeout(const Duration(seconds: 15));
+                // Success: AppRouter listens to profileProvider and will
+                // unmount this screen on the next frame. Reset _loading
+                // defensively in case the router rebuild is delayed —
+                // otherwise the spinner could keep spinning after a
+                // successful save (the R15 "you're all set, stuck"
+                // symptom).
+                if (!mounted) return;
+                setState(() => _loading = false);
               } catch (e) {
                 if (!context.mounted) return;
                 setState(() => _loading = false);
-                ToastService.show(context, message: 'Something went wrong. Please try again.', type: ToastType.error);
+                // Surface the actual failure category — save vs network
+                // vs timeout — so the user has a sense of whether to
+                // check connection, location, or just retry.
+                final msg = e is TimeoutException
+                    ? 'This is taking longer than expected. Please check your connection and try again.'
+                    : "We couldn't save your profile. Please check your location or try again.";
+                ToastService.show(context, message: msg, type: ToastType.error);
               }
             },
             child: _loading
