@@ -650,28 +650,78 @@ class _LocationPage extends StatefulWidget {
 class _LocationPageState extends State<_LocationPage> {
   bool _gpsLoading = false;
   String? _error;
+  /// True when the GPS attempt ended in `deniedForever` — the runtime
+  /// prompt won't appear again and the user must visit App Settings.
+  /// Surfaces an extra "Open Settings" button under the error message.
+  bool _showOpenSettings = false;
 
   Future<void> _useGPS() async {
-    setState(() { _gpsLoading = true; _error = null; });
-    try {
-      final result = await LocationService.getLocationFromGPS();
-      if (result.isEmpty || result['city'] == null) {
-        setState(() { _gpsLoading = false; _error = 'Could not detect location. Try searching manually.'; });
+    setState(() {
+      _gpsLoading = true;
+      _error = null;
+      _showOpenSettings = false;
+    });
+
+    final result = await LocationService.getLocationFromGPS();
+
+    if (!mounted) return;
+
+    switch (result.status) {
+      case LocationStatus.success:
+        widget.onLocationSet(
+          result.city ?? '',
+          result.country ?? '',
+          result.lat,
+          result.lng,
+        );
+        // R13 — propagate ISO 2-letter country code for swipe-gate decision.
+        widget.onCountryCodeSet?.call(result.countryCode);
+        setState(() => _gpsLoading = false);
         return;
-      }
-      widget.onLocationSet(
-        result['city'] as String,
-        result['country'] as String? ?? '',
-        result['lat'] as double?,
-        result['lng'] as double?,
-      );
-      // R13 — propagate ISO 2-letter country code for swipe-gate decision.
-      widget.onCountryCodeSet?.call(result['countryCode'] as String?);
-    } catch (e) {
-      debugPrint('[onboard] GPS location failed: $e');
-      setState(() => _error = 'Location access failed. Try searching manually.');
+
+      case LocationStatus.denied:
+        setState(() {
+          _gpsLoading = false;
+          _error = 'Location permission denied. Tap "Use my location" again to retry, '
+                   'or pick your city below.';
+        });
+        return;
+
+      case LocationStatus.deniedForever:
+        setState(() {
+          _gpsLoading = false;
+          _showOpenSettings = true;
+          _error = 'Location access is blocked for Noblara. Open Settings to allow it, '
+                   'or pick your city manually below.';
+        });
+        return;
+
+      case LocationStatus.serviceDisabled:
+        setState(() {
+          _gpsLoading = false;
+          _showOpenSettings = true;
+          _error = 'Location services are turned off. Turn them on in your device '
+                   'Settings, or pick your city manually below.';
+        });
+        return;
+
+      case LocationStatus.positionUnavailable:
+        setState(() {
+          _gpsLoading = false;
+          _error = 'Couldn\'t read your location right now. Try again or pick '
+                   'your city manually below.';
+        });
+        return;
     }
-    setState(() => _gpsLoading = false);
+  }
+
+  Future<void> _openSettingsForLocation() async {
+    // Try app-specific settings first (deniedForever case); fall back to the
+    // OS-level location toggle when the issue is the master switch.
+    final ok = await LocationService.openAppSettingsPage();
+    if (!ok) {
+      await LocationService.openLocationSettings();
+    }
   }
 
   void _openSearch() {
@@ -729,6 +779,20 @@ class _LocationPageState extends State<_LocationPage> {
         if (_error != null) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+          if (_showOpenSettings) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _openSettingsForLocation,
+                icon: Icon(Icons.settings_outlined, size: 16, color: context.accent),
+                label: Text('Open Settings',
+                    style: TextStyle(color: context.accent, fontWeight: FontWeight.w600)),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+              ),
+            ),
+          ],
         ],
 
         // Location result
