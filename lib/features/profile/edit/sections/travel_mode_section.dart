@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/utils/country_support.dart';
@@ -159,7 +160,7 @@ class TravelModeSection extends ConsumerWidget {
                   const Icon(
                     Icons.error_outline_rounded,
                     size: 14,
-                    color: Colors.orange,
+                    color: AppColors.warning,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
