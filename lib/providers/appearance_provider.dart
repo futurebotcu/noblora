@@ -14,7 +14,7 @@ class AppearanceState {
 
   const AppearanceState({
     this.themeMode = ThemeMode.dark,
-    this.accentId = 'gold',
+    this.accentId = 'emerald',
   });
 
   AccentColor get accent => AppColors.accentById(accentId);
@@ -47,7 +47,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
 
     state = AppearanceState(
       themeMode: _parseThemeMode(themeStr),
-      accentId: accentStr ?? 'gold',
+      accentId: accentStr ?? 'emerald',
     );
   }
 
@@ -61,7 +61,7 @@ class AppearanceNotifier extends StateNotifier<AppearanceState> {
           await _ref.read(profileRepositoryProvider).fetchAppearance(uid);
       if (appearance == null) return;
       final theme = _parseThemeMode(appearance.themeMode);
-      final accentId = appearance.accentColor ?? 'gold';
+      final accentId = appearance.accentColor ?? 'emerald';
       state = AppearanceState(themeMode: theme, accentId: accentId);
       // Update local cache
       final prefs = await SharedPreferences.getInstance();
