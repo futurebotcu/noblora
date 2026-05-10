@@ -1456,3 +1456,24 @@ V1 launch'ında Android-first plana göre ertelendi.
   alana kadar canlı doğrulama için (V1 sonrası ekle)
 
 ---
+
+## V1.x Follow-up Notes (regresyon değil, hatırlatma)
+
+### gemini-text deployed/source drift (R13 PR'da çözülmedi)
+
+R13 places-proxy 401 fix'i sırasında fark edildi: `supabase/functions/gemini-text/index.ts`
+**deployed v9** ile **local source** arasında drift var. places-proxy v5 fix'i
+gemini-text **deployed v9**'un `validateApiKey` pattern'ine senkronlandı, ama
+gemini-text local source henüz deploy edilmemiş eski şekli içerebilir.
+
+**Yapılacak (V1.x sonrası — R13 scope dışı):**
+1. `mcp__supabase__get_edge_function('gemini-text')` ile deployed v9'u indir
+2. Local `supabase/functions/gemini-text/index.ts` ile diff'le
+3. Drift varsa: ya local'i deployed'a hizala ve commit'le, ya local'i redeploy et
+4. Aynı kontrol diğer edge function'lar (`send-push`, `places-proxy`, …) için de yapılmalı
+
+**Neden V1 değil:** Şu an hiçbir kullanıcı-bozan davranış yok (deployed çalışıyor),
+sadece kaynak-prod aynı sayfada değil. R7 disiplini gereği "doğrulanmadı" not
+edildi, V1 sprint freeze'i bozmaz.
+
+---
