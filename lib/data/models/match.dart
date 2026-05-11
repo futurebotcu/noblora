@@ -76,7 +76,7 @@ class NobleMatch {
   bool get isChatting => status == 'chatting';
   bool get isExpired => status == 'expired';
   bool get isClosed => status == 'closed';
-  bool get hasMeeting => status == 'meeting_scheduled';
+  // `hasMeeting` removed in V1 — meeting/date-scheduling feature pulled.
 
   Duration? get videoTimeRemaining {
     if (videoDeadlineAt == null) return null;

@@ -12,10 +12,8 @@ import '../../data/models/inbox_item.dart';
 import '../../data/models/match.dart';
 import '../../features/match/match_detail_screen.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/check_in_provider.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/profile_provider.dart';
-import '../match/check_in_screen.dart';
 import '../../core/services/toast_service.dart';
 import '../../navigation/main_tab_navigator.dart';
 import 'individual_chat_screen.dart';
@@ -368,65 +366,12 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = ref.watch(authProvider).userId;
-    final pendingCheckIns = uid != null
-        ? ref.watch(pendingCheckInsProvider(uid))
-        : const AsyncValue<List<Map<String, dynamic>>>.data([]);
-
+    // V1 — pending check-in banner removed: post-meeting check-in lived in
+    // the meeting/date-scheduling feature that was pulled from V1. The
+    // matches_screen now jumps straight from the auth/uid read into the
+    // filter chips.
     return Column(
       children: [
-        // Pending check-in banner
-        ...pendingCheckIns.when(
-          data: (pending) {
-            if (pending.isEmpty) return <Widget>[];
-            return [
-              GestureDetector(
-                onTap: () {
-                  final meetingId = pending.first['id'] as String?;
-                  if (meetingId != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CheckInScreen(
-                            meetingId: meetingId,
-                            otherUserName: 'your match'),
-                      ),
-                    );
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                  decoration: BoxDecoration(
-                    color: AppColors.emerald600.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.emerald600.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.rate_review_rounded,
-                          color: AppColors.emerald500, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'You have a pending check-in',
-                          style: TextStyle(
-                              color: AppColors.emerald500, fontSize: 13),
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded,
-                          color: AppColors.emerald500, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-            ];
-          },
-          loading: () => <Widget>[],
-          error: (_, __) => <Widget>[],
-        ),
-
         // ── Filter chips ──
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),

@@ -22,7 +22,6 @@ import '../../providers/user_report_provider.dart';
 import '../../services/gemini_service.dart';
 import '../../core/services/toast_service.dart';
 import '../bff/bff_plan_screen.dart';
-import '../match/real_meeting_screen.dart';
 import '../profile/user_profile_screen.dart';
 import 'end_connection_screen.dart';
 
@@ -781,21 +780,20 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
             },
             tooltip: _searchMode ? 'Close search' : 'Search messages',
           ),
-          if (widget.matchId != null)
+          // V1 — Plan Meeting CTA removed: meeting/date-scheduling feature was
+          // pulled from V1 entirely. BFF mode keeps "Make a plan" because BFF
+          // plans are a distinct flow (friendship activities, not romantic
+          // meetings) and remain scoped for V1.
+          if (widget.matchId != null && _isBff)
             IconButton(
-              icon: Icon(_isBff ? Icons.coffee_rounded : Icons.handshake_rounded, color: accent),
+              icon: Icon(Icons.coffee_rounded, color: accent),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => _isBff
-                      ? BffPlanScreen(conversationId: _item.id)
-                      : RealMeetingScreen(
-                          matchId: widget.matchId!,
-                          otherUserName: _item.name,
-                        ),
+                  builder: (_) => BffPlanScreen(conversationId: _item.id),
                 ),
               ),
-              tooltip: _isBff ? 'Make a plan' : 'Plan Meeting',
+              tooltip: 'Make a plan',
             ),
           IconButton(
             icon: Icon(Icons.bolt_rounded, color: accent),
