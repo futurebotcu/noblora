@@ -207,8 +207,10 @@ class _StatusCard extends StatelessWidget {
         return 'Send first message';
       case 'chatting':
         return 'Chat is Open';
-      case 'meeting_scheduled':
-        return 'Meeting Scheduled';
+      // V1 — `meeting_scheduled` removed: meeting/date-scheduling feature
+      // pulled from V1. If the legacy match.status ever surfaces, it falls
+      // through to the default branch and renders the raw status string
+      // rather than a customer-facing "Meeting Scheduled" label.
       case 'expired':
         return 'Connection Expired';
       case 'closed':
