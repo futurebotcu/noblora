@@ -57,8 +57,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _city = '';
   String _country = '';
   String? _countryCode;     // R13 — ISO 2-letter (TH/VN/PH or other) from GPS/search
-  double? _locationLat;
-  double? _locationLng;
+  // _locationLat / _locationLng intentionally not stored — see R16:
+  // public.profiles has no lat/lng columns, so persisting them here
+  // would be dead state with no downstream reader.
   String? _photoUrl;
   int? _avatarId;
 
@@ -160,8 +161,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             // get persisted; the user can fill it from Profile Edit later.
             if (_city.isNotEmpty) 'city': _city,
             if (_country.isNotEmpty) 'country': _country,
-            if (_locationLat != null) 'location_lat': _locationLat,
-            if (_locationLng != null) 'location_lng': _locationLng,
+            // R16 — `location_lat` / `location_lng` columns do NOT exist on
+            // public.profiles (verified via information_schema; the only
+            // migration that ever declared them was 20260401000002_social_events
+            // on the events table, dropped 2026-05-04). Sending them caused
+            // a 400 on every onboarding save since the file was written —
+            // see R16_ROOT_CAUSE_AUDIT_REPORT.md and api logs at
+            // 2026-05-11 15:35:38–39. The local lat/lng vars were also
+            // removed.
             'bio': '',
             'date_avatar_url': remotePhotoUrl,
             'bff_avatar_url': remotePhotoUrl,
@@ -256,7 +263,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                       countryCode: _countryCode,
                       onLocationSet: (city, country, lat, lng) => setState(() {
                         _city = city; _country = country;
-                        _locationLat = lat; _locationLng = lng;
+                        // lat/lng intentionally dropped — R16; profiles
+                        // table has no columns for them.
                       }),
                       onCountryCodeSet: (code) => setState(() => _countryCode = code),
                       onNext: _next),
