@@ -8,7 +8,6 @@ import '../services/push_notification_service.dart';
 import '../features/admin/admin_screen.dart';
 import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
-import '../features/status/status_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/tier_promotion_screen.dart';
 import '../features/verification/verification_hub_screen.dart';
@@ -74,7 +73,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       case 'signal_received':
         _switchTo(1); // Requests tab inside Chats
       case 'tier_promoted':
-        _switchTo(3); // Profile tab
+        _switchTo(2); // Profile tab (R19 — Status removed, Profile now index 2)
       default:
         _switchTo(1); // Default to Chats
     }
@@ -206,10 +205,13 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
     );
   }
 
+  // R19 — Status tab removed. V1 navigation is now 3 tabs: Discover (0),
+  // Chats (1), Profile (2). Admin tab (when isAdmin) becomes index 3.
+  // Push-notification tap routing in _handleNotificationTap was updated
+  // accordingly (tier_promoted now routes to index 2 instead of 3).
   static const _baseTabs = [
     _TabItem(label: 'Discover', icon: Icons.explore_outlined, activeIcon: Icons.explore_rounded),
     _TabItem(label: 'Chats', icon: Icons.chat_bubble_outline_rounded, activeIcon: Icons.chat_bubble_rounded),
-    _TabItem(label: 'Status', icon: Icons.bar_chart_rounded, activeIcon: Icons.bar_chart_rounded),
     _TabItem(label: 'Profile', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded),
   ];
 
@@ -222,7 +224,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   static const _baseScreens = [
     FeedScreen(),
     MatchesScreen(),
-    StatusScreen(),
     ProfileScreen(),
   ];
 

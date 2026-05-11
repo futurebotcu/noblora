@@ -7,13 +7,11 @@ import '../data/models/match.dart';
 import '../data/models/profile_card.dart';
 import '../data/repositories/feed_repository.dart';
 import '../data/repositories/signal_repository.dart';
-import '../data/repositories/super_like_repository.dart';
 import 'auth_provider.dart';
 import 'filter_provider.dart';
 import 'match_provider.dart';
 import 'mode_provider.dart';
 import 'profile_provider.dart';
-import 'status_provider.dart';
 import 'supabase_client_provider.dart';
 
 final signalRepositoryProvider = Provider<SignalRepository>((ref) {
@@ -197,24 +195,10 @@ class FeedNotifier extends StateNotifier<FeedState> {
     await sendSignal(cardId);
   }
 
-  Future<void> rewind() async {
-    final card = state.lastRemovedCard;
-    if (card == null) return;
-    final statusData = _ref.read(statusProvider).valueOrNull;
-    if (statusData != null && statusData.rewindsRemaining <= 0) return;
-
-    final userId = _ref.read(authProvider).userId;
-    if (userId != null && !isMockMode) {
-      final repo = SuperLikeRepository(supabase: _ref.read(supabaseClientProvider));
-      await repo.deleteSwipe(swiperId: userId, targetId: card.id);
-      await repo.decrementRewinds(userId);
-    }
-    state = state.copyWith(
-      cards: [card, ...state.cards],
-      clearLastRemoved: true,
-    );
-    _ref.read(statusProvider.notifier).decrementRewinds();
-  }
+  // R19 — `rewind()` removed along with the Status feature (no UI caller
+  // remains; the Status screen was the only entry point, and the underlying
+  // SuperLikeRepository/decrementRewinds counters belonged to the Status
+  // surface). Re-introducing rewind in V1.x will require a fresh design.
 
   void clearNewMatch() {
     state = state.copyWith(clearNewMatch: true);
