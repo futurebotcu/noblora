@@ -20,7 +20,6 @@ import '../profile/edit/sections/travel_mode_section.dart';
 import '../filters/filter_bottom_sheet.dart';
 import '../match/match_found_screen.dart';
 import '../match/mini_intro_screen.dart';
-import '../bff/bff_screen.dart';
 import 'swipe_card_widget.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -69,10 +68,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final filterCount =
         ref.watch(filterProvider.select((f) => f.activeCount(mode)));
 
-    // BFF mode → dedicated BFF suggestion screen
-    if (mode == NobleMode.bff) {
-      return const BffScreen();
-    }
+    // R18 — BFF dedicated screen branch removed (BFF pulled from V1).
 
     // R13 — country gate state for the locked-swipe banner. The same
     // predicate is mirrored on the backend in `create_swipe_with_gate`
@@ -389,7 +385,12 @@ class _ActionRowState extends ConsumerState<_ActionRow>
   late AnimationController _hsCtrl;
   late Animation<double> _hsScale;
   late Animation<double> _hsFade;
-  bool _showHandshake = false;
+  // R18 — `_showHandshake` is only set in the deleted `_onConnect`
+  // (BFF action). With BFF removed, the handshake animation never
+  // triggers; kept as `final false` to avoid touching the renderer
+  // (which still has an `if (_showHandshake)` gated AnimatedBuilder).
+  // Dead-render cleanup is V1.x refactor scope.
+  final bool _showHandshake = false;
 
   @override
   void initState() {
@@ -462,14 +463,9 @@ class _ActionRowState extends ConsumerState<_ActionRow>
     ).then((_) => ctrl.dispose());
   }
 
-  void _onConnect(String cardId) {
-    if (!_checkGate(context, widget.mode.name)) return;
-    setState(() => _showHandshake = true);
-    _hsCtrl.forward(from: 0).then((_) {
-      if (mounted) setState(() => _showHandshake = false);
-    });
-    ref.read(feedProvider.notifier).swipeRight(cardId);
-  }
+  // R18 — `_onConnect` removed (was BFF-only swipe-right action). Date
+  // swipe right goes through `feedProvider.swipeRight` directly in
+  // `_ActionRow.onTap`.
 
   /// Check gating before allowing an interaction action
   bool _checkGate(BuildContext context, String mode) {
@@ -551,9 +547,9 @@ class _ActionRowState extends ConsumerState<_ActionRow>
               // Connect / Like (GATED) — HERO CTA
               PressEffect(
                 scale: 0.92,
-                onTap: mode == NobleMode.bff
-                    ? () { if (_checkGate(context, 'bff')) _onConnect(topCard.id); }
-                    : () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
+                // R18 — BFF connect branch removed; date swipe is the
+                // only Discover action.
+                onTap: () { if (_checkGate(context, 'date')) ref.read(feedProvider.notifier).swipeRight(topCard.id); },
                 child: Container(
                   width: 66,
                   height: 66,

@@ -6,7 +6,10 @@ import '../../core/theme/app_tokens.dart';
 import '../../providers/mode_provider.dart';
 
 /// Modes offered to the user in the mode switcher + mode selection dialog.
-const List<NobleMode> _availableModes = [NobleMode.date, NobleMode.bff];
+/// R18 — BFF removed from V1; only the date mode is selectable. The switcher
+/// still renders as a chip row for layout/theming consistency, but with a
+/// single entry it functions as a static label.
+const List<NobleMode> _availableModes = [NobleMode.date];
 
 class ModeSwitcher extends ConsumerWidget {
   const ModeSwitcher({super.key});

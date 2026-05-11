@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-enum NobleMode { date, bff, noblara }
+/// R18 — BFF removed from V1. Only `date` (Discover / Match / Chat) and
+/// `noblara` (community feed, currently gated behind kSocialEnabled=false)
+/// remain. Existing match rows with `mode='bff'` still exist in the DB
+/// but no V1 code path constructs `NobleMode.bff`; matches_screen filters
+/// them out via the active-modes/string check before this enum sees them.
+enum NobleMode { date, noblara }
 
 extension NobleModeX on NobleMode {
   String get label {
     switch (this) {
       case NobleMode.date:
         return 'Noble Date';
-      case NobleMode.bff:
-        return 'Noble BFF';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -19,8 +22,6 @@ extension NobleModeX on NobleMode {
     switch (this) {
       case NobleMode.date:
         return 'Find your match';
-      case NobleMode.bff:
-        return 'Build your circle';
       case NobleMode.noblara:
         return 'Community feed';
     }
@@ -30,8 +31,6 @@ extension NobleModeX on NobleMode {
     switch (this) {
       case NobleMode.date:
         return 'Date';
-      case NobleMode.bff:
-        return 'BFF';
       case NobleMode.noblara:
         return 'Noblara';
     }
@@ -41,8 +40,6 @@ extension NobleModeX on NobleMode {
     switch (this) {
       case NobleMode.date:
         return Icons.favorite_rounded;
-      case NobleMode.bff:
-        return Icons.people_rounded;
       case NobleMode.noblara:
         return Icons.article_rounded;
     }
@@ -52,8 +49,6 @@ extension NobleModeX on NobleMode {
     switch (this) {
       case NobleMode.date:
         return AppColors.emerald500;
-      case NobleMode.bff:
-        return AppColors.emerald600;
       case NobleMode.noblara:
         return AppColors.emerald500;
     }
@@ -62,8 +57,6 @@ extension NobleModeX on NobleMode {
   Color get accentLight {
     switch (this) {
       case NobleMode.date:
-        return AppColors.emerald600.withValues(alpha: 0.14);
-      case NobleMode.bff:
         return AppColors.emerald600.withValues(alpha: 0.14);
       case NobleMode.noblara:
         return AppColors.emerald600.withValues(alpha: 0.14);
@@ -74,8 +67,6 @@ extension NobleModeX on NobleMode {
     switch (this) {
       case NobleMode.date:
         return AppColors.bg;
-      case NobleMode.bff:
-        return const Color(0xFF0A0E0D);
       case NobleMode.noblara:
         return AppColors.bg;
     }

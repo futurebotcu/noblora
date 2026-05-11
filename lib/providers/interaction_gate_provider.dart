@@ -19,9 +19,8 @@ class InteractionGate {
 
   bool get hasPhoto => photoCount > 0;
 
-  // Dating & BFF: need at least 1 photo
+  // Dating: needs at least 1 photo. R18 — `canBffInteract` removed.
   bool get canDateInteract => hasPhoto;
-  bool get canBffInteract => hasPhoto;
 
   // Social: photo to join, verified to create (always false when layer disabled)
   bool get canSocialJoin => kSocialEnabled && hasPhoto;
@@ -35,7 +34,7 @@ class InteractionGate {
 
   bool canInteract(String mode) => switch (mode) {
     'date' => canDateInteract,
-    'bff' => canBffInteract,
+    // R18 — `'bff' => canBffInteract` removed.
     'social' => canSocialJoin,
     _ => false,
   };

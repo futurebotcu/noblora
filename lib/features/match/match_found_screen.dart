@@ -52,14 +52,8 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
     super.dispose();
   }
 
-  NobleMode get _mode {
-    switch (widget.match.mode) {
-      case 'bff':
-        return NobleMode.bff;
-      default:
-        return NobleMode.date;
-    }
-  }
+  // R18 — BFF mode arm removed. Every match in V1 is a dating match.
+  NobleMode get _mode => NobleMode.date;
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +89,8 @@ class _MatchFoundScreenState extends State<MatchFoundScreen>
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 Text(
-                  mode == NobleMode.bff
-                      ? 'Alliance Formed!'
-                      : 'It\'s a Match!',
+                  // R18 — "Alliance Formed!" BFF variant removed.
+                  "It's a Match!",
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         color: mode.accentColor,
                         fontWeight: FontWeight.w800,

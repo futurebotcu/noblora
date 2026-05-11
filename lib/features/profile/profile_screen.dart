@@ -880,14 +880,14 @@ class _PersonaSectionState extends State<_PersonaSection> {
 
   Widget _buildPersonaCard(BuildContext context, NobleMode mode) {
     final p = widget.profile;
+    // R18 — NobleMode.bff arm removed; `bffBio` / `bffAvatarUrl` Profile
+    // model fields are still defined but no V1 code path reads them.
     final bio = switch (mode) {
       NobleMode.date => p?.dateBio,
-      NobleMode.bff => p?.bffBio,
       _ => null,
     };
     final avatarUrl = switch (mode) {
       NobleMode.date => p?.dateAvatarUrl,
-      NobleMode.bff => p?.bffAvatarUrl,
       _ => null,
     };
     final hasBio = bio != null && bio.trim().isNotEmpty;

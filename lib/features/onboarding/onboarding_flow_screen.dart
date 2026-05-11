@@ -171,11 +171,10 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             // removed.
             'bio': '',
             'date_avatar_url': remotePhotoUrl,
-            'bff_avatar_url': remotePhotoUrl,
             'dating_active': true,
             'dating_visible': true,
-            'bff_active': true,
-            'bff_visible': true,
+            // R18 — `bff_avatar_url`, `bff_active`, `bff_visible` writes
+            // removed (BFF pulled from V1). DB columns untouched.
             'looking_for': 'Serious relationship',
             if (_occupation.isNotEmpty) 'profession': _occupation,
             if (_avatarId != null) 'avatar_id': _avatarId,
@@ -189,7 +188,9 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             'signal_permission': 'everyone',
             'note_permission': 'everyone',
             'message_preview': true,
-            'active_modes': kSocialEnabled ? ['date', 'bff', 'social'] : ['date', 'bff'],
+            // R18 — 'bff' removed from active_modes; V1 only persists 'date'
+            // (plus 'social' when kSocialEnabled flips on in a future build).
+            'active_modes': kSocialEnabled ? ['date', 'social'] : ['date'],
           });
           saved = true;
         } catch (e) {
@@ -998,7 +999,7 @@ class _PrivacyPage extends StatelessWidget {
         Text('Your privacy', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.lg),
         Expanded(child: ListView(children: [
-          _InfoCard(Icons.favorite_outline_rounded, 'Dating & BFF interactions', 'Add a photo to swipe, connect, and message. Without one you can only browse.'),
+          _InfoCard(Icons.favorite_outline_rounded, 'Dating interactions', 'Add a photo to swipe, match, and message. Without one you can only browse.'),
           _InfoCard(Icons.photo_camera_outlined, 'Add a photo to connect', 'Without a photo you can browse but cannot swipe, connect or message anyone.'),
           _InfoCard(Icons.auto_awesome_outlined, 'Photo to post Nobs', 'You can read and react to Nobs freely. Upload a photo to share your own.'),
           _InfoCard(Icons.visibility_off_rounded, 'Incognito available', 'You can browse invisibly anytime from Settings.'),

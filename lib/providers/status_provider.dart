@@ -153,7 +153,8 @@ class StatusNotifier extends StateNotifier<AsyncValue<StatusData>> {
         rewindsRemaining: 3,
         likedMe: const [
           WhoLikedItem(userId: 'm1', name: 'Emma', mode: 'date'),
-          WhoLikedItem(userId: 'm2', name: 'Sofia', mode: 'bff'),
+          // R18 — BFF mock removed; second mock entry uses date mode.
+          WhoLikedItem(userId: 'm2', name: 'Sofia', mode: 'date'),
         ],
         iLiked: const [
           WhoLikedItem(userId: 'm3', name: 'Mia', mode: 'date'),

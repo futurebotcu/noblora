@@ -64,79 +64,21 @@ void main() {
     binding.platformDispatcher.implicitView!.resetDevicePixelRatio();
   });
 
-  group('FilterBottomSheet — Smart sort subtitle (Dalga 14f)', () {
-    testWidgets('BFF mode header shows BFF badge (modeProvider override sanity)',
-        (tester) async {
-      await tester.pumpWidget(_harness(mode: NobleMode.bff));
-      await tester.pumpAndSettle();
-
-      expect(find.text('BFF'), findsOneWidget,
-          reason: 'modeProvider override must propagate to header chip');
-    });
-
-    testWidgets('BFF mode renders "Smart sort: Languages" label', (tester) async {
-      await tester.pumpWidget(_harness(mode: NobleMode.bff));
-      await tester.pumpAndSettle();
-
-      await _scrollUntilFound(tester, find.text('Smart sort: Languages'));
-      expect(find.text('Smart sort: Languages'), findsOneWidget);
-    });
-
-    testWidgets('BFF mode renders Languages subtitle copy', (tester) async {
-      await tester.pumpWidget(_harness(mode: NobleMode.bff));
-      await tester.pumpAndSettle();
-
-      await _scrollUntilFound(
-          tester, find.text('Boosts matching profiles in feed order'));
-      expect(
-        find.text('Boosts matching profiles in feed order'),
-        findsAtLeastNWidgets(1),
-        reason: 'Languages section subtitle must render in BFF mode',
-      );
-    });
-
-    testWidgets('BFF mode + advanced expanded renders "Smart sort: Interests" label',
-        (tester) async {
-      await tester.pumpWidget(_harness(mode: NobleMode.bff));
-      await tester.pumpAndSettle();
-
-      await _scrollUntilFound(tester, find.text('More filters'));
-      await tester.tap(find.text('More filters'));
-      await tester.pumpAndSettle();
-
-      await _scrollUntilFound(tester, find.text('Smart sort: Interests'));
-      expect(find.text('Smart sort: Interests'), findsOneWidget);
-    });
-
-    testWidgets('BFF mode + advanced expanded renders subtitle under both Languages and Interests',
-        (tester) async {
-      await tester.pumpWidget(_harness(mode: NobleMode.bff));
-      await tester.pumpAndSettle();
-
-      await _scrollUntilFound(tester, find.text('More filters'));
-      await tester.tap(find.text('More filters'));
-      await tester.pumpAndSettle();
-
-      // Force the Interests section into the build by scrolling to it; the
-      // Languages section above is already built from the initial pump.
-      await _scrollUntilFound(tester, find.text('Smart sort: Interests'));
-
-      // Identical subtitle copy is reused under both Languages and Interests.
-      expect(
-        find.text('Boosts matching profiles in feed order'),
-        findsNWidgets(2),
-        reason:
-            'Subtitle must render under both Languages and Interests in BFF + advanced',
-      );
-    });
-
-    testWidgets('Dating mode does NOT render Smart sort sections (BFF-only)',
+  // R18 — BFF-mode "Smart sort" widget tests removed entirely.
+  // The Dalga-14f BFF Smart sort feature was deleted along with the BFF
+  // mode; the original positive tests (`BFF mode renders Smart sort:
+  // Languages`, etc.) no longer apply because `NobleMode.bff` no longer
+  // exists. The companion negative test (`Dating mode does NOT render
+  // Smart sort sections`) was also removed because it only existed to
+  // prove the BFF-only conditional was respected on date mode.
+  group('FilterBottomSheet — Dating mode renders without BFF leftovers', () {
+    testWidgets('Dating mode shows the Dating badge, no Smart sort sections',
         (tester) async {
       await tester.pumpWidget(_harness(mode: NobleMode.date));
       await tester.pumpAndSettle();
 
-      // Expand advanced too — to cover the Interests slot which is also gated
-      // behind `if (mode == NobleMode.bff)`.
+      expect(find.text('Dating'), findsOneWidget);
+
       await _scrollUntilFound(tester, find.text('More filters'));
       await tester.tap(find.text('More filters'));
       await tester.pumpAndSettle();

@@ -72,10 +72,10 @@ class FeedRepository {
     }
 
     // Step 2: build filtered query
-    // Mode visibility column name
+    // Mode visibility column name. R18 — `'bff' => 'bff_visible'` arm
+    // removed; every V1 query is date-mode.
     final visibleCol = switch (mode) {
       'date' => 'dating_visible',
-      'bff' => 'bff_visible',
       _ => 'dating_visible',
     };
 
@@ -136,10 +136,7 @@ class FeedRepository {
         query = query.eq('looking_for', filters.lookingFor!);
       }
 
-      // BFF looking for — HARD
-      if (filters.bffLookingFor != null) {
-        query = query.eq('bff_looking_for', filters.bffLookingFor!);
-      }
+      // R18 — `filters.bffLookingFor` filter removed; BFF pulled from V1.
 
       // Has Nob posts (weekly — survives UTC daily reset)
       if (filters.hasNobs) {

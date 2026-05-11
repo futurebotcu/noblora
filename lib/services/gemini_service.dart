@@ -191,70 +191,10 @@ Return ONLY the text, nothing else.
     return 'How has your week been?';
   }
 
-  // ---------------------------------------------------------------------------
-  // BFF common ground
-  // ---------------------------------------------------------------------------
-  static Future<List<String>> generateCommonGround({
-    required String userABio,
-    required String userBBio,
-    List<String> userAPosts = const [],
-    List<String> userBPosts = const [],
-  }) async {
-    final postsA = userAPosts.isNotEmpty ? 'User A recent posts: ${userAPosts.join(" | ")}' : '';
-    final postsB = userBPosts.isNotEmpty ? 'User B recent posts: ${userBPosts.join(" | ")}' : '';
-
-    final prompt = '''
-You are an AI for a friendship app (NOT dating). Analyze two users and find common ground.
-
-User A bio: $userABio
-User B bio: $userBBio
-$postsA
-$postsB
-
-Return exactly 2-3 short phrases. Focus on lifestyle, not hobbies lists.
-Return ONLY a JSON array of 2-3 strings.
-''';
-
-    try {
-      final result = await analyzeText(prompt);
-      final text = result['text'] as String? ?? '[]';
-      final listMatch = RegExp(r'\[[\s\S]*\]').firstMatch(text);
-      if (listMatch != null) {
-        final list = jsonDecode(listMatch.group(0)!) as List<dynamic>;
-        return list.map((e) => e.toString()).take(3).toList();
-      }
-    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
-
-    return ['You two might have more in common than you think'];
-  }
-
-  // ---------------------------------------------------------------------------
-  // BFF friendly opener
-  // ---------------------------------------------------------------------------
-  static Future<String> generateBffOpener({
-    required String userName,
-    required String otherName,
-    List<String> commonGround = const [],
-  }) async {
-    final cgStr = commonGround.isNotEmpty ? 'Common ground: ${commonGround.join(", ")}' : '';
-
-    final prompt = '''
-You are an AI for a friendship app (NOT dating). Generate ONE friendly conversation opener.
-
-$userName wants to start chatting with $otherName.
-$cgStr
-
-Rules: Warm, casual, non-romantic. 1-2 sentences, max 120 characters. No JSON.
-''';
-
-    try {
-      final result = await analyzeText(prompt);
-      final text = (result['text'] as String?)?.trim() ?? '';
-      if (text.isNotEmpty) return text.replaceAll('"', '');
-    } catch (e) { debugPrint('[gemini] AI call failed: $e'); }
-
-    return 'Hey $otherName! Looks like we have some things in common.';
-  }
+  // R18 — `generateCommonGround` + `generateBffOpener` removed along
+  // with the rest of BFF. Both methods only had callers inside BFF
+  // screens / the chat _suggestBffOpener helper, all of which were
+  // deleted in R18.
 
   // ---------------------------------------------------------------------------
   // Tier explanation

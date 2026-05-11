@@ -18,7 +18,6 @@ import '../../core/services/toast_service.dart';
 import '../../navigation/main_tab_navigator.dart';
 import 'individual_chat_screen.dart';
 import '../../data/models/note.dart';
-import '../../providers/bff_provider.dart';
 import '../../providers/note_provider.dart';
 
 // Number of tabs in the inbox: Alliances + Requests (+ Circles if Social is on).
@@ -106,9 +105,11 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
     final matchState = ref.watch(matchProvider);
     final allMatches = matchState.matches;
 
+    // R18 — only date-mode matches are constructed in V1. Legacy BFF
+    // matches that may still exist in the DB are filtered out at this
+    // gate so they don't surface in the Alliances list.
     final alliances = allMatches
-        .where((m) =>
-            (m.mode == 'date' || m.mode == 'bff') && m.status != 'expired')
+        .where((m) => m.mode == 'date' && m.status != 'expired')
         .map(_matchToInboxItem)
         .toList();
 
@@ -261,9 +262,9 @@ class _MatchesScreenState extends ConsumerState<MatchesScreen>
                         _AlliancesTab(
                           items: alliances,
                           matchesByItemId: {
+                            // R18 — only date-mode matches surface in V1.
                             for (final m in allMatches.where((m) =>
-                                (m.mode == 'date' || m.mode == 'bff') &&
-                                m.status != 'expired'))
+                                m.mode == 'date' && m.status != 'expired'))
                               m.id: m,
                           },
                         ),
@@ -390,14 +391,7 @@ class _AlliancesTabState extends ConsumerState<_AlliancesTab> {
                 onTap: () => setState(() =>
                     _filter = _filter == NobleMode.date ? null : NobleMode.date),
               ),
-              const SizedBox(width: 8),
-              _FilterChip(
-                label: 'BFF',
-                isActive: _filter == NobleMode.bff,
-                dotColor: AppColors.emerald500,
-                onTap: () => setState(() =>
-                    _filter = _filter == NobleMode.bff ? null : NobleMode.bff),
-              ),
+              // R18 — BFF filter chip removed.
             ],
           ),
         ),
@@ -726,7 +720,9 @@ class _CircleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = NobleMode.bff.accentColor;
+    // R18 — BFF accent replaced with date-mode accent for the
+    // (kSocialEnabled-gated) Circles tab tile.
+    final accent = NobleMode.date.accentColor;
 
     return PressEffect(
       onTap: onTap,
@@ -921,7 +917,11 @@ class _RequestsTab extends ConsumerStatefulWidget {
 }
 
 class _RequestsTabState extends ConsumerState<_RequestsTab> {
-  List<Map<String, dynamic>> _reachOuts = [];
+  // R18 — `_reachOuts` field kept but is always empty (BFF removed in V1).
+  // Could be deleted in a future refactor; left here so the surrounding
+  // diff stays small and the empty-state condition `_reachOuts.isEmpty &&
+  // _notes.isEmpty` keeps its existing shape.
+  final List<Map<String, dynamic>> _reachOuts = const [];
   List<Note> _notes = [];
   bool _loading = true;
   String? _error;
@@ -932,65 +932,24 @@ class _RequestsTabState extends ConsumerState<_RequestsTab> {
     _load();
   }
 
+  // R18 — BFF reach-out load + accept + decline removed. The Requests
+  // tab now only surfaces notes (note_repository).
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     final uid = ref.read(authProvider).userId;
     if (uid == null) { setState(() => _loading = false); return; }
     try {
-      final repo = ref.read(bffRepositoryProvider);
       final noteRepo = ref.read(noteRepositoryProvider);
-      final results = await Future.wait([
-        repo.fetchReachOutsReceived(uid),
-        noteRepo.fetchReceivedNotes(uid),
-      ]);
+      final notes = await noteRepo.fetchReceivedNotes(uid);
       if (mounted) {
         setState(() {
-          _reachOuts = results[0] as List<Map<String, dynamic>>;
-          _notes = results[1] as List<Note>;
+          _notes = notes;
           _loading = false;
         });
       }
     } catch (e) {
       debugPrint('[requests] Load failed: $e');
       if (mounted) setState(() { _loading = false; _error = 'Could not load requests'; });
-    }
-  }
-
-  Future<void> _acceptReachOut(String id) async {
-    final repo = ref.read(bffRepositoryProvider);
-    try {
-      final result = await repo.acceptReachOut(id);
-      if (result['result'] == 'connected') {
-        if (mounted) {
-          ToastService.show(context, message: 'Connected!', type: ToastType.match);
-        }
-        ref.read(matchProvider.notifier).load();
-        _load();
-      } else {
-        if (mounted) {
-          ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
-        }
-      }
-    } catch (e) {
-      debugPrint('[matches] acceptReachOut failed: $e');
-      if (mounted) {
-        ToastService.show(context, message: 'Could not accept request', type: ToastType.error);
-      }
-    }
-  }
-
-  Future<void> _declineReachOut(String id) async {
-    try {
-      await ref.read(bffRepositoryProvider).markReachOutIgnored(id);
-      if (mounted) {
-        ToastService.show(context, message: 'Request declined', type: ToastType.system);
-        _load();
-      }
-    } catch (e) {
-      debugPrint('[matches] declineReachOut failed: $e');
-      if (mounted) {
-        ToastService.show(context, message: 'Could not decline', type: ToastType.error);
-      }
     }
   }
 
@@ -1070,15 +1029,8 @@ class _RequestsTabState extends ConsumerState<_RequestsTab> {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 100),
         children: [
-          if (_reachOuts.isNotEmpty) ...[
-            _SectionHeader(title: 'Reach Outs', count: _reachOuts.length),
-            ..._reachOuts.map((ro) => _ReachOutTile(
-              reachOut: ro,
-              onAccept: () => _acceptReachOut(ro['id'] as String),
-              onDecline: () => _declineReachOut(ro['id'] as String),
-              timeAgo: _timeAgo(DateTime.parse(ro['created_at'] as String)),
-            )),
-          ],
+          // R18 — Reach Outs section removed (BFF). Requests tab now
+          // only renders received notes.
           if (_notes.isNotEmpty) ...[
             _SectionHeader(title: 'Notes', count: _notes.length),
             ..._notes.map((note) => _NoteTile(
@@ -1133,150 +1085,6 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Reach-out tile
-// ---------------------------------------------------------------------------
-
-class _ReachOutTile extends StatelessWidget {
-  final Map<String, dynamic> reachOut;
-  final VoidCallback onAccept;
-  final VoidCallback onDecline;
-  final String timeAgo;
-
-  const _ReachOutTile({
-    required this.reachOut,
-    required this.onAccept,
-    required this.onDecline,
-    required this.timeAgo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = reachOut['profiles'] as Map<String, dynamic>?;
-    final name = profile?['display_name'] as String? ?? 'Someone';
-    final photoUrl = profile?['date_avatar_url'] as String?;
-    final bio = profile?['bio'] as String? ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: context.borderSubtleColor),
-          boxShadow: Premium.shadowSm,
-        ),
-        child: Row(
-          children: [
-            // Avatar
-            ClipOval(
-              child: photoUrl != null && photoUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: photoUrl,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 120,
-                      errorWidget: (_, __, ___) => _RequestAvatarFallback(name: name),
-                    )
-                  : _RequestAvatarFallback(name: name),
-            ),
-            const SizedBox(width: 12),
-            // Name + bio
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            color: context.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        timeAgo,
-                        style: TextStyle(
-                          color: context.textDisabled,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (bio.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      bio,
-                      style: TextStyle(
-                        color: context.textMuted,
-                        fontSize: 12,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      // Accept
-                      GestureDetector(
-                        onTap: onAccept,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: AppColors.emerald600,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                          ),
-                          child: const Text(
-                            'Accept',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Decline
-                      GestureDetector(
-                        onTap: onDecline,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                            border: Border.all(color: context.textMuted.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            'Decline',
-                            style: TextStyle(
-                              color: context.textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

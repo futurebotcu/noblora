@@ -131,13 +131,8 @@ class FilterState {
       if (sixPlusPhotos) c++;
       if (pinnedNobExists) c++;
       if (sameCityOnly) c++;
-    } else if (mode == NobleMode.bff) {
-      if (bffLookingFor != null) c++;
-      if (interests.isNotEmpty) c++;
-      if (socialEnergy != null) c++;
-      if (routine != null) c++;
-      if (hasNobs) c++;
     }
+    // R18 — NobleMode.bff branch removed.
     return c;
   }
 

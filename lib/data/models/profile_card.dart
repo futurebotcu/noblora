@@ -49,16 +49,17 @@ class ProfileCard {
   /// Maps a public.profiles DB row to a ProfileCard for the feed.
   /// Picks mode-specific bio and avatar; falls back to photos[] then picsum.
   factory ProfileCard.fromDb(Map<String, dynamic> row, NobleMode mode) {
+    // R18 — NobleMode.bff arm removed. The `bff_bio` / `bff_avatar_url`
+    // DB columns are still present (deferred cleanup) but no V1 code
+    // path reads them.
     final bio = switch (mode) {
       NobleMode.date    => row['date_bio'],
-      NobleMode.bff     => row['bff_bio'],
       NobleMode.noblara => row['bio'],
     } as String? ??
         row['bio'] as String?;
 
     final avatar = switch (mode) {
       NobleMode.date    => row['date_avatar_url'],
-      NobleMode.bff     => row['bff_avatar_url'],
       NobleMode.noblara => null,
     } as String?;
 

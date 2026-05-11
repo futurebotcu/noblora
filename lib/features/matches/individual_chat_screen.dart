@@ -21,7 +21,6 @@ import '../../providers/messages_provider.dart';
 import '../../providers/user_report_provider.dart';
 import '../../services/gemini_service.dart';
 import '../../core/services/toast_service.dart';
-import '../bff/bff_plan_screen.dart';
 import '../profile/user_profile_screen.dart';
 import 'end_connection_screen.dart';
 
@@ -85,7 +84,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
 
   InboxItem get _item => widget.item;
   Color get _accent => _item.mode.accentColor;
-  bool get _isBff => _item.mode == NobleMode.bff;
+  // R18 — `_isBff` getter removed. Every chat in V1 is a dating chat;
+  // call sites that previously branched on this now treat the chat as
+  // date-mode unconditionally.
 
   @override
   void initState() {
@@ -259,29 +260,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     }
   }
 
-  Future<void> _suggestBffOpener() async {
-    // R17B-fix(C) — `message_softening` precheck removed. The AI
-    // Preferences card was deleted in R17B, so users have no toggle.
-    // The previous fetchAiWritingHelp() read always returned default
-    // `true` (no UI to set it false), making the gate a phantom.
-    // Suggestion is now user-initiated by tapping the button — that's
-    // the consent. No silent rewriting / softening anywhere else in
-    // the chat send path.
-    try {
-      final opener = await GeminiService.generateBffOpener(
-        userName: 'You',
-        otherName: _item.name,
-      );
-      if (mounted) {
-        _msgCtrl.text = opener;
-      }
-    } catch (e) {
-      debugPrint('[chat] BFF opener generation failed: $e');
-      if (mounted) {
-        _msgCtrl.text = 'Hey ${_item.name}! Looks like we have some things in common.';
-      }
-    }
-  }
+  // R18 — `_suggestBffOpener` removed (BFF feature pulled from V1).
 
   Future<void> _checkMatchExpiry() async {
     if (widget.matchId == null || isMockMode) return;
@@ -770,21 +749,9 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
             },
             tooltip: _searchMode ? 'Close search' : 'Search messages',
           ),
-          // V1 — Plan Meeting CTA removed: meeting/date-scheduling feature was
-          // pulled from V1 entirely. BFF mode keeps "Make a plan" because BFF
-          // plans are a distinct flow (friendship activities, not romantic
-          // meetings) and remain scoped for V1.
-          if (widget.matchId != null && _isBff)
-            IconButton(
-              icon: Icon(Icons.coffee_rounded, color: accent),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BffPlanScreen(conversationId: _item.id),
-                ),
-              ),
-              tooltip: 'Make a plan',
-            ),
+          // R18 — Make a plan IconButton + BffPlanScreen route removed
+          // along with the rest of BFF. V1 chat has no "make a plan"
+          // action; the next CTA in this row is Quick Intro.
           IconButton(
             icon: Icon(Icons.bolt_rounded, color: accent),
             onPressed: () =>
@@ -882,9 +849,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 onChanged: _runSearch,
               ),
             ),
-          // BFF: expertise bar pinned below AppBar
-          if (_isBff && _item.expertise != null)
-            _ExpertiseBar(item: _item, accentColor: accent),
+          // R18 — BFF expertise bar removed.
           // AI Chat Unblock nudge banner (after 24h silence)
           if (_chatNudge != null && !_nudgeDismissed)
             Container(
@@ -958,7 +923,8 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                                   ),
                                 ),
                                 child: Icon(
-                                  _isBff ? Icons.handshake_outlined : Icons.chat_bubble_outline_rounded,
+                                  // R18 — BFF handshake icon variant removed.
+                                  Icons.chat_bubble_outline_rounded,
                                   color: accent.withValues(alpha: 0.6), size: 24,
                                 ),
                               ),
@@ -967,7 +933,8 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                                   style: TextStyle(color: context.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, letterSpacing: -0.2)),
                               const SizedBox(height: 6),
                               Text(
-                                _isBff ? 'Good friendships start with a single message' : 'The best conversations start simply',
+                                // R18 — BFF "Good friendships..." copy removed.
+                                'The best conversations start simply',
                                 style: TextStyle(color: context.textMuted, fontSize: 13, height: 1.4),
                                 textAlign: TextAlign.center,
                               ),
@@ -1030,32 +997,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                         },
                       ),
           ),
-          // BFF opener helper — shown when chat is empty
-          if (_isBff && messages.isEmpty && !isClosed)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-              child: GestureDetector(
-                onTap: _suggestBffOpener,
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    border: Border.all(color: accent.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_awesome_rounded, color: accent, size: 16),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text('Stuck? Tap for a conversation starter.',
-                            style: TextStyle(color: accent, fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // R18 — BFF opener helper banner removed.
           // Typing indicator
           if (_otherTyping)
             Padding(
@@ -1123,52 +1065,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Expertise bar (BFF mode only)
-// ---------------------------------------------------------------------------
-
-class _ExpertiseBar extends StatelessWidget {
-  final InboxItem item;
-  final Color accentColor;
-
-  const _ExpertiseBar({required this.item, required this.accentColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      color: context.surfaceColor,
-      child: Row(
-        children: [
-          Icon(Icons.business_center_rounded, color: accentColor, size: 12),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              item.expertise!,
-              style: TextStyle(color: accentColor, fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (item.connectionGoal != null) ...[
-            const SizedBox(width: AppSpacing.md),
-            Icon(Icons.handshake_outlined,
-                color: accentColor.withValues(alpha: 0.65), size: 12),
-            const SizedBox(width: 5),
-            Expanded(
-              child: Text(
-                item.connectionGoal!,
-                style: TextStyle(
-                    color: accentColor.withValues(alpha: 0.65), fontSize: 11),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
+// R18 — `_ExpertiseBar` (BFF expertise/connectionGoal pill) removed.
 // ---------------------------------------------------------------------------
 // Quick Intro option button
 // ---------------------------------------------------------------------------

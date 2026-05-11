@@ -214,9 +214,11 @@ async function getFirebaseAccessToken(
 // notifications.type is introduced, this map MUST be updated — otherwise
 // the matching settings toggle will silently no-op (R6 phantom-feature trap).
 function mapTypeToPrefKey(type: string): string | null {
+  // R18 — `bff_connected → bff_suggestion` mapping removed (BFF pulled
+  // from V1). When a new notification type ships, extend the server map
+  // first, then add the matching Settings toggle.
   const map: Record<string, string> = {
     "new_match": "new_match",
-    "bff_connected": "bff_suggestion",
   };
   return map[type] ?? null;
 }

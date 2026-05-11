@@ -88,7 +88,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                 const SizedBox(width: AppSpacing.sm),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(mode == NobleMode.date ? 'Dating' : mode == NobleMode.bff ? 'BFF' : mode.shortLabel, style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600))),
+                    child: Text(mode == NobleMode.date ? 'Dating' : mode.shortLabel, style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600))),
                 const Spacer(),
                 if (count > 0) TextButton(onPressed: _reset, child: Text('Reset ($count)', style: TextStyle(color: accent))),
               ]),
@@ -138,24 +138,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                   _Chip(o, _f.lookingFor == o, () => _set(_f.copyWith(
                       lookingFor: _f.lookingFor == o ? null : o, clearLookingFor: _f.lookingFor == o)), accent)).toList()),
             ],
-            if (mode == NobleMode.bff) ...[
-              _Label('Looking for'),
-              Wrap(spacing: 6, runSpacing: 6, children: bffLookingForOptions.map((o) =>
-                  _Chip(o, _f.bffLookingFor == o, () => _set(_f.copyWith(
-                      bffLookingFor: _f.bffLookingFor == o ? null : o, clearBffLookingFor: _f.bffLookingFor == o)), accent)).toList()),
-              const SizedBox(height: AppSpacing.md),
-              _Label('Smart sort: Languages'),
-              Padding(padding: const EdgeInsets.only(bottom: 6),
-                child: Text('Boosts matching profiles in feed order',
-                    style: TextStyle(color: context.textMuted, fontSize: 11))),
-              Wrap(spacing: 6, runSpacing: 6, children: languageOptions.map((l) {
-                final sel = _f.languages.contains(l);
-                return _Chip(l, sel, () {
-                  final next = [..._f.languages]; sel ? next.remove(l) : next.add(l);
-                  _set(_f.copyWith(languages: next));
-                }, accent);
-              }).toList()),
-            ],
+            // R18 — BFF "Looking for" + language smart-sort block removed.
 
             // ═══ ADVANCED TOGGLE ═══
             const SizedBox(height: AppSpacing.xxl),
@@ -175,7 +158,8 @@ class _State extends ConsumerState<FilterBottomSheet> {
               const SizedBox(height: AppSpacing.md),
 
               _Label('Social energy'),
-              Wrap(spacing: 6, runSpacing: 6, children: (mode == NobleMode.bff ? bffSocialEnergyOptions : socialEnergyOptions).map((o) =>
+              // R18 — BFF-specific socialEnergy variant removed.
+              Wrap(spacing: 6, runSpacing: 6, children: socialEnergyOptions.map((o) =>
                   _Chip(o, _f.socialEnergy == o, () => _set(_f.copyWith(
                       socialEnergy: _f.socialEnergy == o ? null : o, clearSocialEnergy: _f.socialEnergy == o)), accent)).toList()),
               const SizedBox(height: AppSpacing.lg),
@@ -212,17 +196,7 @@ class _State extends ConsumerState<FilterBottomSheet> {
                 const SizedBox(height: AppSpacing.lg),
               ],
 
-              if (mode == NobleMode.bff) ...[
-                _Label('Smart sort: Interests'),
-                Padding(padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('Boosts matching profiles in feed order',
-                      style: TextStyle(color: context.textMuted, fontSize: 11))),
-                Wrap(spacing: 6, runSpacing: 6, children: bffInterestOptions.map((i) {
-                  final sel = _f.interests.contains(i);
-                  return _Chip(i, sel, () { final next = [..._f.interests]; sel ? next.remove(i) : next.add(i); _set(_f.copyWith(interests: next)); }, accent);
-                }).toList()),
-                const SizedBox(height: AppSpacing.lg),
-              ],
+              // R18 — BFF "Smart sort: Interests" block removed.
 
               // Profile quality
               _Toggle('6+ photos', _f.sixPlusPhotos, (v) => _set(_f.copyWith(sixPlusPhotos: v)), accent),

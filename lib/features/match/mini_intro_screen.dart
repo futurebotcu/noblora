@@ -30,14 +30,8 @@ class _MiniIntroScreenState extends ConsumerState<MiniIntroScreen> {
   bool _isLoadingOpeners = false;
   List<String> _openers = [];
 
-  NobleMode get _mode {
-    switch (widget.match.mode) {
-      case 'bff':
-        return NobleMode.bff;
-      default:
-        return NobleMode.date;
-    }
-  }
+  // R18 — BFF mode arm removed.
+  NobleMode get _mode => NobleMode.date;
 
   String get _otherName => widget.match.otherUserName ?? 'your connection';
 

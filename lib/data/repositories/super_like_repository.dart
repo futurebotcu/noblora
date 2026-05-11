@@ -151,7 +151,8 @@ class SuperLikeRepository {
           userId: 'mock-$seed-2',
           name: seed == 'i_liked' ? 'Mia' : 'Lena',
           photoUrl: null,
-          mode: 'bff',
+          // R18 — BFF mock mode replaced with date.
+          mode: 'date',
         ),
       ];
 }

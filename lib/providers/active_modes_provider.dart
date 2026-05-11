@@ -4,8 +4,10 @@ import 'auth_provider.dart';
 import 'profile_provider.dart';
 
 /// Modes the user is allowed to toggle in this build.
-/// Date, BFF, and Event (internally stored as 'social' for DB compat).
-const Set<String> _allowedModes = {'date', 'bff', 'social'};
+/// R18 — BFF removed from V1. Only 'date' is currently active; 'social'
+/// (Nob Feed) stays in the whitelist for a future build that flips
+/// kSocialEnabled on.
+const Set<String> _allowedModes = {'date', 'social'};
 
 // ---------------------------------------------------------------------------
 // State — set of mode strings the user has opted into
