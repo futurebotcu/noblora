@@ -260,24 +260,13 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   }
 
   Future<void> _suggestBffOpener() async {
-    // Check AI message softening setting
-    if (!isMockMode) {
-      final uid = ref.read(authProvider).userId;
-      if (uid != null) {
-        try {
-          final prefs = await ref
-              .read(profileRepositoryProvider)
-              .fetchAiWritingHelp(uid);
-          if (prefs != null && prefs['message_softening'] == false) {
-            if (mounted) {
-              ToastService.show(context, message: 'AI conversation help is turned off', type: ToastType.system);
-            }
-            return;
-          }
-        } catch (e) { debugPrint('[chat] AI prefs check failed: $e'); }
-      }
-    }
-
+    // R17B-fix(C) — `message_softening` precheck removed. The AI
+    // Preferences card was deleted in R17B, so users have no toggle.
+    // The previous fetchAiWritingHelp() read always returned default
+    // `true` (no UI to set it false), making the gate a phantom.
+    // Suggestion is now user-initiated by tapping the button — that's
+    // the consent. No silent rewriting / softening anywhere else in
+    // the chat send path.
     try {
       final opener = await GeminiService.generateBffOpener(
         userName: 'You',

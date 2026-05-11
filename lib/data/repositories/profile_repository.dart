@@ -109,17 +109,12 @@ class ProfileRepository {
     return row?['message_preview'] as bool?;
   }
 
-  Future<Map<String, dynamic>?> fetchAiWritingHelp(String userId) async {
-    if (isMockMode) return null;
-    final client = _supabase;
-    if (client == null) throw Exception('Supabase client not initialized');
-    final row = await client
-        .from('profiles')
-        .select('ai_writing_help')
-        .eq('id', userId)
-        .maybeSingle();
-    return row?['ai_writing_help'] as Map<String, dynamic>?;
-  }
+  // `fetchAiWritingHelp` removed in R17B-fix(C) — AI Preferences UI was
+  // removed in R17B, the only client reader (chat's _suggestBffOpener
+  // gate) defaulted to `true` when there was no toggle to set it false,
+  // making the read a phantom. AI BFF opener is now user-initiated by
+  // tapping the button — that's the consent. Backend `ai_writing_help`
+  // jsonb column is untouched; no writer or reader in V1 code paths.
 
   Future<({List<String> blocked, List<String> hidden})> fetchBlockedAndHidden(
       String userId) async {
@@ -172,20 +167,21 @@ class ProfileRepository {
 
   /// Settings screen multi-column read (22 columns). Column list mirrors
   /// the original settings_screen.dart query verbatim.
+  /// R17B-fix(C) — SELECT narrowed to only the columns the post-cleanup
+  /// Settings UI actually reads. Phantom columns (calm_mode,
+  /// show_last_active, show_status_badge, reach/signal/note_permission,
+  /// notification_preferences, ai_writing_help, incognito_mode,
+  /// dating_visible, bff_visible, blocked_users, hidden_users, city)
+  /// were removed from the projection — their DB columns are untouched,
+  /// but the Settings screen no longer pulls them across the wire.
   Future<Map<String, dynamic>?> fetchSettingsRow(String userId) async {
     if (isMockMode) return null;
     final client = _supabase;
     if (client == null) throw Exception('Supabase client not initialized');
     final row = await client
         .from('profiles')
-        .select('notification_preferences, incognito_mode, calm_mode, '
-            'dating_visible, bff_visible, '
-            'show_last_active, show_status_badge, message_preview, '
-            'reach_permission, signal_permission, note_permission, '
-            'city, is_paused, '
-            'ai_writing_help, '
-            'is_verified, selfie_verified, photos_verified, verification_status, '
-            'blocked_users, hidden_users')
+        .select('message_preview, is_paused, '
+            'is_verified, selfie_verified, photos_verified, verification_status')
         .eq('id', userId)
         .maybeSingle();
     return row;

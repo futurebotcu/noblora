@@ -19,10 +19,14 @@ class ProfileCard {
   final String? expertise;      // e.g. 'AI Investments · Deep Tech'
   final String? connectionGoal; // e.g. 'Looking for a Tennis Partner'
 
-  // Privacy display settings (from target user)
-  final bool showStatusBadge;
-  final bool showLastActive;
-  final DateTime? lastActiveAt;
+  // R17B-fix(C) — `showStatusBadge`, `showLastActive`, `lastActiveAt`
+  // privacy display fields removed. They had no Settings toggle in V1
+  // (R17B), defaulted to `true`, and could not be controlled by users —
+  // surfacing last-active timestamps users can't hide is a V1 privacy
+  // leak. The verified badge is still shown (driven by `isVerified`
+  // alone) because it's a safety signal, not a per-user-controlled
+  // privacy display. Backend columns `show_last_active` /
+  // `show_status_badge` / `last_active_at` are untouched.
 
   const ProfileCard({
     required this.id,
@@ -40,9 +44,6 @@ class ProfileCard {
     this.industry,
     this.expertise,
     this.connectionGoal,
-    this.showStatusBadge = true,
-    this.showLastActive = true,
-    this.lastActiveAt,
   });
 
   /// Maps a public.profiles DB row to a ProfileCard for the feed.
@@ -84,11 +85,6 @@ class ProfileCard {
           (row['languages'] as List<dynamic>?)?.cast<String>() ?? [],
       isVerified: (row['is_verified'] as bool?) ?? false,
       mode: mode,
-      showStatusBadge: (row['show_status_badge'] as bool?) ?? true,
-      showLastActive: (row['show_last_active'] as bool?) ?? true,
-      lastActiveAt: row['last_active_at'] != null
-          ? DateTime.tryParse(row['last_active_at'] as String)
-          : null,
     );
   }
 

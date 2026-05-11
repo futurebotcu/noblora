@@ -344,7 +344,7 @@ class _BffDiscoveryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (card.isVerified && card.showStatusBadge)
+                  if (card.isVerified)
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
