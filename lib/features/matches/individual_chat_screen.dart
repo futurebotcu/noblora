@@ -343,37 +343,35 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
     }
   }
 
-  Future<void> _blockOrHideUser(BuildContext context, WidgetRef ref, String column) async {
-    final label = column == 'blocked_users' ? 'Block' : 'Hide';
+  /// R17B-fix — Block-only. The previous combined block/hide flow shipped
+  /// a "Hide user" entry whose Settings list/unhide UI no longer exists.
+  /// To avoid the "hidden but un-recoverable" trap, only Block (the
+  /// reciprocal safety action with a real list + unblock in Settings)
+  /// remains as a user-facing surface.
+  Future<void> _blockUser(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       backgroundColor: context.surfaceColor,
-      title: Text('$label ${_item.name}?', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-      content: Text(column == 'blocked_users'
-          ? 'They won\'t be able to see your profile or contact you.'
-          : 'They\'ll be removed from your feed. They can still see your profile.',
+      title: Text('Block ${_item.name}?', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      content: Text(
+          "They won't be able to see your profile or contact you.",
           style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(label, style: TextStyle(color: AppColors.error))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Block', style: TextStyle(color: AppColors.error))),
       ],
     ));
     if (confirmed != true) return;
     final uid = ref.read(authProvider).userId;
     if (uid == null || isMockMode) return;
     try {
-      final repo = ref.read(profileRepositoryProvider);
-      if (column == 'blocked_users') {
-        await repo.addToBlockList(uid, _item.id);
-      } else {
-        await repo.addToHideList(uid, _item.id);
-      }
+      await ref.read(profileRepositoryProvider).addToBlockList(uid, _item.id);
       if (context.mounted) {
-        ToastService.show(context, message: '${_item.name} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
+        ToastService.show(context, message: '${_item.name} blocked', type: ToastType.system);
       }
     } catch (e, st) {
-      debugPrint('[action] block/hide failed: $e\n$st');
+      debugPrint('[action] block failed: $e\n$st');
       if (context.mounted) {
-        ToastService.show(context, message: '${column == 'blocked_users' ? 'Block' : 'Hide'} failed, try again', type: ToastType.error);
+        ToastService.show(context, message: 'Block failed, try again', type: ToastType.error);
       }
     }
   }
@@ -809,9 +807,7 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                 if (v == 'report') {
                   _showReportSheet(context, ref);
                 } else if (v == 'block') {
-                  await _blockOrHideUser(context, ref, 'blocked_users');
-                } else if (v == 'hide') {
-                  await _blockOrHideUser(context, ref, 'hidden_users');
+                  await _blockUser(context, ref);
                 } else if (v == 'end') {
                   final match = matchState.matches.where((m) => m.id == widget.matchId).firstOrNull;
                   Navigator.push(context, MaterialPageRoute(builder: (_) => EndConnectionScreen(
@@ -832,11 +828,6 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
                   Icon(Icons.block_rounded, color: context.textMuted, size: 18),
                   const SizedBox(width: 8),
                   Text('Block user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
-                ])),
-                PopupMenuItem(value: 'hide', child: Row(children: [
-                  Icon(Icons.visibility_off_outlined, color: context.textMuted, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Hide user', style: TextStyle(color: context.textPrimary, fontSize: 14)),
                 ])),
                 PopupMenuItem(value: 'end', child: Row(children: [
                   Icon(Icons.link_off_rounded, color: AppColors.error, size: 18),

@@ -39,8 +39,8 @@ class MatchDetailScreen extends ConsumerWidget {
             onSelected: (v) {
               if (v == 'report') {
                 _showReportSheet(context, ref, liveMatch);
-              } else if (v == 'block' || v == 'hide') {
-                _blockOrHideUser(context, ref, liveMatch, v == 'block' ? 'blocked_users' : 'hidden_users');
+              } else if (v == 'block') {
+                _blockUser(context, ref, liveMatch);
               }
             },
             itemBuilder: (_) => [
@@ -53,11 +53,6 @@ class MatchDetailScreen extends ConsumerWidget {
                 Icon(Icons.block_rounded, color: AppColors.textMuted, size: 18),
                 const SizedBox(width: 8),
                 Text('Block user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-              ])),
-              PopupMenuItem(value: 'hide', child: Row(children: [
-                Icon(Icons.visibility_off_outlined, color: AppColors.textMuted, size: 18),
-                const SizedBox(width: 8),
-                Text('Hide user', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
               ])),
             ],
           ),
@@ -90,18 +85,21 @@ class MatchDetailScreen extends ConsumerWidget {
     );
   }
 
-  static Future<void> _blockOrHideUser(BuildContext context, WidgetRef ref, NobleMatch match, String column) async {
-    final label = column == 'blocked_users' ? 'Block' : 'Hide';
+  /// R17B-fix — Block-only. The previous combined block/hide flow has
+  /// been collapsed because the Hidden Users Settings list/unhide UI was
+  /// removed in R17B, leaving "hide" as a one-way trap (hidden but not
+  /// listable/recoverable). Block remains the user-facing safety action
+  /// — it pairs with the Blocked Users list/unblock surface in Settings.
+  static Future<void> _blockUser(BuildContext context, WidgetRef ref, NobleMatch match) async {
     final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       backgroundColor: AppColors.surface,
-      title: Text('$label ${match.otherUserName ?? 'this user'}?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-      content: Text(column == 'blocked_users'
-          ? 'They won\'t be able to see your profile or contact you.'
-          : 'They\'ll be removed from your feed. They can still see your profile.',
+      title: Text('Block ${match.otherUserName ?? 'this user'}?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      content: Text(
+          "They won't be able to see your profile or contact you.",
           style: TextStyle(color: AppColors.textMuted, fontSize: 14, height: 1.5)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(label, style: TextStyle(color: AppColors.error))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Block', style: TextStyle(color: AppColors.error))),
       ],
     ));
     if (confirmed != true) return;
@@ -109,19 +107,14 @@ class MatchDetailScreen extends ConsumerWidget {
     final targetId = match.otherUserId;
     if (uid == null || targetId == null || isMockMode) return;
     try {
-      final repo = ref.read(profileRepositoryProvider);
-      if (column == 'blocked_users') {
-        await repo.addToBlockList(uid, targetId);
-      } else {
-        await repo.addToHideList(uid, targetId);
-      }
+      await ref.read(profileRepositoryProvider).addToBlockList(uid, targetId);
       if (context.mounted) {
-        ToastService.show(context, message: '${match.otherUserName ?? 'User'} ${column == 'blocked_users' ? 'blocked' : 'hidden'}', type: ToastType.system);
+        ToastService.show(context, message: '${match.otherUserName ?? 'User'} blocked', type: ToastType.system);
       }
     } catch (e, st) {
-      debugPrint('[action] block/hide failed: $e\n$st');
+      debugPrint('[action] block failed: $e\n$st');
       if (context.mounted) {
-        ToastService.show(context, message: '${column == 'blocked_users' ? 'Block' : 'Hide'} failed, try again', type: ToastType.error);
+        ToastService.show(context, message: 'Block failed, try again', type: ToastType.error);
       }
     }
   }

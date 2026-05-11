@@ -36,9 +36,13 @@ import 'help_center_screen.dart';
 //     individual_chat_screen still reads `ai_writing_help.message_softening`
 //     so existing rows keep working; users land on default `true` and
 //     can't toggle for V1
-//   - Hidden Users row — backend `hidden_users` array stays; chat menu's
-//     "Hide user" entry still calls profile_repository.addToHideList(),
-//     but the Settings list/unhide UI is gone for V1
+//   - Hidden Users — R17B-fix: removed everywhere user-facing. The
+//     Settings row, the chat-menu "Hide user" entry, and the
+//     match-detail "Hide user" entry are all gone. Backend `hidden_users`
+//     array stays (feed_repository discovery filter still excludes any
+//     existing entries, so legacy data is respected), but no new hide
+//     can be created from V1 UI. Block is the only one-way safety
+//     action that V1 surfaces.
 //   - Incognito Mode toggle — backend `incognito_mode` column stays
 //     (feed_repository discoverability filter reads it); the toggle UI
 //     is gone, so users land on schema default `false`
