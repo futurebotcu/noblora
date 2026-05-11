@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -13,7 +12,40 @@ import '../../core/services/toast_service.dart';
 import 'help_center_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-// Settings provider — loads/saves ALL settings from profiles
+// Settings — V1 minimal (R17B root cleanup)
+//
+// Surface contract: only rows whose underlying behavior is wired
+// end-to-end (UI ↔ provider ↔ Supabase ↔ enforcement) remain visible.
+//
+//   Account            — email · change password
+//   Privacy & Safety   — photo verify · selfie verify · blocked users · message previews
+//   Help & Legal       — help center · privacy policy
+//   (deletion recovery banner — only when verification_status = deletion_requested)
+//   Danger zone        — pause/resume · delete account · sign out
+//
+// R17B removed root-to-leaf:
+//   - Calm Mode (no enforced gating logic)
+//   - Show last active / Show status badge (model fields kept on backend
+//     and read by profile_card; only the toggle UI is gone — users land
+//     on schema defaults `true`)
+//   - Reach / Signal / Note permission rows (read nowhere; phantom UI)
+//   - Notifications card entirely (only `new_match` and `bff_connected`
+//     types were ever server-enforced — Cleanup PR #50 already trimmed
+//     this card to 2 rows; V1 simplification drops it completely)
+//   - AI Preferences card (Nob Text Cleanup + Message Softening) — the
+//     individual_chat_screen still reads `ai_writing_help.message_softening`
+//     so existing rows keep working; users land on default `true` and
+//     can't toggle for V1
+//   - Hidden Users row — backend `hidden_users` array stays; chat menu's
+//     "Hide user" entry still calls profile_repository.addToHideList(),
+//     but the Settings list/unhide UI is gone for V1
+//   - Incognito Mode toggle — backend `incognito_mode` column stays
+//     (feed_repository discoverability filter reads it); the toggle UI
+//     is gone, so users land on schema default `false`
+//   - Account static rows (ID Verification placeholder, "Safety Tips" /
+//     "Community Rules" / "Contact Support" / "Request My Data" /
+//     "Community Guidelines" / "Report a Bug" / "AI privacy note") —
+//     already removed in Cleanup PR #50 / R17B confirms structure
 // ═══════════════════════════════════════════════════════════════════
 
 final _settingsProvider =
@@ -24,10 +56,15 @@ final _settingsProvider =
 class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
   final Ref _ref;
 
-  _SettingsNotifier(this._ref) : super({}) { _load(); }
+  _SettingsNotifier(this._ref) : super({}) {
+    _load();
+  }
 
   Future<void> _load() async {
-    if (isMockMode) { state = _defaults(); return; }
+    if (isMockMode) {
+      state = _defaults();
+      return;
+    }
     final uid = _ref.read(authProvider).userId;
     if (uid == null) return;
     try {
@@ -41,18 +78,14 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
   }
 
   Map<String, dynamic> _defaults() => {
-    'notification_preferences': {'new_match': true, 'new_message': true,
-      'bff_suggestion': true, 'safety': true, 'signals': true,
-      'notes': true, 'verification': true, 'updates': true},
-    'incognito_mode': false, 'calm_mode': false, 'is_paused': false,
-    'dating_visible': true, 'bff_visible': true,
-    'show_last_active': true, 'show_status_badge': true, 'message_preview': true,
-    'reach_permission': 'everyone', 'signal_permission': 'everyone', 'note_permission': 'everyone',
-    'ai_writing_help': {'nob_cleanup': true, 'message_softening': true},
-    'is_verified': false, 'selfie_verified': false, 'photos_verified': false,
-    'verification_status': 'not_started',
-    'blocked_users': <dynamic>[], 'hidden_users': <dynamic>[],
-  };
+        'message_preview': true,
+        'is_verified': false,
+        'selfie_verified': false,
+        'photos_verified': false,
+        'verification_status': 'not_started',
+        'is_paused': false,
+        'blocked_users': <dynamic>[],
+      };
 
   Future<void> _save(String column, dynamic value) async {
     final previous = state[column];
@@ -68,27 +101,20 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
-  void toggleBool(String key) { final c = state[key] as bool? ?? false; _save(key, !c); }
-  void setString(String key, String value) => _save(key, value);
-  void toggleNotif(String key) {
-    final p = Map<String, dynamic>.from(state['notification_preferences'] as Map<String, dynamic>? ?? {});
-    p[key] = !(p[key] as bool? ?? true);
-    _save('notification_preferences', p);
+  void toggleBool(String key) {
+    final c = state[key] as bool? ?? false;
+    _save(key, !c);
   }
-  bool notif(String key) => (state['notification_preferences'] as Map<String, dynamic>?)?[key] as bool? ?? true;
-  bool getBool(String key) => state[key] as bool? ?? false;
-  String getString(String key) => state[key] as String? ?? '';
 
-  void toggleAi(String group, String key) {
-    final g = Map<String, dynamic>.from(state[group] as Map<String, dynamic>? ?? {});
-    g[key] = !(g[key] as bool? ?? true);
-    _save(group, g);
-  }
-  bool aiVal(String group, String key) => (state[group] as Map<String, dynamic>?)?[key] as bool? ?? true;
+  void setString(String key, String value) => _save(key, value);
+
+  bool getBool(String key) => state[key] as bool? ?? false;
+
+  String getString(String key) => state[key] as String? ?? '';
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Settings Screen — premium card-grouped layout
+// Settings Screen
 // ═══════════════════════════════════════════════════════════════════
 
 class SettingsScreen extends ConsumerWidget {
@@ -119,53 +145,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // ── Deletion recovery banner ────────────────────────────
           if ((s['verification_status'] as String?) == 'deletion_requested')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Icon(Icons.warning_rounded, color: AppColors.error, size: 18),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(child: Text('Account deletion requested',
-                          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600, fontSize: 14))),
-                    ]),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text('Your account will be permanently deleted 30 days after your request. Cancel now to keep your account.',
-                        style: TextStyle(color: context.textMuted, fontSize: 12, height: 1.4)),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(width: double.infinity, child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(40),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
-                      ),
-                      onPressed: () async {
-                        final uid = ref.read(authProvider).userId;
-                        if (uid != null && !isMockMode) {
-                          await ref.read(profileRepositoryProvider).updateProfile(uid, {
-                            'is_paused': false,
-                            'verification_status': 'not_started',
-                          });
-                        }
-                        n.setString('verification_status', 'not_started');
-                        if (n.getBool('is_paused')) n.toggleBool('is_paused');
-                        if (context.mounted) ToastService.show(context, message: 'Deletion cancelled — welcome back!', type: ToastType.success);
-                      },
-                      child: const Text('Cancel Deletion', style: TextStyle(fontWeight: FontWeight.w600)),
-                    )),
-                  ],
-                ),
-              ),
-            ),
+            _DeletionRecoveryBanner(notifier: n),
 
           // ── 1. ACCOUNT ──────────────────────────────────────────
           const _Section('Account'),
@@ -175,143 +155,47 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => _changePassword(context, ref)),
           ]),
 
-          // ── 4. PRIVACY & VISIBILITY ─────────────────────────────
-          const _Section('Privacy & Visibility'),
-          _Card(children: [
-            _Toggle(Icons.visibility_off_rounded, 'Incognito Mode',
-                s['incognito_mode'] as bool? ?? false,
-                (_) => n.toggleBool('incognito_mode'),
-                sub: 'Only connections can discover you'),
-            _Toggle(Icons.shield_rounded, 'Calm Mode',
-                s['calm_mode'] as bool? ?? false,
-                (_) => n.toggleBool('calm_mode'),
-                sub: 'Verified + Explorer+ only'),
-            _Toggle(Icons.access_time_rounded, 'Show last active',
-                s['show_last_active'] as bool? ?? true,
-                (_) => n.toggleBool('show_last_active')),
-            _Toggle(Icons.workspace_premium_rounded, 'Show status badge',
-                s['show_status_badge'] as bool? ?? true,
-                (_) => n.toggleBool('show_status_badge')),
-          ]),
-          const SizedBox(height: AppSpacing.xs),
-          _Card(children: [
-            _PermRow(Icons.person_search_rounded, 'Who can reach me',
-                s['reach_permission'] as String? ?? 'everyone',
-                (v) => n.setString('reach_permission', v)),
-            _PermRow(Icons.bolt_rounded, 'Who can send Signals',
-                s['signal_permission'] as String? ?? 'everyone',
-                (v) => n.setString('signal_permission', v)),
-            _PermRow(Icons.mail_outline_rounded, 'Who can leave Notes',
-                s['note_permission'] as String? ?? 'everyone',
-                (v) => n.setString('note_permission', v)),
-          ]),
-
-          // ── 5. NOTIFICATIONS ────────────────────────────────────
-          // Only types whose preference key is enforced server-side in
-          // supabase/functions/send-push/index.ts mapTypeToPrefKey() are
-          // surfaced here. Adding a toggle without a server mapping creates
-          // a phantom feature (R6) — the user thinks they've opted out but
-          // pushes still arrive. When a new notification type ships, extend
-          // the server map first, then add the toggle.
-          const _Section('Notifications'),
-          _Card(children: [
-            _Toggle(Icons.favorite_outline, 'Connections',
-                n.notif('new_match'), (_) => n.toggleNotif('new_match')),
-            _Toggle(Icons.people_outline, 'BFF Suggestions',
-                n.notif('bff_suggestion'), (_) => n.toggleNotif('bff_suggestion')),
-          ]),
-
-          // ── 6. SAFETY & VERIFICATION ────────────────────────────
-          const _Section('Safety & Verification'),
+          // ── 2. PRIVACY & SAFETY ─────────────────────────────────
+          const _Section('Privacy & Safety'),
           _Card(children: [
             _Row(Icons.camera_alt_outlined, 'Photo Verification',
-                value: (s['photos_verified'] as bool? ?? false) ? 'Verified' : _verifLabel(s)),
+                value: (s['photos_verified'] as bool? ?? false)
+                    ? 'Verified'
+                    : _verifLabel(s)),
             _Row(Icons.face_rounded, 'Selfie Verification',
-                value: (s['selfie_verified'] as bool? ?? false) ? 'Verified' : 'Not verified'),
-          ]),
-          const SizedBox(height: AppSpacing.xs),
-          _Card(children: [
+                value: (s['selfie_verified'] as bool? ?? false)
+                    ? 'Verified'
+                    : 'Not verified'),
             _Row(Icons.block_rounded, 'Blocked Users',
                 value: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0}',
-                onTap: () => _showListSheet(context, 'Blocked Users', s['blocked_users'] as List<dynamic>?, ref, 'blocked_users')),
-            _Row(Icons.visibility_off_outlined, 'Hidden Users',
-                value: '${(s['hidden_users'] as List<dynamic>?)?.length ?? 0}',
-                onTap: () => _showListSheet(context, 'Hidden Users', s['hidden_users'] as List<dynamic>?, ref, 'hidden_users')),
-          ]),
-
-          // ── 7. CHATS ────────────────────────────────────────────
-          const _Section('Chats'),
-          _Card(children: [
+                onTap: () => _showBlockedSheet(context, s, ref)),
             _Toggle(Icons.preview_rounded, 'Message Previews',
                 s['message_preview'] as bool? ?? true,
                 (_) => n.toggleBool('message_preview'),
                 sub: 'Show content in inbox list'),
           ]),
 
-          // ── 8. AI PREFERENCES ───────────────────────────────────
-          const _Section('AI Preferences'),
-          _Card(children: [
-            _Toggle(Icons.auto_fix_high_rounded, 'Nob Text Cleanup',
-                n.aiVal('ai_writing_help', 'nob_cleanup'),
-                (_) => n.toggleAi('ai_writing_help', 'nob_cleanup')),
-            _Toggle(Icons.chat_outlined, 'Message Softening',
-                n.aiVal('ai_writing_help', 'message_softening'),
-                (_) => n.toggleAi('ai_writing_help', 'message_softening')),
-          ]),
-          // AI privacy note
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.emerald600.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                border: Border.all(color: AppColors.emerald600.withValues(alpha: 0.08)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Icon(Icons.shield_outlined,
-                        color: AppColors.emerald500, size: 13),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'AI uses profile text and behavior patterns. Never accesses private messages or calls.',
-                      style: TextStyle(
-                          color: context.textMuted,
-                          fontSize: 11,
-                          height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── 9. HELP & LEGAL ─────────────────────────────────────
-          // Help Center contains the searchable in-app docs (community
-          // guidelines, safety tips, contact email, data request flow).
-          // Standalone rows for the same content were removed pre-V1 —
-          // they were static-modal placeholders that duplicated the Help
-          // Center anyway.
+          // ── 3. HELP & LEGAL ─────────────────────────────────────
           const _Section('Help & Legal'),
           _Card(children: [
             _Row(Icons.help_outline_rounded, 'Help Center',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen()))),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const HelpCenterScreen()))),
             _Row(Icons.privacy_tip_outlined, 'Privacy Policy',
                 onTap: () async {
                   final ok = await launchLegalUrl(kPrivacyPolicyUrl);
                   if (!ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not open Privacy Policy')),
+                      const SnackBar(
+                          content: Text('Could not open Privacy Policy')),
                     );
                   }
                 }),
           ]),
-          // Version
+
+          // ── Version footer ──────────────────────────────────────
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.lg),
             child: Center(
@@ -323,7 +207,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          // ── 11. DANGER ZONE ─────────────────────────────────────
+          // ── 4. DANGER ZONE ──────────────────────────────────────
           const SizedBox(height: AppSpacing.xxxl),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -388,136 +272,280 @@ class SettingsScreen extends ConsumerWidget {
     final email = await repo.getCurrentUserEmail() ?? '';
     await repo.resetPasswordForEmail(email);
     if (context.mounted) {
-      ToastService.show(context, message: 'Password reset email sent', type: ToastType.success);
+      ToastService.show(context,
+          message: 'Password reset email sent', type: ToastType.success);
     }
   }
 
-  void _showListSheet(BuildContext context, String title, List<dynamic>? items, WidgetRef ref, String column) {
+  void _showBlockedSheet(BuildContext context, Map<String, dynamic> s, WidgetRef ref) {
+    final items = s['blocked_users'] as List<dynamic>?;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _BlockedListSheet(title: title, items: items, ref: ref, column: column),
+      builder: (_) => _BlockedListSheet(items: items, ref: ref),
     );
   }
 
   void _confirmPause(BuildContext context, WidgetRef ref) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: context.surfaceColor,
-      shape: Premium.dialogShape(),
-      title: Text('Pause Account', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600)),
-      content: Text('Your profile will be hidden from discovery. Your data stays safe and you can return anytime.',
-          style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-        TextButton(onPressed: () async {
-          Navigator.pop(context);
-          final uid = ref.read(authProvider).userId;
-          if (uid != null && !isMockMode) {
-            await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': true});
-          }
-          ref.read(_settingsProvider.notifier).toggleBool('is_paused');
-          if (context.mounted) ToastService.show(context, message: 'Account paused', type: ToastType.system);
-        }, child: const Text('Pause', style: TextStyle(color: AppColors.warning))),
-      ],
-    ));
+    showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+              backgroundColor: context.surfaceColor,
+              shape: Premium.dialogShape(),
+              title: Text('Pause Account',
+                  style: TextStyle(
+                      color: AppColors.warning, fontWeight: FontWeight.w600)),
+              content: Text(
+                  'Your profile will be hidden from discovery. Your data stays safe and you can return anytime.',
+                  style: TextStyle(
+                      color: context.textMuted, fontSize: 14, height: 1.5)),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel',
+                        style: TextStyle(color: context.textMuted))),
+                TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final uid = ref.read(authProvider).userId;
+                      if (uid != null && !isMockMode) {
+                        await ref
+                            .read(profileRepositoryProvider)
+                            .updateProfile(uid, {'is_paused': true});
+                      }
+                      ref
+                          .read(_settingsProvider.notifier)
+                          .toggleBool('is_paused');
+                      if (context.mounted) {
+                        ToastService.show(context,
+                            message: 'Account paused', type: ToastType.system);
+                      }
+                    },
+                    child: const Text('Pause',
+                        style: TextStyle(color: AppColors.warning))),
+              ],
+            ));
   }
 
   void _confirmResume(BuildContext context, WidgetRef ref) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      backgroundColor: context.surfaceColor,
-      shape: Premium.dialogShape(),
-      title: Text('Resume Account', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
-      content: Text('Your profile will be visible again in discovery. Welcome back!',
-          style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-        TextButton(onPressed: () async {
-          Navigator.pop(context);
-          final uid = ref.read(authProvider).userId;
-          if (uid != null && !isMockMode) {
-            await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': false});
-          }
-          ref.read(_settingsProvider.notifier).toggleBool('is_paused');
-          if (context.mounted) ToastService.show(context, message: 'Account resumed', type: ToastType.success);
-        }, child: const Text('Resume', style: TextStyle(color: AppColors.success))),
-      ],
-    ));
+    showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+              backgroundColor: context.surfaceColor,
+              shape: Premium.dialogShape(),
+              title: Text('Resume Account',
+                  style: TextStyle(
+                      color: AppColors.success, fontWeight: FontWeight.w600)),
+              content: Text(
+                  'Your profile will be visible again in discovery. Welcome back!',
+                  style: TextStyle(
+                      color: context.textMuted, fontSize: 14, height: 1.5)),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel',
+                        style: TextStyle(color: context.textMuted))),
+                TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final uid = ref.read(authProvider).userId;
+                      if (uid != null && !isMockMode) {
+                        await ref
+                            .read(profileRepositoryProvider)
+                            .updateProfile(uid, {'is_paused': false});
+                      }
+                      ref
+                          .read(_settingsProvider.notifier)
+                          .toggleBool('is_paused');
+                      if (context.mounted) {
+                        ToastService.show(context,
+                            message: 'Account resumed',
+                            type: ToastType.success);
+                      }
+                    },
+                    child: const Text('Resume',
+                        style: TextStyle(color: AppColors.success))),
+              ],
+            ));
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
     final ctrl = TextEditingController();
-    showDialog(context: context, builder: (_) => StatefulBuilder(
-      builder: (ctx, setState) => AlertDialog(
-        backgroundColor: context.surfaceColor,
-        shape: Premium.dialogShape(),
-        title: Text('Delete Account', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Your account will be paused immediately and permanently deleted after 30 days. Sign back in within 30 days to cancel. You will be signed out now.',
-              style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Type DELETE to confirm:', style: TextStyle(color: context.textMuted, fontSize: 12)),
-          const SizedBox(height: AppSpacing.sm),
-          TextField(controller: ctrl, style: TextStyle(color: context.textPrimary), onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(hintText: 'DELETE', hintStyle: TextStyle(color: context.textDisabled),
-                  filled: true, fillColor: context.bgColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXs)))),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: context.textMuted))),
-          TextButton(
-            onPressed: ctrl.text == 'DELETE' ? () async {
-              Navigator.pop(ctx); // close dialog
-              if (!isMockMode) {
-                final uid = ref.read(authProvider).userId;
-                if (uid != null) {
-                  await ref.read(profileRepositoryProvider).updateProfile(uid, {'is_paused': true, 'verification_status': 'deletion_requested'});
-                }
-              }
-              if (context.mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-              await ref.read(authProvider.notifier).signOut();
-            } : null,
-            child: Text('Delete', style: TextStyle(color: ctrl.text == 'DELETE' ? AppColors.error : context.textDisabled)),
-          ),
-        ],
-      ),
-    )).then((_) => ctrl.dispose());
+    showDialog(
+        context: context,
+        builder: (_) => StatefulBuilder(
+              builder: (ctx, setState) => AlertDialog(
+                backgroundColor: context.surfaceColor,
+                shape: Premium.dialogShape(),
+                title: Text('Delete Account',
+                    style: TextStyle(
+                        color: AppColors.error, fontWeight: FontWeight.w600)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Your account will be paused immediately and permanently deleted after 30 days. Sign back in within 30 days to cancel. You will be signed out now.',
+                        style: TextStyle(
+                            color: context.textMuted,
+                            fontSize: 14,
+                            height: 1.5)),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text('Type DELETE to confirm:',
+                        style: TextStyle(
+                            color: context.textMuted, fontSize: 12)),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextField(
+                        controller: ctrl,
+                        style: TextStyle(color: context.textPrimary),
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                            hintText: 'DELETE',
+                            hintStyle:
+                                TextStyle(color: context.textDisabled),
+                            filled: true,
+                            fillColor: context.bgColor,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusXs)))),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Cancel',
+                          style: TextStyle(color: context.textMuted))),
+                  TextButton(
+                    onPressed: ctrl.text == 'DELETE'
+                        ? () async {
+                            Navigator.pop(ctx);
+                            if (!isMockMode) {
+                              final uid = ref.read(authProvider).userId;
+                              if (uid != null) {
+                                await ref
+                                    .read(profileRepositoryProvider)
+                                    .updateProfile(uid, {
+                                  'is_paused': true,
+                                  'verification_status': 'deletion_requested'
+                                });
+                              }
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context)
+                                  .popUntil((route) => route.isFirst);
+                            }
+                            await ref.read(authProvider.notifier).signOut();
+                          }
+                        : null,
+                    child: Text('Delete',
+                        style: TextStyle(
+                            color: ctrl.text == 'DELETE'
+                                ? AppColors.error
+                                : context.textDisabled)),
+                  ),
+                ],
+              ),
+            )).then((_) => ctrl.dispose());
   }
 
-  // ── Sheet helpers ──
-
-  static Widget _sheetHandle(BuildContext context) => Center(
-    child: Container(
-      width: 36, height: 4,
-      margin: const EdgeInsets.only(top: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: context.borderColor,
-        borderRadius: BorderRadius.circular(999),
-      ),
-    ),
-  );
-
   static Widget _divider(BuildContext context) => Divider(
-    height: 0.5, thickness: 0.5, indent: 52,
-    color: context.borderSubtleColor,
-  );
+        height: 0.5,
+        thickness: 0.5,
+        indent: 52,
+        color: context.borderSubtleColor,
+      );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Reusable widgets — premium card-grouped design
+// Deletion recovery banner
 // ═══════════════════════════════════════════════════════════════════
 
-// Blocked / Hidden users sheet with unblock/unhide actions
+class _DeletionRecoveryBanner extends ConsumerWidget {
+  final _SettingsNotifier notifier;
+  const _DeletionRecoveryBanner({required this.notifier});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm,
+          AppSpacing.lg, AppSpacing.md),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Icons.warning_rounded, color: AppColors.error, size: 18),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                  child: Text('Account deletion requested',
+                      style: TextStyle(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14))),
+            ]),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+                'Your account will be permanently deleted 30 days after your request. Cancel now to keep your account.',
+                style: TextStyle(
+                    color: context.textMuted, fontSize: 12, height: 1.4)),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(40),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+                ),
+                onPressed: () async {
+                  final uid = ref.read(authProvider).userId;
+                  if (uid != null && !isMockMode) {
+                    await ref
+                        .read(profileRepositoryProvider)
+                        .updateProfile(uid, {
+                      'is_paused': false,
+                      'verification_status': 'not_started',
+                    });
+                  }
+                  notifier.setString('verification_status', 'not_started');
+                  if (notifier.getBool('is_paused')) {
+                    notifier.toggleBool('is_paused');
+                  }
+                  if (context.mounted) {
+                    ToastService.show(context,
+                        message: 'Deletion cancelled — welcome back!',
+                        type: ToastType.success);
+                  }
+                },
+                child: const Text('Cancel Deletion',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Blocked users sheet — list + unblock action
+// ═══════════════════════════════════════════════════════════════════
+
 class _BlockedListSheet extends StatefulWidget {
-  final String title;
   final List<dynamic>? items;
   final WidgetRef ref;
-  final String column; // 'blocked_users' or 'hidden_users'
 
-  const _BlockedListSheet({required this.title, this.items, required this.ref, required this.column});
+  const _BlockedListSheet({this.items, required this.ref});
 
   @override
   State<_BlockedListSheet> createState() => _BlockedListSheetState();
@@ -532,74 +560,105 @@ class _BlockedListSheetState extends State<_BlockedListSheet> {
     _items = List.from(widget.items ?? []);
   }
 
-  Future<void> _remove(String userId) async {
+  Future<void> _unblock(String userId) async {
     final uid = widget.ref.read(authProvider).userId;
     if (uid == null || isMockMode) return;
     final updated = List<dynamic>.from(_items)..remove(userId);
     try {
       await widget.ref
           .read(profileRepositoryProvider)
-          .updateProfile(uid, {widget.column: updated});
+          .updateProfile(uid, {'blocked_users': updated});
       setState(() => _items = updated);
       if (mounted) {
         ToastService.show(context,
-            message: widget.column == 'blocked_users' ? 'User unblocked' : 'User unhidden',
-            type: ToastType.success);
+            message: 'User unblocked', type: ToastType.success);
       }
     } catch (e) {
-      if (mounted) ToastService.show(context, message: 'Failed to update', type: ToastType.error);
+      if (mounted) {
+        ToastService.show(context,
+            message: 'Failed to update', type: ToastType.error);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final actionLabel = widget.column == 'blocked_users' ? 'Unblock' : 'Unhide';
     return Container(
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SettingsScreen._sheetHandle(context),
-        const SizedBox(height: AppSpacing.lg),
-        Text(widget.title, style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
-        const SizedBox(height: AppSpacing.lg),
-        if (_items.isEmpty)
-          Text('None yet', style: TextStyle(color: context.textMuted, fontSize: 13))
-        else
-          ..._items.take(20).map((id) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(child: Text('$id', style: TextStyle(color: context.textMuted, fontSize: 12, fontFamily: 'monospace'))),
-                TextButton(
-                  onPressed: () => _remove(id as String),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.emerald500, padding: const EdgeInsets.symmetric(horizontal: 8)),
-                  child: Text(actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-          )),
-        const SizedBox(height: AppSpacing.xxl),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+              child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                      color: context.borderColor,
+                      borderRadius: BorderRadius.circular(999)))),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Blocked Users',
+              style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.lg),
+          if (_items.isEmpty)
+            Text('None yet',
+                style: TextStyle(color: context.textMuted, fontSize: 13))
+          else
+            ..._items.take(20).map((id) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: Text('$id',
+                              style: TextStyle(
+                                  color: context.textMuted,
+                                  fontSize: 12,
+                                  fontFamily: 'monospace'))),
+                      TextButton(
+                        onPressed: () => _unblock(id as String),
+                        style: TextButton.styleFrom(
+                            foregroundColor: AppColors.emerald500,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8)),
+                        child: const Text('Unblock',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                )),
+          const SizedBox(height: AppSpacing.xxl),
+        ],
+      ),
     );
   }
 }
 
-// Section header (above card)
+// ═══════════════════════════════════════════════════════════════════
+// Reusable rows
+// ═══════════════════════════════════════════════════════════════════
+
 class _Section extends StatelessWidget {
   final String title;
   const _Section(this.title);
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.xxxl, AppSpacing.xxl, AppSpacing.sm),
-    child: Text(title.toUpperCase(), style: Premium.sectionHeader(context.textMuted)),
-  );
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxl, AppSpacing.xxxl, AppSpacing.xxl, AppSpacing.sm),
+        child: Text(title.toUpperCase(),
+            style: Premium.sectionHeader(context.textMuted)),
+      );
 }
 
-// Card group container
 class _Card extends StatelessWidget {
   final List<Widget> children;
   const _Card({required this.children});
@@ -613,7 +672,8 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: Premium.surfaceGradient,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: context.borderSubtleColor.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: context.borderSubtleColor.withValues(alpha: 0.3)),
         boxShadow: Premium.shadowSm,
       ),
       child: Column(
@@ -622,9 +682,10 @@ class _Card extends StatelessWidget {
             filtered[i],
             if (i < filtered.length - 1)
               Divider(
-                height: 0.5, thickness: 0.5, indent: 52,
-                color: context.borderSubtleColor,
-              ),
+                  height: 0.5,
+                  thickness: 0.5,
+                  indent: 52,
+                  color: context.borderSubtleColor),
           ],
         ],
       ),
@@ -632,7 +693,6 @@ class _Card extends StatelessWidget {
   }
 }
 
-// Standard menu row
 class _Row extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -643,7 +703,9 @@ class _Row extends StatelessWidget {
   final bool showChevron;
   final VoidCallback? onTap;
 
-  const _Row(this.icon, this.title, {
+  const _Row(
+    this.icon,
+    this.title, {
     this.sub,
     this.value,
     this.iconColor,
@@ -682,8 +744,7 @@ class _Row extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(sub!,
                             style: TextStyle(
-                                color: context.textDisabled,
-                                fontSize: 12)),
+                                color: context.textDisabled, fontSize: 12)),
                       ),
                   ],
                 ),
@@ -692,9 +753,8 @@ class _Row extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(value!,
-                      style: TextStyle(
-                          color: context.textMuted,
-                          fontSize: 13)),
+                      style:
+                          TextStyle(color: context.textMuted, fontSize: 13)),
                 ),
               if (showChevron && onTap != null)
                 Icon(Icons.chevron_right_rounded,
@@ -707,7 +767,6 @@ class _Row extends StatelessWidget {
   }
 }
 
-// Toggle row with switch
 class _Toggle extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -719,136 +778,38 @@ class _Toggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
-    child: Row(
-      children: [
-        Icon(icon, color: context.textMuted, size: 20),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: TextStyle(
-                      color: context.textPrimary,
-                      fontSize: 14)),
-              if (sub != null)
-                Text(sub!,
-                    style: TextStyle(
-                        color: context.textDisabled,
-                        fontSize: 11)),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 48,
-          child: Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: AppColors.emerald600,
-            inactiveThumbColor: AppColors.textMuted,
-            inactiveTrackColor: AppColors.borderStrong,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-// Permission selector — tap to open sheet
-class _PermRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  const _PermRow(this.icon, this.label, this.value, this.onChanged);
-
-  static const _labels = {
-    'everyone': 'Everyone',
-    'verified': 'Verified only',
-    'explorer_plus': 'Explorer+',
-    'noble_only': 'Noble only',
-    'nobody': 'Nobody',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return _Row(icon, label,
-      value: _labels[value] ?? 'Everyone',
-      onTap: () => _showSheet(context),
-    );
-  }
-
-  void _showSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border(top: BorderSide(color: AppColors.emerald600.withValues(alpha: 0.08))),
-        ),
-        child: SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.lg),
-              decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(999)),
-            )),
-            Text(label,
-                style: TextStyle(
-                    color: context.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: AppSpacing.lg),
-            for (final e in _labels.entries)
-              _SheetOption(e.value, selected: e.key == value,
-                  onTap: () { Navigator.pop(ctx); onChanged(e.key); }),
-            const SizedBox(height: AppSpacing.lg),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-// Sheet option row (checkmark-style)
-class _SheetOption extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SheetOption(this.label, {required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl, vertical: 14),
+        padding:
+            const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
         child: Row(
           children: [
+            Icon(icon, color: context.textMuted, size: 20),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                      color: selected ? AppColors.emerald500 : context.textPrimary,
-                      fontSize: 15,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          color: context.textPrimary, fontSize: 14)),
+                  if (sub != null)
+                    Text(sub!,
+                        style: TextStyle(
+                            color: context.textDisabled, fontSize: 11)),
+                ],
+              ),
             ),
-            if (selected)
-              Icon(Icons.check_rounded, color: AppColors.emerald500, size: 20),
+            SizedBox(
+              height: 48,
+              child: Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: Colors.white,
+                activeTrackColor: AppColors.emerald600,
+                inactiveThumbColor: AppColors.textMuted,
+                inactiveTrackColor: AppColors.borderStrong,
+              ),
+            ),
           ],
         ),
-      ),
-    ),
-  );
+      );
 }
-
