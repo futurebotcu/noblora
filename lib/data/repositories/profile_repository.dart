@@ -282,24 +282,12 @@ class ProfileRepository {
         .eq('id', userId);
   }
 
-  /// Append `otherId` to the caller's `hidden_users` list (no-op if already present).
-  Future<void> addToHideList(String userId, String otherId) async {
-    if (isMockMode) return;
-    final client = _supabase;
-    if (client == null) throw Exception('Supabase client not initialized');
-    final row = await client
-        .from('profiles')
-        .select('hidden_users')
-        .eq('id', userId)
-        .single();
-    final list = List<String>.from((row['hidden_users'] as List<dynamic>?) ?? []);
-    if (list.contains(otherId)) return;
-    list.add(otherId);
-    await client
-        .from('profiles')
-        .update({'hidden_users': list})
-        .eq('id', userId);
-  }
+  // `addToHideList` removed in R17B-fix — Hide User has no user-facing
+  // surface in V1 (the Settings list/unhide UI was removed in R17B and the
+  // chat/match-detail menu entries were removed in the companion commit).
+  // fetchBlockedAndHidden() is kept so feed_repository's discovery filter
+  // can still exclude legacy hidden_users array entries from existing rows;
+  // the column itself is untouched.
 
   /// Trigger a server-side maturity score recalculation for [userId]. Caller
   /// fires-and-forgets (no return; failures tolerated, score recomputed

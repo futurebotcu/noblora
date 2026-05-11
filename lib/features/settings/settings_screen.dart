@@ -12,16 +12,24 @@ import '../../core/services/toast_service.dart';
 import 'help_center_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-// Settings — V1 minimal (R17B root cleanup)
+// Settings — V1 minimal (R17B root cleanup + R17B-fix safety surface)
 //
 // Surface contract: only rows whose underlying behavior is wired
 // end-to-end (UI ↔ provider ↔ Supabase ↔ enforcement) remain visible.
 //
 //   Account            — email · change password
-//   Privacy & Safety   — photo verify · selfie verify · blocked users · message previews
+//   Privacy & Safety   — photo verify · selfie verify · message previews
 //   Help & Legal       — help center · privacy policy
 //   (deletion recovery banner — only when verification_status = deletion_requested)
 //   Danger zone        — pause/resume · delete account · sign out
+//
+// R17B-fix product decision: Block is a one-way action in V1.
+// The Settings "Blocked Users" list/unblock surface was removed because
+// surfacing "who you no longer want to see" creates a re-engagement
+// loop that V1 dating UX does not want. Block enforcement (chat menu
+// + match-detail menu → addToBlockList → feed_repository discovery
+// exclusion) is intact. The Hide User flow is gone everywhere in V1
+// (Settings + chat + match-detail) — see companion commit.
 //
 // R17B removed root-to-leaf:
 //   - Calm Mode (no enforced gating logic)
@@ -88,7 +96,6 @@ class _SettingsNotifier extends StateNotifier<Map<String, dynamic>> {
         'photos_verified': false,
         'verification_status': 'not_started',
         'is_paused': false,
-        'blocked_users': <dynamic>[],
       };
 
   Future<void> _save(String column, dynamic value) async {
@@ -160,6 +167,10 @@ class SettingsScreen extends ConsumerWidget {
           ]),
 
           // ── 2. PRIVACY & SAFETY ─────────────────────────────────
+          // Blocked Users list/unblock UI removed in R17B-fix — Block is
+          // a one-way action in V1 (chat / match-detail Block menu still
+          // calls addToBlockList → discovery exclusion). Surfacing the
+          // list creates a re-engagement loop V1 explicitly avoids.
           const _Section('Privacy & Safety'),
           _Card(children: [
             _Row(Icons.camera_alt_outlined, 'Photo Verification',
@@ -170,9 +181,6 @@ class SettingsScreen extends ConsumerWidget {
                 value: (s['selfie_verified'] as bool? ?? false)
                     ? 'Verified'
                     : 'Not verified'),
-            _Row(Icons.block_rounded, 'Blocked Users',
-                value: '${(s['blocked_users'] as List<dynamic>?)?.length ?? 0}',
-                onTap: () => _showBlockedSheet(context, s, ref)),
             _Toggle(Icons.preview_rounded, 'Message Previews',
                 s['message_preview'] as bool? ?? true,
                 (_) => n.toggleBool('message_preview'),
@@ -279,16 +287,6 @@ class SettingsScreen extends ConsumerWidget {
       ToastService.show(context,
           message: 'Password reset email sent', type: ToastType.success);
     }
-  }
-
-  void _showBlockedSheet(BuildContext context, Map<String, dynamic> s, WidgetRef ref) {
-    final items = s['blocked_users'] as List<dynamic>?;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _BlockedListSheet(items: items, ref: ref),
-    );
   }
 
   void _confirmPause(BuildContext context, WidgetRef ref) {
@@ -536,111 +534,6 @@ class _DeletionRecoveryBanner extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Blocked users sheet — list + unblock action
-// ═══════════════════════════════════════════════════════════════════
-
-class _BlockedListSheet extends StatefulWidget {
-  final List<dynamic>? items;
-  final WidgetRef ref;
-
-  const _BlockedListSheet({this.items, required this.ref});
-
-  @override
-  State<_BlockedListSheet> createState() => _BlockedListSheetState();
-}
-
-class _BlockedListSheetState extends State<_BlockedListSheet> {
-  late List<dynamic> _items;
-
-  @override
-  void initState() {
-    super.initState();
-    _items = List.from(widget.items ?? []);
-  }
-
-  Future<void> _unblock(String userId) async {
-    final uid = widget.ref.read(authProvider).userId;
-    if (uid == null || isMockMode) return;
-    final updated = List<dynamic>.from(_items)..remove(userId);
-    try {
-      await widget.ref
-          .read(profileRepositoryProvider)
-          .updateProfile(uid, {'blocked_users': updated});
-      setState(() => _items = updated);
-      if (mounted) {
-        ToastService.show(context,
-            message: 'User unblocked', type: ToastType.success);
-      }
-    } catch (e) {
-      if (mounted) {
-        ToastService.show(context,
-            message: 'Failed to update', type: ToastType.error);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-              child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                      color: context.borderColor,
-                      borderRadius: BorderRadius.circular(999)))),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Blocked Users',
-              style: TextStyle(
-                  color: context.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: AppSpacing.lg),
-          if (_items.isEmpty)
-            Text('None yet',
-                style: TextStyle(color: context.textMuted, fontSize: 13))
-          else
-            ..._items.take(20).map((id) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: Text('$id',
-                              style: TextStyle(
-                                  color: context.textMuted,
-                                  fontSize: 12,
-                                  fontFamily: 'monospace'))),
-                      TextButton(
-                        onPressed: () => _unblock(id as String),
-                        style: TextButton.styleFrom(
-                            foregroundColor: AppColors.emerald500,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 8)),
-                        child: const Text('Unblock',
-                            style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                )),
-          const SizedBox(height: AppSpacing.xxl),
-        ],
       ),
     );
   }

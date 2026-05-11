@@ -91,11 +91,13 @@ class MatchDetailScreen extends ConsumerWidget {
   /// listable/recoverable). Block remains the user-facing safety action
   /// — it pairs with the Blocked Users list/unblock surface in Settings.
   static Future<void> _blockUser(BuildContext context, WidgetRef ref, NobleMatch match) async {
+    // R17B-fix product copy — same as chat menu Block dialog. Block is
+    // one-way in V1; the dialog says so explicitly.
     final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       backgroundColor: AppColors.surface,
-      title: Text('Block ${match.otherUserName ?? 'this user'}?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      title: Text('Block and remove?', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
       content: Text(
-          "They won't be able to see your profile or contact you.",
+          "You won't see ${match.otherUserName ?? 'this person'} again in Noblara.",
           style: TextStyle(color: AppColors.textMuted, fontSize: 14, height: 1.5)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: AppColors.textMuted))),

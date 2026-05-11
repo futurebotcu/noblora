@@ -349,11 +349,14 @@ class _IndividualChatState extends ConsumerState<IndividualChatScreen> {
   /// reciprocal safety action with a real list + unblock in Settings)
   /// remains as a user-facing surface.
   Future<void> _blockUser(BuildContext context, WidgetRef ref) async {
+    // R17B-fix product copy — Block is a one-way V1 action. Title/body
+    // explicitly tell the user they won't see this person again, since
+    // there's no unblock surface in Settings to walk it back.
     final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       backgroundColor: context.surfaceColor,
-      title: Text('Block ${_item.name}?', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+      title: Text('Block and remove?', style: TextStyle(color: context.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
       content: Text(
-          "They won't be able to see your profile or contact you.",
+          "You won't see ${_item.name} again in Noblara.",
           style: TextStyle(color: context.textMuted, fontSize: 14, height: 1.5)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
