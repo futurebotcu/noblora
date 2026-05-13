@@ -150,16 +150,27 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+      padding: const EdgeInsets.fromLTRB(20, 14, 12, 10),
       child: Row(
         children: [
-          const Text(
-            'N',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.emerald600,
-              fontFamily: 'serif',
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.burgundy600,
+              shape: BoxShape.circle,
+              boxShadow: Premium.shadowSm,
+            ),
+            alignment: Alignment.center,
+            child: const Text(
+              'N',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.5,
+                height: 1.0,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -498,15 +509,15 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: AppColors.card,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.border.withValues(alpha: 0.5),
-                      width: 0.5,
+                      color: AppColors.borderStrong,
+                      width: 1.0,
                     ),
                     boxShadow: Premium.shadowMd,
                   ),
-                  child: Icon(Icons.close_rounded,
+                  child: const Icon(Icons.close_rounded,
                       color: AppColors.textSecondary, size: 24),
                 ),
               ),

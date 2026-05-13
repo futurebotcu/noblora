@@ -214,8 +214,9 @@ class _CardBody extends StatelessWidget {
       height: cardH,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
+        color: AppColors.card,
         border: Border.all(
-          color: AppColors.emerald600.withValues(alpha: 0.06),
+          color: AppColors.border,
           width: 0.5,
         ),
         boxShadow: Premium.shadowLg,
@@ -280,7 +281,7 @@ class _CardBody extends StatelessWidget {
                 ),
               ),
             ),
-            // Verified badge — premium glass pill
+            // Verified badge — frosted light pill, modern theme-aligned
             if (card.isVerified)
               Positioned(
                 top: AppSpacing.lg,
@@ -288,13 +289,13 @@ class _CardBody extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 4,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
+                    color: Colors.white.withValues(alpha: 0.94),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
                     border: Border.all(
-                      color: mode.accentColor.withValues(alpha: 0.5),
+                      color: AppColors.burgundy600.withValues(alpha: 0.20),
                       width: 0.5,
                     ),
                     boxShadow: Premium.shadowSm,
@@ -303,14 +304,14 @@ class _CardBody extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.verified_rounded,
-                          color: mode.accentColor, size: 13),
+                          color: AppColors.burgundy600, size: 12),
                       const SizedBox(width: 4),
                       Text(
                         'Verified',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.95),
+                          color: AppColors.burgundy700,
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.3,
                         ),
                       ),
