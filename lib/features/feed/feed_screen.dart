@@ -510,16 +510,13 @@ class _ActionRowState extends ConsumerState<_ActionRow>
                       color: AppColors.textSecondary, size: 24),
                 ),
               ),
-              // Signal / Note (GATED)
+              // Note (GATED) — R23: Signal else branch was unreachable in V1
+              // (only NobleMode.date is constructible) so the `else` arm and
+              // its sendSignal call were removed along with the Signal feature.
               PressEffect(
                 onTap: () {
                   if (_checkGate(context, mode.name)) {
-                    if (mode == NobleMode.date) {
-                      _showNoteDialog(context, topCard.id);
-                    } else {
-                      ref.read(feedProvider.notifier).sendSignal(topCard.id);
-                      ToastService.show(context, message: 'Signal sent', type: ToastType.signal);
-                    }
+                    _showNoteDialog(context, topCard.id);
                   }
                 },
                 child: Container(

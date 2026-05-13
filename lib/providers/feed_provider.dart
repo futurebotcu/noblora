@@ -6,18 +6,12 @@ import '../data/models/filter_state.dart';
 import '../data/models/match.dart';
 import '../data/models/profile_card.dart';
 import '../data/repositories/feed_repository.dart';
-import '../data/repositories/signal_repository.dart';
 import 'auth_provider.dart';
 import 'filter_provider.dart';
 import 'match_provider.dart';
 import 'mode_provider.dart';
 import 'profile_provider.dart';
 import 'supabase_client_provider.dart';
-
-final signalRepositoryProvider = Provider<SignalRepository>((ref) {
-  if (isMockMode) return SignalRepository();
-  return SignalRepository(supabase: ref.watch(supabaseClientProvider));
-});
 
 // ---------------------------------------------------------------------------
 // Repository provider
@@ -180,20 +174,11 @@ class FeedNotifier extends StateNotifier<FeedState> {
     }
   }
 
-  Future<void> sendSignal(String cardId) async {
-    final userId = _ref.read(authProvider).userId;
-    if (userId == null) return;
-
-    final signalRepo = _ref.read(signalRepositoryProvider);
-    final canSend = await signalRepo.canSendSignal(userId);
-    if (!canSend) return;
-
-    await signalRepo.sendSignal(senderId: userId, receiverId: cardId);
-  }
-
-  Future<void> superLike(String cardId) async {
-    await sendSignal(cardId);
-  }
+  // R23 — `sendSignal()` and `superLike()` removed along with the Signal
+  // feature. The only caller (feed_screen.dart Signal/Note button) was in
+  // an unreachable `else` branch (V1 has only NobleMode.date). The DB-side
+  // signals table + check_signal_limit / increment_signal_count / etc. RPCs
+  // remain pending a later V1.x signal sweep.
 
   // R19 — `rewind()` removed along with the Status feature (no UI caller
   // remains; the Status screen was the only entry point, and the underlying

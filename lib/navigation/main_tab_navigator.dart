@@ -70,7 +70,6 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
       case 'chat_opened':
         _switchTo(1); // Chats tab
       case 'note_received':
-      case 'signal_received':
         _switchTo(1); // Requests tab inside Chats
       case 'tier_promoted':
         _switchTo(2); // Profile tab (R19 — Status removed, Profile now index 2)
@@ -265,7 +264,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
               final typeToCategory = {
                 'new_match': 'new_match', 'connection_closed': 'new_match',
                 'new_message': 'new_message', 'chat_opened': 'new_message',
-                'signal_received': 'signals', 'note_received': 'notes',
+                'note_received': 'notes',
               };
               final category = typeToCategory[latest.type];
               if (category != null && prefs[category] == false) return; // Suppressed by user
