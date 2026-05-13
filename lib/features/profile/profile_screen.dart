@@ -14,14 +14,16 @@ import '../settings/settings_screen.dart';
 import 'edit/edit_profile_main_screen.dart';
 
 // ---------------------------------------------------------------------------
-// Profile-specific editorial surfaces — lighter than global dark theme
-// to give the profile a "luxury magazine" feel without changing app-wide colors.
+// Profile-specific editorial surfaces.
+// PR 3 (2026-05-13): repainted for the light burgundy rebrand. Names kept
+// (`_profileBg/_profileCard/_profileElevated/_profileBorder`) so every
+// call site keeps compiling; values now resolve to light theme tokens.
 // ---------------------------------------------------------------------------
 
-const _profileBg       = Color(0xFF1A211E);  // warm dark sage (editorial base)
-const _profileCard     = Color(0xFF283130);  // lifted card (clearly distinct from bg)
-const _profileElevated = Color(0xFF323B38);  // highlight card (prompts, chips)
-const _profileBorder   = Color(0xFF445049);  // strong visible edge
+const _profileBg       = AppColors.bg;            // pure white scaffold
+const _profileCard     = AppColors.surface;       // subtle off-white card lift
+const _profileElevated = AppColors.surfaceAlt;    // chip / prompt surface
+const _profileBorder   = AppColors.border;        // light hairline edge
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CURATED PROFILE — display model layer
@@ -1272,10 +1274,8 @@ class _RichCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: _profileCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: _profileBorder.withValues(alpha: 0.5)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 16, offset: const Offset(0, 4)),
-          ],
+          border: Border.all(color: _profileBorder.withValues(alpha: 0.7)),
+          boxShadow: Premium.shadowSm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1494,7 +1494,7 @@ class _EarnedBadgesSection extends StatelessWidget {
     }
     // M0 — tier badge removed; tier is no longer a product / status surface.
     if (p.profileCompletenessScore >= 80) {
-      badges.add(const _Badge(Icons.workspace_premium_rounded, 'Complete Profile', Color(0xFFAB47BC)));
+      badges.add(const _Badge(Icons.workspace_premium_rounded, 'Complete Profile', AppColors.gold));
     }
 
     if (badges.isEmpty) return const SizedBox.shrink();

@@ -10,11 +10,12 @@ import '../../providers/profile_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Profile-specific editorial surfaces (shared palette with profile_screen.dart)
+// PR 3 (2026-05-13): light rebrand. Names kept; values point to light tokens.
 // ---------------------------------------------------------------------------
 
-const _profileBg       = Color(0xFF1A211E);  // warm dark sage (editorial base)
-const _profileElevated = Color(0xFF323B38);  // highlight card (prompts, chips)
-const _profileBorder   = Color(0xFF445049);  // strong visible edge
+const _profileBg       = AppColors.bg;          // pure white scaffold
+const _profileElevated = AppColors.surfaceAlt;  // chip / prompt surface
+const _profileBorder   = AppColors.border;      // light hairline edge
 
 // ---------------------------------------------------------------------------
 // UserProfileScreen — view another user's public profile from Noblara
