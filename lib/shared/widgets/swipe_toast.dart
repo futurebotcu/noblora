@@ -71,11 +71,12 @@ class _SwipeToastState extends State<SwipeToast> with SingleTickerProviderStateM
     ToastType.error => AppColors.error,
   };
 
-  /// Success toasts use a subtle emerald-tinted surface for premium feel.
-  Color get _toastBackground => switch (widget.type) {
-    ToastType.success => const Color(0xFF152018),
-    _ => AppColors.surface,
-  };
+  /// PR1 rebrand miss (2026-05-13): success toasts had a hardcoded dark
+  /// sage bg `Color(0xFF152018)` left over from the pre-rebrand emerald
+  /// theme — on a light scaffold it read as a near-black pill. All
+  /// types now use the theme surface; the `success` accent comes from
+  /// the dot/border/halo via `_dotColor`, not the background.
+  Color get _toastBackground => AppColors.surface;
 
   IconData get _icon => switch (widget.type) {
     ToastType.signal => Icons.bolt_rounded,

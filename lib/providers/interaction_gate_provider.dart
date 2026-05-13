@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_colors.dart';
+import '../core/theme/app_spacing.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/services/toast_service.dart';
 import '../core/utils/mock_mode.dart';
 import 'auth_provider.dart';
 import 'profile_provider.dart';
@@ -63,53 +66,101 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
   }
 });
 
-/// Gating popup types
-enum GatePopupType { addPhoto, verifyPhoto }
-
-/// Show gating popup when action is blocked
-void showGatingPopup(BuildContext context, String title, String message, {GatePopupType type = GatePopupType.addPhoto}) {
-  final buttonLabel = type == GatePopupType.verifyPhoto ? 'Get Verified' : 'Add Photo';
-  final icon = type == GatePopupType.verifyPhoto ? Icons.verified_outlined : Icons.add_a_photo_outlined;
-
+/// Show the gating popup when an action is blocked because the user
+/// hasn't added a photo yet.
+///
+/// V1 history (2026-05-13):
+///   - Repainted from dark + gold to light + burgundy so it matches the
+///     rest of the rebrand. The prior visual (`#111113` near-black bg,
+///     gold text + gold button) was the most visible PR1 miss — users
+///     described it as "the old design popup".
+///   - The `verifyPhoto` variant was removed: the M0 verification
+///     lockdown closed the upgrade flow, no caller passes that type,
+///     and surfacing a "Get Verified" CTA that routes to a disabled
+///     flow would re-introduce the same misleading UX the M0 sprint
+///     containmen't. If verification re-opens, add a new explicit
+///     surface; do not re-add this branch.
+///   - Replaced inline `ScaffoldMessenger.showSnackBar` with
+///     `ToastService.show` so the follow-up confirmation matches the
+///     rest of the app's toast styling.
+void showGatingPopup(BuildContext context, String title, String message) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: const Color(0xFF111113),
+    backgroundColor: context.surfaceColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
-    builder: (_) => Padding(
+    builder: (sheetCtx) => Padding(
       padding: const EdgeInsets.fromLTRB(28, 16, 28, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 36, height: 3, decoration: BoxDecoration(
-              color: const Color(0xFF222225), borderRadius: BorderRadius.circular(999))),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
           const SizedBox(height: 32),
           Container(
-            width: 64, height: 64,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.gold.withValues(alpha: 0.06),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.15)),
+              color: AppColors.burgundy600.withValues(alpha: 0.08),
+              border: Border.all(
+                  color: AppColors.burgundy600.withValues(alpha: 0.20)),
             ),
-            child: Icon(icon, color: AppColors.gold, size: 28),
+            child: const Icon(Icons.add_a_photo_outlined,
+                color: AppColors.burgundy600, size: 28),
           ),
           const SizedBox(height: 20),
-          Text(title, style: const TextStyle(color: Color(0xFFF2F2F2), fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+          Text(
+            title,
+            style: TextStyle(
+              color: context.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+            ),
+          ),
           const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.gold, fontSize: 14, height: 1.5)),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.textMuted,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 28),
-          SizedBox(width: double.infinity, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: const Color(0xFF080808),
-                  minimumSize: const Size.fromHeight(52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.burgundy600,
+                foregroundColor: AppColors.textOnEmerald,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+              ),
               onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Go to Profile tab to add or update your photo.')),
+                Navigator.pop(sheetCtx);
+                if (!context.mounted) return;
+                ToastService.show(
+                  context,
+                  message: 'Go to Profile tab to add or update your photo.',
+                  type: ToastType.system,
                 );
               },
-              child: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.3)))),
+              child: const Text('Add Photo',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+            ),
+          ),
         ],
       ),
     ),
