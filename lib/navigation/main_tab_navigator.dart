@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_tokens.dart';
+import '../core/theme/premium.dart';
 import '../core/utils/mock_mode.dart';
 import '../providers/auth_provider.dart';
 import '../services/push_notification_service.dart';
@@ -306,12 +307,12 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.emerald600.withValues(alpha: 0.08),
+                  color: AppColors.emerald600.withValues(alpha: 0.06),
                   blurRadius: 24,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
@@ -319,23 +320,25 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
             ),
             child: Row(
             children: [
-              // Noblara branded icon container
+              // Noblara branded icon — circular burgundy badge, matches
+              // the Discover header brand mark for cross-screen consistency.
               Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppColors.emerald600.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.burgundy600,
+                  shape: BoxShape.circle,
+                  boxShadow: Premium.shadowSm,
                 ),
-                child: Center(
-                  child: Text(
-                    'N',
-                    style: TextStyle(
-                      color: AppColors.emerald500,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: 'serif',
-                    ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'N',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    height: 1.0,
                   ),
                 ),
               ),
@@ -406,7 +409,7 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
             stops: const [0.0, 0.25, 1.0],
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, -4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, -4)),
           ],
         ),
         child: BottomNavigationBar(
