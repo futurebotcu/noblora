@@ -1,28 +1,26 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/utils/mock_mode.dart';
 
-/// Admin-only data access — moderation queue, dashboard counts, and post
-/// removal. Server-side RLS enforces `is_admin = true`; this class only
-/// centralises the call paths so the screen can drop its direct supabase
-/// usage. Mock mode short-circuits to safe no-ops or sample shapes.
+/// Admin-only data access — moderation queue + dashboard counts. Server-side
+/// RLS enforces `is_admin = true`; this class only centralises the call paths
+/// so the screen can drop its direct supabase usage. Mock mode short-circuits
+/// to safe no-ops or sample shapes.
 class AdminRepository {
   final SupabaseClient? _supabase;
 
   AdminRepository({SupabaseClient? supabase}) : _supabase = supabase;
 
-  /// 4 parallel COUNT-only fetches behind the admin dashboard.
+  /// 3 parallel COUNT-only fetches behind the admin dashboard.
   Future<({
     int totalUsers,
     int pendingVerifications,
     int activeMatches,
-    int postsToday,
   })> fetchStats() async {
     if (isMockMode) {
       return (
         totalUsers: 0,
         pendingVerifications: 0,
         activeMatches: 0,
-        postsToday: 0,
       );
     }
     final db = _supabase!;
@@ -31,17 +29,11 @@ class AdminRepository {
       db.from('photo_verifications').select('id').eq('status', 'pending'),
       db.from('matches').select('id').inFilter(
           'status', ['pending_first_message', 'chatting']),
-      db.from('posts').select('id').gte(
-          'created_at',
-          DateTime.now()
-              .subtract(const Duration(days: 1))
-              .toIso8601String()),
     ]);
     return (
       totalUsers: (results[0] as List).length,
       pendingVerifications: (results[1] as List).length,
       activeMatches: (results[2] as List).length,
-      postsToday: (results[3] as List).length,
     );
   }
 
@@ -100,42 +92,5 @@ class AdminRepository {
     await _supabase!
         .from('photo_verifications')
         .update({'status': 'rejected'}).eq('user_id', userId);
-  }
-
-  /// Most-recent posts for moderation, enriched with author display_name.
-  /// Returns merged `Map<String, dynamic>` with `id`, `content`, `author`
-  /// keys — drop-in shape for the existing `_PostModerationCard` caller.
-  Future<List<Map<String, dynamic>>> fetchRecentPosts({int limit = 30}) async {
-    if (isMockMode) {
-      return [
-        {'id': 'mock-p1', 'content': 'Hello Noblara!', 'author': 'Ali'},
-        {'id': 'mock-p2', 'content': 'Great community here.', 'author': 'Zeynep'},
-      ];
-    }
-    final db = _supabase!;
-    final rows = await db
-        .from('posts')
-        .select('id, content, user_id, created_at')
-        .order('created_at', ascending: false)
-        .limit(limit);
-    if (rows.isEmpty) return const [];
-
-    final userIds = rows.map((r) => r['user_id'] as String).toSet().toList();
-    final profiles = await db
-        .from('profiles')
-        .select('id, display_name')
-        .inFilter('id', userIds);
-    final nameMap = {
-      for (final p in profiles)
-        p['id'] as String: p['display_name'] as String? ?? 'Unknown'
-    };
-
-    return rows
-        .map((r) => {
-              'id': r['id'],
-              'content': r['content'],
-              'author': nameMap[r['user_id']] ?? 'Unknown',
-            })
-        .toList();
   }
 }

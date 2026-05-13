@@ -31,13 +31,11 @@ class _AdminStats {
   final int totalUsers;
   final int pendingVerifications;
   final int activeMatches;
-  final int postsToday;
 
   const _AdminStats({
     this.totalUsers = 0,
     this.pendingVerifications = 0,
     this.activeMatches = 0,
-    this.postsToday = 0,
   });
 }
 
@@ -51,7 +49,6 @@ final _adminStatsProvider = FutureProvider<_AdminStats>((ref) async {
       totalUsers: 42,
       pendingVerifications: 5,
       activeMatches: 12,
-      postsToday: 8,
     );
   }
   final stats = await ref.read(adminRepositoryProvider).fetchStats();
@@ -59,7 +56,6 @@ final _adminStatsProvider = FutureProvider<_AdminStats>((ref) async {
     totalUsers: stats.totalUsers,
     pendingVerifications: stats.pendingVerifications,
     activeMatches: stats.activeMatches,
-    postsToday: stats.postsToday,
   );
 });
 
@@ -204,11 +200,6 @@ class _OverviewTab extends ConsumerWidget {
                     value: stats.activeMatches,
                     icon: Icons.favorite_rounded,
                     color: AppColors.emerald500),
-                _StatCard(
-                    label: 'Posts Today',
-                    value: stats.postsToday,
-                    icon: Icons.article_rounded,
-                    color: const Color(0xFF9C27B0)),
               ],
             ),
             const SizedBox(height: AppSpacing.xxl),

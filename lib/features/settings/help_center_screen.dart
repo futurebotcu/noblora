@@ -481,7 +481,7 @@ const _categories = [
       _HelpItem(
         title: 'What does pausing my account do?',
         body: 'Pausing hides your profile from discovery. Other users will not see you in their feed or receive matches with you.\n\n'
-            'Your data stays safe. Your conversations, matches, and posts remain intact. You can resume at any time and everything will be exactly as you left it.',
+            'Your data stays safe. Your conversations and matches remain intact. You can resume at any time and everything will be exactly as you left it.',
       ),
       _HelpItem(
         title: 'What happens when I request deletion?',
@@ -489,7 +489,7 @@ const _categories = [
             '1. Your account is paused immediately — you\'re hidden from discovery.\n'
             '2. You are signed out.\n'
             '3. A 30-day grace period begins.\n'
-            '4. After 30 days, all your data is permanently and irreversibly deleted — profile, photos, messages, matches, posts, and all associated files.\n\n'
+            '4. After 30 days, all your data is permanently and irreversibly deleted — profile, photos, messages, matches, and all associated files.\n\n'
             'During the 30-day window, you can sign back in and cancel the deletion.',
       ),
       _HelpItem(
@@ -504,7 +504,6 @@ const _categories = [
             '• All photos (profile, verification, galleries)\n'
             '• All messages and conversations\n'
             '• All matches, swipes, and interactions\n'
-            '• All posts and reactions\n'
             '• Push notification tokens and device records\n\n'
             'This action is irreversible after the grace period.',
       ),
@@ -638,33 +637,4 @@ const _categories = [
     ],
   ),
 
-  // ── I. NOBLARA FEED ──
-  _HelpCategory(
-    icon: Icons.article_outlined,
-    title: 'Noblara Feed',
-    subtitle: 'Posting, drafts, and community',
-    items: [
-      _HelpItem(
-        title: 'What is the Noblara Feed?',
-        body: 'The Noblara Feed is a community space where you can share thoughts, moments, and photos. It\'s separate from dating and BFF — think of it as your social expression layer.\n\n'
-            'Posts are visible to all users. Your tier determines how many posts you can share per day and week.',
-      ),
-      _HelpItem(
-        title: 'How do I create a post?',
-        body: 'Tap the compose button on the Noblara Feed tab. You can:\n\n'
-            '• Write a text-based thought or moment.\n'
-            '• Attach a photo.\n'
-            '• Save as draft and publish later.\n\n'
-            'Posts go through a quality check to maintain community standards.',
-      ),
-      _HelpItem(
-        title: 'What are posting limits?',
-        body: 'Posting limits depend on your tier:\n\n'
-            '• Observer — limited daily and weekly posts.\n'
-            '• Explorer — higher limits.\n'
-            '• Noble — highest limits.\n\n'
-            'Limits reset daily at midnight and weekly on Mondays. Your current usage is tracked automatically.',
-      ),
-    ],
-  ),
 ];
