@@ -66,6 +66,15 @@ class AuthRepository {
     await _supabase!.auth.resetPasswordForEmail(email);
   }
 
+  /// In-app password change for an already-signed-in user. The active
+  /// session token authorizes the change (Supabase does not require the
+  /// current password here). Caller is responsible for length/strength
+  /// validation; this method surfaces any backend error.
+  Future<void> updatePassword(String newPassword) async {
+    if (isMockMode) return;
+    await _supabase!.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
   /// Refreshes the current session — keeps the JWT alive on long-running
   /// clients (called from the auth provider on a 30-minute periodic timer).
   Future<void> refreshSession() async {

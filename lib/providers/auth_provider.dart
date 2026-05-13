@@ -257,6 +257,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: _friendlyError(e));
     }
   }
+
+  /// In-app password change for an authenticated user. Returns `null` on
+  /// success or a user-facing error string. Caller (the Settings modal)
+  /// validates the password against the same strength rules as Sign Up
+  /// before calling; this method is the last line of defense so it also
+  /// rejects anything shorter than 8 chars.
+  Future<String?> updatePassword(String newPassword) async {
+    if (newPassword.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    try {
+      await _repo.updatePassword(newPassword);
+      return null;
+    } catch (e) {
+      return _friendlyError(e);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

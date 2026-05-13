@@ -253,10 +253,7 @@ class SettingsScreen extends ConsumerWidget {
                       iconColor: AppColors.error,
                       titleColor: AppColors.error,
                       showChevron: false,
-                      onTap: () {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        ref.read(authProvider.notifier).signOut();
-                      }),
+                      onTap: () => _confirmSignOut(context, ref)),
                 ],
               ),
             ),
@@ -268,14 +265,20 @@ class SettingsScreen extends ConsumerWidget {
 
   // ── Helpers ──────────────────────────────────────────────────────
 
+  /// Opens the in-app change-password modal. Mock mode short-circuits
+  /// (no backend call). The modal owns its own loading + error state via
+  /// the [_ChangePasswordDialog] StatefulWidget below, then on success
+  /// pops itself and shows a confirmation toast on the Settings screen.
   Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
     if (isMockMode) return;
-    final repo = ref.read(authRepositoryProvider);
-    final email = await repo.getCurrentUserEmail() ?? '';
-    await repo.resetPasswordForEmail(email);
-    if (context.mounted) {
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _ChangePasswordDialog(),
+    );
+    if (ok == true && context.mounted) {
       ToastService.show(context,
-          message: 'Password reset email sent', type: ToastType.success);
+          message: 'Password updated', type: ToastType.success);
     }
   }
 
@@ -435,6 +438,44 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ),
             )).then((_) => ctrl.dispose());
+  }
+
+  /// Confirms sign-out before tearing down the session. Without this an
+  /// accidental tap on the Sign Out row would drop the user back to the
+  /// Welcome screen — a frequent source of trust loss right before a
+  /// store review.
+  void _confirmSignOut(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.surfaceColor,
+        shape: Premium.dialogShape(),
+        title: Text('Sign out?',
+            style: TextStyle(
+                color: context.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700)),
+        content: Text(
+            'You can sign back in anytime with the same email and password.',
+            style: TextStyle(
+                color: context.textMuted, fontSize: 14, height: 1.5)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child:
+                  Text('Cancel', style: TextStyle(color: context.textMuted))),
+          TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ref.read(authProvider.notifier).signOut();
+              },
+              child: const Text('Sign Out',
+                  style: TextStyle(
+                      color: AppColors.error, fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
   }
 
   static Widget _divider(BuildContext context) => Divider(
@@ -695,4 +736,186 @@ class _Toggle extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Change Password Dialog — in-app, authenticated user.
+//
+// Replaces the prior "Change Password" row, which silently sent a
+// password-reset email (UX-implementation mismatch flagged as a P0
+// store-readiness issue). The active Supabase session token authorizes
+// the password change; no current-password input is needed.
+//
+// Strength rules mirror Sign Up: >=8 chars, >=1 uppercase, >=1 digit,
+// confirm match. Submit is disabled until the four checks pass.
+// ═══════════════════════════════════════════════════════════════════
+
+class _ChangePasswordDialog extends ConsumerStatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _showNew = false;
+  bool _showConfirm = false;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _has8 => _newCtrl.text.length >= 8;
+  bool get _hasUpper => _newCtrl.text.contains(RegExp(r'[A-Z]'));
+  bool get _hasNumber => _newCtrl.text.contains(RegExp(r'[0-9]'));
+  bool get _passMatch =>
+      _newCtrl.text == _confirmCtrl.text && _confirmCtrl.text.isNotEmpty;
+  bool get _allValid => _has8 && _hasUpper && _hasNumber && _passMatch;
+
+  Future<void> _submit() async {
+    if (!_allValid || _loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final err =
+        await ref.read(authProvider.notifier).updatePassword(_newCtrl.text);
+    if (!mounted) return;
+    if (err == null) {
+      Navigator.pop(context, true);
+      return;
+    }
+    setState(() {
+      _loading = false;
+      _error = err;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: context.surfaceColor,
+      shape: Premium.dialogShape(),
+      // Keyboard-safe: AlertDialog adapts to MediaQuery.viewInsets by
+      // default in Flutter, so the modal stays above the keyboard. The
+      // content is wrapped in SingleChildScrollView so the strength
+      // checklist + error never push the buttons off-screen on small
+      // devices with the keyboard open.
+      titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+      title: Text('Change password',
+          style: TextStyle(
+              color: context.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _newCtrl,
+              obscureText: !_showNew,
+              onChanged: (_) => setState(() => _error = null),
+              style: TextStyle(color: context.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                labelText: 'New password',
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                      _showNew
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: context.textMuted),
+                  onPressed: () => setState(() => _showNew = !_showNew),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _confirmCtrl,
+              obscureText: !_showConfirm,
+              onChanged: (_) => setState(() => _error = null),
+              style: TextStyle(color: context.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                labelText: 'Confirm new password',
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                      _showConfirm
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: context.textMuted),
+                  onPressed: () =>
+                      setState(() => _showConfirm = !_showConfirm),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _ReqRow('At least 8 characters', _has8),
+            const SizedBox(height: 4),
+            _ReqRow('One uppercase letter', _hasUpper),
+            const SizedBox(height: 4),
+            _ReqRow('One number', _hasNumber),
+            const SizedBox(height: 4),
+            _ReqRow('Passwords match', _passMatch),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(_error!,
+                  style: const TextStyle(
+                      color: AppColors.error, fontSize: 13, height: 1.4)),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context, false),
+          child: Text('Cancel', style: TextStyle(color: context.textMuted)),
+        ),
+        TextButton(
+          onPressed: (_allValid && !_loading) ? _submit : null,
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Update',
+                  style: TextStyle(
+                      color: AppColors.burgundy600,
+                      fontWeight: FontWeight.w700)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReqRow extends StatelessWidget {
+  final String label;
+  final bool met;
+  const _ReqRow(this.label, this.met);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Icon(met ? Icons.check_circle_rounded : Icons.circle_outlined,
+          color: met ? AppColors.success : context.textDisabled, size: 14),
+      const SizedBox(width: 8),
+      Text(label,
+          style: TextStyle(
+              color: met ? AppColors.success : context.textMuted,
+              fontSize: 12)),
+    ]);
+  }
 }
