@@ -171,16 +171,15 @@ class SettingsScreen extends ConsumerWidget {
           // a one-way action in V1 (chat / match-detail Block menu still
           // calls addToBlockList → discovery exclusion). Surfacing the
           // list creates a re-engagement loop V1 explicitly avoids.
+          //
+          // Photo / Selfie Verification status rows hidden in the
+          // verification containment sprint — the upgrade path is
+          // temporarily disabled (see main_tab_navigator gate copy), so
+          // surfacing per-user "Not verified" status without a way to
+          // act on it is misleading. Existing verified users keep their
+          // badge in Discover via profiles.is_verified.
           const _Section('Privacy & Safety'),
           _Card(children: [
-            _Row(Icons.camera_alt_outlined, 'Photo Verification',
-                value: (s['photos_verified'] as bool? ?? false)
-                    ? 'Verified'
-                    : _verifLabel(s)),
-            _Row(Icons.face_rounded, 'Selfie Verification',
-                value: (s['selfie_verified'] as bool? ?? false)
-                    ? 'Verified'
-                    : 'Not verified'),
             _Toggle(Icons.preview_rounded, 'Message Previews',
                 s['message_preview'] as bool? ?? true,
                 (_) => n.toggleBool('message_preview'),
@@ -268,15 +267,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
-
-  static String _verifLabel(Map<String, dynamic> s) {
-    final status = s['verification_status'] as String? ?? 'not_started';
-    return switch (status) {
-      'pending' => 'Pending',
-      'manual_review' => 'In review',
-      _ => 'Not started',
-    };
-  }
 
   Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
     if (isMockMode) return;

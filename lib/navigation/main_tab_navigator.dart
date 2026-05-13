@@ -10,7 +10,6 @@ import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/tier_promotion_screen.dart';
-import '../features/verification/verification_hub_screen.dart';
 import '../features/entry_gate/entry_gate_screen.dart';
 import '../data/models/post.dart';
 import '../providers/messages_provider.dart';
@@ -116,13 +115,20 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
   ) {
     final needsVerification =
         verif.verificationStatus != VerificationStatus.approved;
-    final title = needsVerification ? 'Verify to meet people' : 'Access pending';
+    // Containment: the verification upgrade flow is temporarily disabled
+    // for new users while the trust model is rebuilt (audit found self-
+    // verify + admin-approve holes — see VERIFICATION_FLOW_AUDIT_REPORT.md).
+    // Existing verified users still pass this gate; new users see an
+    // info modal with no entry point into the broken flow.
+    final title = needsVerification
+        ? 'Verification temporarily unavailable'
+        : 'Access pending';
     final message = needsVerification
-        ? 'Finish photo verification to unlock Discover and Chats. This keeps direct interactions safer for everyone.'
+        ? "We're upgrading photo verification. New verifications are paused for now — Discover and Chats will unlock when it's back. Please check in again soon."
         : 'Your account is waiting for approval before Discover and Chats unlock.';
-    final buttonLabel = needsVerification ? 'Verify now' : 'Open access';
+    final buttonLabel = needsVerification ? 'OK' : 'Open access';
     final icon = needsVerification
-        ? Icons.verified_outlined
+        ? Icons.info_outline_rounded
         : Icons.hourglass_bottom_rounded;
 
     showModalBottomSheet(
@@ -185,13 +191,16 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
                 ),
                 onPressed: () {
                   Navigator.pop(sheetCtx);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => needsVerification
-                          ? const VerificationHubScreen()
-                          : const EntryGateScreen(),
-                    ),
-                  );
+                  // Containment: when verification is the blocker we just
+                  // close the sheet (no entry into the broken flow). The
+                  // entry-gate branch still pushes EntryGateScreen.
+                  if (!needsVerification) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const EntryGateScreen(),
+                      ),
+                    );
+                  }
                 },
                 child: Text(buttonLabel,
                     style: const TextStyle(
