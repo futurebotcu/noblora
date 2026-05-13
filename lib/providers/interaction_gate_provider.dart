@@ -27,8 +27,8 @@ class InteractionGate {
   bool get canSocialCreate => kSocialEnabled && verifiedPhoto;
 
   // Nob feed: Noblara is the open expression layer — no photo gate here.
-  // Tier (observer/explorer/noble) decides posting rights in the UI; the
-  // backend rate-limits via check_nob_limit() tier + daily/weekly counters.
+  // (M0: tier-based posting rights retired. Limits, if any, will be
+  // re-introduced as plan_level-aware caps in M4.)
   bool get canPostNob => true;
   bool get canReactNob => true;
 
@@ -50,10 +50,8 @@ final interactionGateProvider = FutureProvider<InteractionGate>((ref) async {
         await ref.read(profileRepositoryProvider).fetchInteractionGate(uid);
     if (gate == null) return const InteractionGate();
 
-    // Noble tier users get full access — never blocked by gating
-    if (gate.nobTier == 'noble') {
-      return const InteractionGate(photoCount: 5, verifiedPhoto: true);
-    }
+    // M0: Noble tier bypass removed. Everyone goes through the same photo
+    // gate regardless of nob_tier (kept on the model only for legacy data).
 
     return InteractionGate(
       photoCount: gate.photoCount,

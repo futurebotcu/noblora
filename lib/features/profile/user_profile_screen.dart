@@ -266,12 +266,9 @@ class _HeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayName = profile?.displayName ?? name ?? 'Someone';
     final avatar = profile?.dateAvatarUrl ?? profile?.bffAvatarUrl ?? avatarUrl;
-    final displayTier = profile?.nobTier ?? tier;
-    final tierColor = switch (displayTier) {
-      NobTier.noble => AppColors.nobNoble,
-      NobTier.explorer => AppColors.nobExplorer,
-      NobTier.observer => AppColors.nobObserver,
-    };
+    // M0 — tier-derived header colour + tier pill removed. Hero header now
+    // uses the dating accent for every profile so users look the same.
+    const tierColor = AppColors.emerald500;
 
     return Container(
       decoration: BoxDecoration(
@@ -311,17 +308,14 @@ class _HeroHeader extends StatelessWidget {
             Text(displayName,
                 style: TextStyle(color: context.textPrimary, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
             const SizedBox(height: 8),
-            // Tier + mode badges
+            // M0 — tier pill removed. Keep city + age chips.
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _Badge(displayTier.label.toUpperCase(), tierColor),
-                if (profile?.city != null) ...[
-                  const SizedBox(width: 8),
+                if (profile?.city != null)
                   _Badge(profile!.city!, context.textMuted),
-                ],
                 if (profile?.age != null) ...[
-                  const SizedBox(width: 8),
+                  if (profile?.city != null) const SizedBox(width: 8),
                   _Badge('${profile!.age}', context.textMuted),
                 ],
               ],

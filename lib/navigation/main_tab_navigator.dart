@@ -9,9 +9,7 @@ import '../features/admin/admin_screen.dart';
 import '../features/feed/feed_screen.dart';
 import '../features/matches/matches_screen.dart';
 import '../features/profile/profile_screen.dart';
-import '../features/profile/tier_promotion_screen.dart';
 import '../features/entry_gate/entry_gate_screen.dart';
-import '../data/models/post.dart';
 import '../providers/messages_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/admin_provider.dart';
@@ -70,8 +68,9 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         _switchTo(1); // Chats tab
       case 'note_received':
         _switchTo(1); // Requests tab inside Chats
-      case 'tier_promoted':
-        _switchTo(2); // Profile tab (R19 — Status removed, Profile now index 2)
+      // M0 — tier_promoted notification routing removed; tier promotion
+      // is no longer a product event. The DB cron that emitted these
+      // notifications was unscheduled in the M0 migration.
       default:
         _switchTo(1); // Default to Chats
     }
@@ -282,20 +281,11 @@ class _MainTabNavigatorState extends ConsumerState<MainTabNavigator> {
         } catch (e) { debugPrint('[nav] Notification prefs check failed: $e'); }
       }
 
-      // Tier promotion → show celebration screen
-      if (latest.type == 'tier_promoted') {
-        final newTier = latest.data?['new_tier'] as String?;
-        if (newTier != null && (newTier == 'noble' || newTier == 'explorer') && context.mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TierPromotionScreen(
-                newTier: NobTier.fromString(newTier),
-              ),
-            ),
-          );
-          return;
-        }
-      }
+      // M0 — TierPromotionScreen routing removed. Tier is no longer a
+      // product event; the cron that emitted tier_promoted notifications
+      // was unscheduled in the M0 migration. Any latent in-flight
+      // notification falls through to the default in-app banner.
+
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -6,7 +6,6 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/premium.dart';
 import '../../core/enums/noble_mode.dart';
-import '../../data/models/post.dart' show NobTier;
 import '../../data/models/profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -1493,9 +1492,7 @@ class _EarnedBadgesSection extends StatelessWidget {
     if ((p.trustScore) > 60) {
       badges.add(const _Badge(Icons.verified_rounded, 'Verified', AppColors.emerald500));
     }
-    if (p.nobTier == NobTier.explorer || p.nobTier == NobTier.noble) {
-      badges.add(_Badge(Icons.explore_rounded, p.nobTier.label, AppColors.emerald500));
-    }
+    // M0 — tier badge removed; tier is no longer a product / status surface.
     if (p.profileCompletenessScore >= 80) {
       badges.add(const _Badge(Icons.workspace_premium_rounded, 'Complete Profile', Color(0xFFAB47BC)));
     }
