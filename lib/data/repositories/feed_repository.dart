@@ -104,12 +104,10 @@ class FeedRepository {
             .inFilter('nob_tier', ['explorer', 'noble']);
       }
 
-      // Tier badge
-      if (filters.statusBadge == 'Explorer+') {
-        query = query.inFilter('nob_tier', ['explorer', 'noble']);
-      } else if (filters.statusBadge == 'Noble only') {
-        query = query.eq('nob_tier', 'noble');
-      }
+      // V1 final cleanup (2026-05-13): the `statusBadge` filter
+      // (Explorer+ / Noble only) was removed from FilterState along
+      // with the rest of the tier UI surfaces. The `nob_tier` column is
+      // still selected for legacy data but never narrows the deck.
 
       // Lifestyle DB filters — HARD exclusion when selected
       if (filters.drinks != null) {
@@ -193,11 +191,9 @@ class FeedRepository {
       'p_age_max': filters?.ageRange.end.round() ?? 65,
       'p_verified_only': false,
       'p_complete_only': false,
-      'p_tier_filter': filters?.statusBadge == 'Noble only'
-          ? 'noble'
-          : filters?.statusBadge == 'Explorer+'
-              ? null
-              : null,
+      // V1 final cleanup: tier filter input always null after the
+      // Noble/Explorer surfaces were dropped.
+      'p_tier_filter': null,
     });
     return (result as int?) ?? 0;
   }

@@ -8,7 +8,11 @@ class FilterState {
   final double maxDistance;
   final bool trustShieldEnabled;
   final List<String> languages;
-  final String? statusBadge; // 'all', 'explorer_plus', 'noble'
+  // V1 final cleanup (2026-05-13): `statusBadge` (All / Explorer+ /
+  // Noble only) field removed alongside the Noble/Observer/Explorer tier
+  // surfaces. The DB column `nob_tier` is left untouched for legacy data
+  // (kullanıcı talimatı: "DB kolonlarına dokunma"); the filter just no
+  // longer reaches that column. `statusBadgeOptions` const also gone.
 
   // ── Dating ──
   final String? lookingFor; // Serious / Long-term / Intentional / Open
@@ -32,7 +36,6 @@ class FilterState {
     this.maxDistance = 25,
     this.trustShieldEnabled = false,
     this.languages = const [],
-    this.statusBadge,
     this.lookingFor,
     this.drinks,
     this.smokes,
@@ -54,7 +57,6 @@ class FilterState {
     double? maxDistance,
     bool? trustShieldEnabled,
     List<String>? languages,
-    String? statusBadge,
     String? lookingFor,
     String? drinks,
     String? smokes,
@@ -76,7 +78,6 @@ class FilterState {
     bool clearSocialEnergy = false,
     bool clearRoutine = false,
     bool clearFaith = false,
-    bool clearStatusBadge = false,
     bool clearBffLookingFor = false,
   }) {
     return FilterState(
@@ -84,7 +85,6 @@ class FilterState {
       maxDistance: maxDistance ?? this.maxDistance,
       trustShieldEnabled: trustShieldEnabled ?? this.trustShieldEnabled,
       languages: languages ?? this.languages,
-      statusBadge: clearStatusBadge ? null : (statusBadge ?? this.statusBadge),
       lookingFor: clearLookingFor ? null : (lookingFor ?? this.lookingFor),
       drinks: clearDrinks ? null : (drinks ?? this.drinks),
       smokes: clearSmokes ? null : (smokes ?? this.smokes),
@@ -116,7 +116,6 @@ class FilterState {
     if (maxDistance != 25) c++;
     if (trustShieldEnabled) c++;
     if (languages.isNotEmpty) c++;
-    if (statusBadge != null) c++;
 
     if (mode == NobleMode.date) {
       if (lookingFor != null) c++;
@@ -161,4 +160,3 @@ const bffInterestOptions = [
   'Language learning', 'Nature', 'Entrepreneurship',
 ];
 const languageOptions = ['Turkish', 'English', 'Arabic', 'French', 'German', 'Spanish', 'Italian', 'Russian', 'Japanese', 'Persian'];
-const statusBadgeOptions = ['All', 'Explorer+', 'Noble only'];

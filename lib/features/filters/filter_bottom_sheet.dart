@@ -121,14 +121,9 @@ class _State extends ConsumerState<FilterBottomSheet> {
             _Toggle('Has active Nobs', _f.hasNobs, (v) => _set(_f.copyWith(hasNobs: v)), accent),
             _Toggle('Has completed prompts', _f.hasPrompts, (v) => _set(_f.copyWith(hasPrompts: v)), accent),
 
-            // Tier filters
-            const SizedBox(height: AppSpacing.md),
-            _Label('Tier'),
-            Wrap(spacing: 8, children: [
-              _Chip('All', _f.statusBadge == null, () => _set(_f.copyWith(clearStatusBadge: true)), accent),
-              _Chip('Explorer+', _f.statusBadge == 'Explorer+', () => _set(_f.copyWith(statusBadge: 'Explorer+')), accent),
-              _Chip('Noble only', _f.statusBadge == 'Noble only', () => _set(_f.copyWith(statusBadge: 'Noble only')), accent),
-            ]),
+            // V1 final cleanup (2026-05-13): Tier filter section ('All' /
+            // 'Explorer+' / 'Noble only') removed alongside the rest of
+            // the Noble/Observer/Explorer surfaces.
 
             // Mode-specific quick
             const SizedBox(height: AppSpacing.lg),

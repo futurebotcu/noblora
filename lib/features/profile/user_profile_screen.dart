@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/mock_mode.dart';
-import '../../data/models/post.dart' show NobTier;
 import '../../data/models/profile.dart';
 import '../../providers/profile_provider.dart';
 
@@ -36,17 +35,21 @@ class UserProfileScreen extends ConsumerWidget {
   final String userId;
   final String? initialName;
   final String? initialAvatarUrl;
-  final NobTier initialTier;
   /// Whether the viewer has an active match/connection with this user.
   /// Affects 'Matches only' field visibility. Defaults to false (stranger).
   final bool isMatch;
+
+  // V1 final cleanup (2026-05-13): `initialTier` constructor param removed
+  // alongside the Noble/Observer/Explorer surfaces. The two call sites
+  // (swipe_card_widget, individual_chat_screen) never passed a tier; only
+  // the default value was reaching `_HeroHeader`, which itself ignored
+  // tier after the M0 lockdown neutralized the tier-derived header colour.
 
   const UserProfileScreen({
     super.key,
     required this.userId,
     this.initialName,
     this.initialAvatarUrl,
-    this.initialTier = NobTier.observer,
     this.isMatch = false,
   });
 
@@ -69,7 +72,6 @@ class UserProfileScreen extends ConsumerWidget {
               background: _HeroHeader(
                 name: initialName,
                 avatarUrl: initialAvatarUrl,
-                tier: initialTier,
                 profile: profileAsync.asData?.value,
               ),
             ),
@@ -253,13 +255,16 @@ class UserProfileScreen extends ConsumerWidget {
 class _HeroHeader extends StatelessWidget {
   final String? name;
   final String? avatarUrl;
-  final NobTier tier;
   final Profile? profile;
+
+  // V1 final cleanup: `tier` field removed. Tier-derived header colour
+  // was already neutralized by M0 (every profile uses the dating
+  // accent); the param itself is now gone with the rest of the tier
+  // surfaces.
 
   const _HeroHeader({
     this.name,
     this.avatarUrl,
-    this.tier = NobTier.observer,
     this.profile,
   });
 

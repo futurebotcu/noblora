@@ -10,18 +10,28 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/premium.dart';
 import '../../core/utils/mock_mode.dart';
-import '../../core/services/location_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/storage_provider.dart';
 import '../../shared/widgets/drum_date_picker.dart';
-import '../../shared/widgets/avatar_picker.dart';
 import '../../shared/widgets/city_search_screen.dart';
-import 'info_step.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // Onboarding Flow — step-based premium setup
-// Steps: Welcome → Info (R13) → Basics → Occupation → Location → Photo → Privacy → Complete
+//
+// V1 final cleanup (2026-05-13):
+//   - Removed the R13 Info step (TH/VN/PH flag-row intro); SEA scope
+//     is now communicated through Welcome + product positioning, not a
+//     mandatory ack screen.
+//   - Location step is manual-only: the "Use my location" GPS button +
+//     5 LocationStatus error branches were deleted along with the
+//     location_service.dart dependency. Manual city search remains.
+//   - Photo step is photo-upload-only: the AvatarPicker grid (50
+//     custom-painted warrior avatars) was deleted; users must pick a
+//     real photo, no fallback avatar.
+//
+// Current step order (7): Welcome -> Basics -> Occupation -> Location
+//                          -> Photo -> Privacy -> Complete
 // ═══════════════════════════════════════════════════════════════════
 
 String? _detectImageType(List<int> bytes) {
@@ -44,7 +54,9 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   final _pageCtrl = PageController();
   int _step = 0;
-  static const _totalSteps = 8;  // R13 — added Info step after Welcome
+  // V1 final cleanup: was 8 (with R13 Info step); now 7 after removing
+  // the flag-row info screen.
+  static const _totalSteps = 7;
 
   // Data collected
   final _nameCtrl = TextEditingController();
@@ -56,12 +68,17 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
   String _occupation = '';
   String _city = '';
   String _country = '';
-  String? _countryCode;     // R13 — ISO 2-letter (TH/VN/PH or other) from GPS/search
-  // _locationLat / _locationLng intentionally not stored — see R16:
-  // public.profiles has no lat/lng columns, so persisting them here
-  // would be dead state with no downstream reader.
+  // R13 — ISO 2-letter (TH/VN/PH or other) from manual city search.
+  // `_country` is the full name (e.g. "Thailand"); `_countryCode` is the
+  // ISO code expected by the swipe-gate. They are decoupled because the
+  // CitySearchScreen callback returns both, but historically only
+  // `_country` was persisted (separate ISO normalization bug tracked in
+  // TRAVEL_LOCATION_REALITY_AUDIT.md).
+  String? _countryCode;
+  // V1 final cleanup: photo is now mandatory (no avatar fallback). The
+  // _avatarId state + AvatarPicker grid were deleted along with the
+  // avatar_picker widget.
   String? _photoUrl;
-  int? _avatarId;
 
   @override
   void dispose() { _nameCtrl.dispose(); _pageCtrl.dispose(); super.dispose(); }
@@ -80,10 +97,11 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
     }
   }
 
-  /// Validate minimum requirements before allowing completion
+  /// Validate minimum requirements before allowing completion.
+  /// V1 final cleanup: photo became mandatory (was photo OR avatar).
   String? _validateCompletion() {
     if (_nameCtrl.text.trim().isEmpty) return 'Name is required';
-    if (_photoUrl == null && _avatarId == null) return 'A photo or avatar is required';
+    if (_photoUrl == null) return 'A photo is required';
     return null;
   }
 
@@ -182,7 +200,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             // your profile" on the onboarding completion step. Verified via
             // SELECT profession FROM profiles -> ERROR 42703 (2026-05-13).
             if (_occupation.isNotEmpty) 'occupation': _occupation,
-            if (_avatarId != null) 'avatar_id': _avatarId,
+            // V1 final cleanup: avatar_id payload key removed alongside
+            // the AvatarPicker UI; legacy DB column kept untouched.
             'is_onboarded': true,
             // Privacy defaults (explicit, not null)
             'incognito_mode': false,
@@ -251,7 +270,10 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _WelcomePage(onNext: _next),
-                  OnboardingInfoStep(onNext: _next),  // R13 — V1 regional scope ack
+                  // V1 final cleanup: OnboardingInfoStep (TH/VN/PH flag
+                  // intro) removed; SEA scope communicated via Welcome
+                  // copy + product positioning rather than a mandatory
+                  // ack screen.
                   _BasicsPage(
                       nameCtrl: _nameCtrl,
                       birthDay: _birthDay, birthMonth: _birthMonth, birthYear: _birthYear,
@@ -276,9 +298,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
                       onNext: _next),
                   _PhotoPage(
                       photoUrl: _photoUrl,
-                      avatarId: _avatarId,
-                      onPhotoSelected: (v) => setState(() { _photoUrl = v; _avatarId = null; }),
-                      onAvatarSelected: (v) => setState(() { _avatarId = v; _photoUrl = null; }),
+                      onPhotoSelected: (v) => setState(() => _photoUrl = v),
                       onNext: _next),
                   _PrivacyPage(onNext: _next),
                   _CompletePage(name: _nameCtrl.text, onComplete: _complete,
@@ -686,83 +706,15 @@ class _LocationPage extends StatefulWidget {
   State<_LocationPage> createState() => _LocationPageState();
 }
 
+/// V1 final cleanup (2026-05-13): the GPS button + 4 LocationStatus
+/// error branches + Open-Settings escalation were removed; manual city
+/// search is the only path. `core/services/location_service.dart` is
+/// no longer imported here; the geolocator dependency stays in
+/// pubspec.yaml for now (flagged in FINAL_V1_CLEANUP_REPORT.md as a
+/// follow-up). The Travel-Mode-suggestion dialog at the bottom is
+/// retained as the only place we surface the SEA gate to the user
+/// post-info-step removal.
 class _LocationPageState extends State<_LocationPage> {
-  bool _gpsLoading = false;
-  String? _error;
-  /// True when the GPS attempt ended in `deniedForever` — the runtime
-  /// prompt won't appear again and the user must visit App Settings.
-  /// Surfaces an extra "Open Settings" button under the error message.
-  bool _showOpenSettings = false;
-
-  Future<void> _useGPS() async {
-    setState(() {
-      _gpsLoading = true;
-      _error = null;
-      _showOpenSettings = false;
-    });
-
-    final result = await LocationService.getLocationFromGPS();
-
-    if (!mounted) return;
-
-    switch (result.status) {
-      case LocationStatus.success:
-        widget.onLocationSet(
-          result.city ?? '',
-          result.country ?? '',
-          result.lat,
-          result.lng,
-        );
-        // R13 — propagate ISO 2-letter country code for swipe-gate decision.
-        widget.onCountryCodeSet?.call(result.countryCode);
-        setState(() => _gpsLoading = false);
-        return;
-
-      case LocationStatus.denied:
-        setState(() {
-          _gpsLoading = false;
-          _error = 'Location permission denied. Tap "Use my location" again to retry, '
-                   'or pick your city below.';
-        });
-        return;
-
-      case LocationStatus.deniedForever:
-        setState(() {
-          _gpsLoading = false;
-          _showOpenSettings = true;
-          _error = 'Location access is blocked for Noblara. Open Settings to allow it, '
-                   'or pick your city manually below.';
-        });
-        return;
-
-      case LocationStatus.serviceDisabled:
-        setState(() {
-          _gpsLoading = false;
-          _showOpenSettings = true;
-          _error = 'Location services are turned off. Turn them on in your device '
-                   'Settings, or pick your city manually below.';
-        });
-        return;
-
-      case LocationStatus.positionUnavailable:
-        setState(() {
-          _gpsLoading = false;
-          _error = 'Couldn\'t read your location right now. Try again or pick '
-                   'your city manually below.';
-        });
-        return;
-    }
-  }
-
-  Future<void> _openSettingsForLocation() async {
-    // Try app-specific settings first (deniedForever case); fall back to the
-    // OS-level location toggle when the issue is the master switch.
-    final ok = await LocationService.openAppSettingsPage();
-    if (!ok) {
-      await LocationService.openLocationSettings();
-    }
-  }
-
   void _openSearch() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => CitySearchScreen(
@@ -786,53 +738,26 @@ class _LocationPageState extends State<_LocationPage> {
         const SizedBox(height: AppSpacing.xxxl),
         Text('Where are you based?', style: TextStyle(color: context.textPrimary, fontSize: 24, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        Text('Help us find people near you', style: TextStyle(color: context.textMuted, fontSize: 14)),
+        Text('Pick your city', style: TextStyle(color: context.textMuted, fontSize: 14)),
         const SizedBox(height: AppSpacing.xxxxl),
 
-        // GPS button
-        SizedBox(width: double.infinity, child: ElevatedButton.icon(
-          onPressed: _gpsLoading ? null : _useGPS,
-          icon: _gpsLoading
-              ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: context.bgColor))
-              : Icon(Icons.my_location_rounded, size: 20),
-          label: Text(_gpsLoading ? 'Detecting...' : 'Use my location',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: context.accent,
-            foregroundColor: AppColors.textOnEmerald,
-            minimumSize: const Size.fromHeight(52),
-          ),
-        )),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // Manual search
-        Center(child: GestureDetector(
-          onTap: _openSearch,
-          child: Text('Or search manually', style: TextStyle(
-            color: context.accent, fontSize: 14, fontWeight: FontWeight.w500,
-            decoration: TextDecoration.underline, decorationColor: context.accent.withValues(alpha: 0.4),
-          )),
-        )),
-
-        if (_error != null) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
-          if (_showOpenSettings) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: _openSettingsForLocation,
-                icon: Icon(Icons.settings_outlined, size: 16, color: context.accent),
-                label: Text('Open Settings',
-                    style: TextStyle(color: context.accent, fontWeight: FontWeight.w600)),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              ),
+        // Manual city search — the only path post V1 cleanup.
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _openSearch,
+            icon: const Icon(Icons.search_rounded, size: 20),
+            label: Text(
+              widget.city.isEmpty ? 'Search for your city' : 'Change city',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
-          ],
-        ],
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.accent,
+              foregroundColor: AppColors.textOnEmerald,
+              minimumSize: const Size.fromHeight(52),
+            ),
+          ),
+        ),
 
         // Location result
         if (hasLocation) ...[
@@ -922,24 +847,30 @@ class _LocationPageState extends State<_LocationPage> {
   }
 }
 
+/// V1 final cleanup (2026-05-13): the AvatarPicker grid (50
+/// custom-painted warrior avatars) was removed. Photo upload is the
+/// only path; users without a photo cannot complete onboarding (see
+/// `_validateCompletion`).
 class _PhotoPage extends StatelessWidget {
   final String? photoUrl;
-  final int? avatarId;
   final ValueChanged<String?> onPhotoSelected;
-  final ValueChanged<int> onAvatarSelected;
   final VoidCallback onNext;
-  const _PhotoPage({required this.photoUrl, this.avatarId, required this.onPhotoSelected, required this.onAvatarSelected, required this.onNext});
+  const _PhotoPage({
+    required this.photoUrl,
+    required this.onPhotoSelected,
+    required this.onNext,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hasSelection = photoUrl != null || avatarId != null;
+    final hasSelection = photoUrl != null;
     return Padding(padding: const EdgeInsets.all(AppSpacing.xxl), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: AppSpacing.xxl),
         Text('Add a photo', style: TextStyle(color: context.textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.xs),
-        Text('Or choose an avatar to get started', style: TextStyle(color: context.textMuted, fontSize: 13)),
-        const SizedBox(height: AppSpacing.xxl),
+        Text('A real photo helps people trust your profile', style: TextStyle(color: context.textMuted, fontSize: 13)),
+        const SizedBox(height: AppSpacing.xxxxl),
 
         // Upload photo button
         Center(child: GestureDetector(
@@ -964,30 +895,19 @@ class _PhotoPage extends StatelessWidget {
                   ])),
           ),
         )),
-        const SizedBox(height: AppSpacing.xl),
-
-        // Divider with "or"
-        Row(children: [
-          Expanded(child: Container(height: 0.5, color: context.borderColor)),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text('or', style: TextStyle(color: context.textMuted, fontSize: 12))),
-          Expanded(child: Container(height: 0.5, color: context.borderColor)),
-        ]),
+        const Spacer(),
         const SizedBox(height: AppSpacing.lg),
 
-        // Avatar grid
-        Expanded(child: SingleChildScrollView(child: AvatarPicker(
-          selectedId: avatarId,
-          onSelected: onAvatarSelected,
-        ))),
-        const SizedBox(height: AppSpacing.md),
-
-        ElevatedButton(onPressed: onNext,
+        // Continue button — disabled until a photo is picked (no avatar
+        // fallback after V1 final cleanup).
+        ElevatedButton(
+            onPressed: hasSelection ? onNext : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: hasSelection ? context.accent : context.surfaceColor,
               foregroundColor: hasSelection ? AppColors.textOnEmerald : context.textMuted,
-              minimumSize: const Size.fromHeight(50)),
-            child: Text(hasSelection ? 'Continue' : 'Skip for now')),
+              minimumSize: const Size.fromHeight(50),
+            ),
+            child: const Text('Continue')),
         const SizedBox(height: AppSpacing.xxl),
     ]));
   }

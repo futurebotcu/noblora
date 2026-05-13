@@ -61,7 +61,8 @@ class FilterNotifier extends StateNotifier<FilterState> {
         socialEnergy: map['socialEnergy'] as String?,
         routine: map['routine'] as String?,
         faithSensitivity: map['faith'] as String?,
-        statusBadge: map['statusBadge'] as String?,
+        // V1 final cleanup: `statusBadge` key intentionally not read.
+        // Any legacy value in SharedPreferences is dropped on next load.
         bffLookingFor: map['bffLookingFor'] as String?,
         languages: (map['languages'] as List<dynamic>?)?.cast<String>() ?? [],
         interests: (map['interests'] as List<dynamic>?)?.cast<String>() ?? [],
@@ -88,7 +89,6 @@ class FilterNotifier extends StateNotifier<FilterState> {
       'socialEnergy': state.socialEnergy,
       'faith': state.faithSensitivity,
       'routine': state.routine,
-      'statusBadge': state.statusBadge,
       'bffLookingFor': state.bffLookingFor,
       'languages': state.languages,
       'interests': state.interests,
