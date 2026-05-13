@@ -3,7 +3,7 @@ import 'app_colors.dart';
 
 /// Context-aware theme tokens.
 extension ThemeTokens on BuildContext {
-  bool get isDark => true; // Always dark
+  bool get isDark => false; // PR 1: light theme baseline
 
   // ── SURFACES ──
   Color get bgColor         => AppColors.bg;
@@ -39,5 +39,5 @@ extension ThemeTokens on BuildContext {
 
   // ── OVERLAYS ──
   Color get shimmerBase      => AppColors.surfaceAlt;
-  Color get shimmerHighlight => AppColors.elevated;
+  Color get shimmerHighlight => AppColors.borderLight;
 }

@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PR 1 — Theme flipped to LIGHT (2026-05-13). ColorScheme is light;
+// primary = burgundy600 (via emerald alias for backwards compat). Component
+// theming stays the same shape so widget callsites are unaffected; only the
+// values reaching Material widgets change.
+// ═══════════════════════════════════════════════════════════════════════════
+
 class AppTheme {
   AppTheme._();
 
@@ -16,8 +23,8 @@ class AppTheme {
         onPrimary: a.onAccent,
         secondary: a.dim,
         onSecondary: a.onAccent,
-        surfaceTint: a.primary.withValues(alpha: 0.06),
-        outline: a.primary.withValues(alpha: 0.25),
+        surfaceTint: a.primary.withValues(alpha: 0.04),
+        outline: a.primary.withValues(alpha: 0.22),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -49,7 +56,7 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.bg,
         selectedItemColor: a.primary,
         unselectedItemColor: AppColors.textMuted,
         showSelectedLabels: true,
@@ -59,7 +66,7 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? Colors.white : AppColors.textMuted),
+            s.contains(WidgetState.selected) ? Colors.white : AppColors.surface),
         trackColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected) ? a.primary : AppColors.borderStrong),
         trackOutlineColor: WidgetStateProperty.resolveWith((s) =>
@@ -75,7 +82,7 @@ class AppTheme {
         fillColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected) ? a.primary : Colors.transparent),
         checkColor: const WidgetStatePropertyAll(Colors.white),
-        side: const BorderSide(color: AppColors.border, width: 1.5),
+        side: const BorderSide(color: AppColors.borderStrong, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
       radioTheme: RadioThemeData(
@@ -84,8 +91,8 @@ class AppTheme {
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: a.primary,
-        linearTrackColor: AppColors.borderStrong,
-        circularTrackColor: AppColors.borderStrong,
+        linearTrackColor: AppColors.borderLight,
+        circularTrackColor: AppColors.borderLight,
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: a.primary,
@@ -136,10 +143,10 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0x152C8C68)),
+          side: BorderSide(color: a.primary.withValues(alpha: 0.10)),
         ),
-        elevation: 16,
-        shadowColor: const Color(0x52000000),
+        elevation: 8,
+        shadowColor: const Color(0x1F000000),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.elevated,
@@ -147,12 +154,12 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        elevation: 16,
-        shadowColor: Color(0x52000000),
+        elevation: 8,
+        shadowColor: Color(0x1F000000),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.elevated,
-        contentTextStyle: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
@@ -163,7 +170,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceAlt,
-        selectedColor: AppColors.emerald900,
+        selectedColor: AppColors.burgundy50,
         disabledColor: AppColors.surfaceAlt,
         side: const BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
@@ -178,15 +185,15 @@ class AppTheme {
   static ThemeData darkWithAccent(AccentColor a) => withAccent(a);
 
   // ══════════════════════════════════════════════════════════════
-  // BASE THEME — Dark Premium
+  // BASE THEME — Light Premium
   // ══════════════════════════════════════════════════════════════
 
   static ThemeData get base {
-    return ThemeData.dark().copyWith(
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.emerald600,
+    return ThemeData.light().copyWith(
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.burgundy600,
         onPrimary: AppColors.textOnEmerald,
-        secondary: AppColors.emerald800,
+        secondary: AppColors.burgundy800,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
         error: AppColors.error,
@@ -194,7 +201,7 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.bg,
       cardColor: AppColors.card,
-      dividerColor: AppColors.border,
+      dividerColor: AppColors.borderLight,
       textTheme: _textTheme(),
       pageTransitionsTheme: _transitions,
     );
