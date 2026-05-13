@@ -79,7 +79,11 @@ class ProfileCard {
       bio: bio,
       photoUrl: photoUrl,
       education: (row['profile_data'] as Map<String, dynamic>?)?['education_level'] as String?,
-      profession: row['profession'] as String?,
+      // R-new(occupation-typo) — DB column is `occupation`, not
+      // `profession`. The prior read silently returned null on every
+      // Discover card so profession never rendered. Companion to the
+      // onboarding payload fix.
+      profession: row['occupation'] as String?,
       interests:
           (row['hobbies'] as List<dynamic>?)?.cast<String>() ?? [],
       languages:

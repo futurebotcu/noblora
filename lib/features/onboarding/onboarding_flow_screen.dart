@@ -176,7 +176,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlowScreen> {
             // R18 — `bff_avatar_url`, `bff_active`, `bff_visible` writes
             // removed (BFF pulled from V1). DB columns untouched.
             'looking_for': 'Serious relationship',
-            if (_occupation.isNotEmpty) 'profession': _occupation,
+            // R-new(occupation-typo) — DB column is `occupation`; the prior
+            // key `'profession'` PATCH'd a non-existent column and PostgREST
+            // returned 42703 -> HTTP 400, surfacing as "We couldn't save
+            // your profile" on the onboarding completion step. Verified via
+            // SELECT profession FROM profiles -> ERROR 42703 (2026-05-13).
+            if (_occupation.isNotEmpty) 'occupation': _occupation,
             if (_avatarId != null) 'avatar_id': _avatarId,
             'is_onboarded': true,
             // Privacy defaults (explicit, not null)
