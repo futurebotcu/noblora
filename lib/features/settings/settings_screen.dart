@@ -412,17 +412,13 @@ class SettingsScreen extends ConsumerWidget {
                     onPressed: ctrl.text == 'DELETE'
                         ? () async {
                             Navigator.pop(ctx);
-                            if (!isMockMode) {
-                              final uid = ref.read(authProvider).userId;
-                              if (uid != null) {
-                                await ref
-                                    .read(profileRepositoryProvider)
-                                    .updateProfile(uid, {
-                                  'is_paused': true,
-                                  'verification_status': 'deletion_requested'
-                                });
-                              }
-                            }
+                            // M0 follow-up — route through the SECDEF RPC so
+                            // the verification_status write passes the
+                            // trust-lockdown trigger. Direct UPDATE is now
+                            // blocked.
+                            await ref
+                                .read(profileRepositoryProvider)
+                                .requestAccountDeletion();
                             if (context.mounted) {
                               Navigator.of(context)
                                   .popUntil((route) => route.isFirst);

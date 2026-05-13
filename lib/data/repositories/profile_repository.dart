@@ -257,6 +257,19 @@ class ProfileRepository {
     return Profile.fromJson(data);
   }
 
+  /// Flip the caller's profile to `is_paused=true` + `verification_status=
+  /// 'deletion_requested'` via the SECURITY DEFINER RPC. After M0 the
+  /// verification_status column is on the trust-lockdown protected list,
+  /// so the direct UPDATE path is rejected; the RPC sets the M0 bypass
+  /// marker for its own controlled write only. The RPC reads `auth.uid()`
+  /// internally — callers cannot target another user.
+  Future<void> requestAccountDeletion() async {
+    if (isMockMode) return;
+    final client = _supabase;
+    if (client == null) throw Exception('Supabase client not initialized');
+    await client.rpc('request_account_deletion');
+  }
+
   /// Append `otherId` to the caller's `blocked_users` list (no-op if already present).
   /// Read-then-write — preserves existing list semantics; future tightening could
   /// move this to an atomic `array_append` SQL helper.
